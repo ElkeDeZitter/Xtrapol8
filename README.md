@@ -1,7 +1,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <p align="center">
-  <a href="https://github.com/coquellen/Fextrapolation">
+  <a href="https://github.com/ElkeDeZitter/Xtrapol8">
     <img src="Xtrapol8_logo.png" alt="Logo" width="405" height="120">
   </a>
 
@@ -75,9 +75,9 @@ A more detailed description on how to setup CCP4 and phenix correctly for Xtrapo
    
 ### Installation
 
-Clone or download the Fextrapolation repository to a place in your PATH or use the full path for running. Take care that all files are stored in the same directory (don't move any file).
+Clone or download the Xtrapol8 repository to a place in your PATH or use the full path for running. Take care that all files are stored in the same directory (don't move any file).
    ```sh
-   git clone https://github.com/coquellen/Fextrapolation.git
+   git clone https://github.com/ElkeDeZitter/Xtrapol8.git
    ```
 
 
@@ -95,7 +95,7 @@ Upon running Xtrapol8 without arguments, you get the full list of arguments that
    alias 'Fextr=phenix.python <folder/to/Xtrapol8>/Fextr.py'
    ```
    
-An example input file with all changeable parameters can be found in the [example](https://github.com/coquellen/Fextrapolation/blob/master/Xtrapol8_example.phil) or in the [minimal_input](https://github.com/coquellen/Fextrapolation/blob/master/Xtrapol8_minimal.phil)
+An example input file with all changeable parameters can be found in the [example](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_example.phil) or in the [minimal_input](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_minimal.phil)
 
 * Example using input file:
   1. Change the Xtrapol8.phil using your favorite text editor:
@@ -120,13 +120,12 @@ An example input file with all changeable parameters can be found in the [exampl
   phenix.python <folder/to/Xtrapol8>/Fextr.py Xtrapol8.phil refinement.phenix_keywords.refine.cycles=3
   ```
   
-_For more information, please refer to the [Manual](https://github.com/coquellen/Fextrapolation/blob/master/Xtrapol8_Command_Line_Manual.pdf)_
+_For more information, please refer to the [Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_Command_Line_Manual.pdf)_
 
 <!-- LICENSE -->
 ## License
 
-We still need to discuss some form of license. But I think if you have obtained Phenix en CCP4 in a proper way, it will be fine.
-
+Xtrapol8 is published under the [MIT License](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE)
 
 
 <!-- CONTACT -->
