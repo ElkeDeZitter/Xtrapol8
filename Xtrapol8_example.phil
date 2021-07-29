@@ -1,0 +1,121 @@
+input {
+  reference_mtz = hiephiep.mtz
+  triggered_mtz = hieperdepiep.mtz
+  reference_pdb = hoera.pdb
+  additional_files = jeej.cif
+  high_resolution = None
+  low_resolution = None
+}
+occupancies {
+  low_occ = 0.2
+  high_occ = 0.4
+  steps = 2
+  list_occ = None
+}
+scaling {
+  b_scaling = no isotropic *anisotropic
+}
+f_and_maps {
+  fofo_type = *qfofo fofo kfofo
+  kweight_scale = 0.05
+  f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick \
+                            qfextr_calc fextr_calc kfextr_calc
+  all_maps = False
+  only_qweight = False
+  only_kweight = False
+  no_qweight = False
+  fast_and_furious = False
+  negative_and_missing = foff_and_fill foff_no_fill fcalc_and_fill \
+                         fcalc_no_fill fill_missing no_fill reject_and_fill \
+                         reject_no_fill *truncate_and_fill truncate_no_fill \
+                         massage_and_fill massage_no_fill zero_and_fill \
+                         zero_no_fill
+}
+map_explorer {
+  threshold = 3.5
+  peak = 4
+  radius = None
+  z_score = 2
+  use_occupancy_from_distance_analysis = False
+}
+refinement {
+  run_refinement = True
+  use_refmac_instead_of_phenix = False
+  phenix_keywords {
+    target_weights {
+      wxc_scale = 0.5
+      wxu_scale = 1
+      weight_selection_criteria {
+        bonds_rmsd = None
+        angles_rmsd = None
+        r_free_minus_r_work = None
+      }
+    }
+    refine {
+      strategy = *individual_sites individual_sites_real_space rigid_body \
+                 *individual_adp group_adp tls occupancies group_anomalous
+    }
+    main {
+      cycles = 5
+      ordered_solvent = False
+      simulated_annealing = False
+    }
+    simulated_annealing{
+      start_temperature = 5000
+      final_temperature = 300
+      cool_rate = 100
+      mode = every_macro_cycle *second_and_before_last once first first_half
+    }
+    map_sharpening {
+      map_sharpening = False
+    }
+    real_space_refine {
+      cycles = 5
+    }
+    density_modification {
+      density_modification = False
+      combine = *PERT OMIT
+      cycles = 10
+    }
+  }
+  refmac_keywords {
+    target_weights {
+      weight = *AUTO MATRIx
+      weighting_term = 0.2
+      experimental_sigmas = *NOEX EXPE
+    }
+    restraints {
+      jelly_body_refinement = False
+      jelly_body_sigma = 0.03
+      jelly_body_additional_restraints = None
+      external_restraints = None
+    }
+    refine {
+      type = *RESTrained UNREstrained RIGId
+      TLS = False
+      TLS_cycles = 20
+      bfac_set = 30
+      twinning = False
+      Brefinement = OVERall *ISOTropic
+      cycles = 20
+    }
+    map_sharpening {
+      map_sharpening = False
+    }
+    density_modification{
+      density_modification = False
+      combine = *PERT OMIT
+      cycles = 10
+    }
+  }
+}
+
+output {
+  outdir = fancy_party
+  outname = None
+  generate_phil_only = False
+  generate_fofo_only = False
+  open_coot = True
+  ddm_scale = 1.5
+  GUI = False
+}

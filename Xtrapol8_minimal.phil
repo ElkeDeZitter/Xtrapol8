@@ -1,0 +1,18 @@
+input {
+  reference_mtz = hiephiep.mtz
+  triggered_mtz = hieperdepiep.mtz
+  reference_pdb = hoera.pdb
+  additional_files = jeej.cif
+}
+occupancies {
+  low_occ = 0.2
+  high_occ = 0.4
+  steps = 2
+}
+f_and_maps {
+  fast_and_furious = False
+}
+output {
+  outdir = fancy_party
+  outname = None
+}
