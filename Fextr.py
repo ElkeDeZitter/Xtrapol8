@@ -107,6 +107,7 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
+import JK_utils
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -479,48 +480,10 @@ class DataHandler(object):
         self.mtz_on = mtz_on
         self.additional = additional
         self.outdir = outdir
-        
-    def check_outdir(self):
-        """
-        Check if output directory exists. Will be created if not yet existing
-        """
-        if self.outdir == None:
-            self.outdir = os.getcwd()
-        else:
-            if os.path.exists(self.outdir) == False:
-                try:
-                    os.mkdir(self.outdir)
-                    print('Output directory not present thus being created: %s'%(self.outdir))
-                except OSError:
-                    os.makedirs(self.outdir)
-            self.outdir = os.path.abspath(self.outdir)
 
-    def open_files(self):
-        """
-        check and read input files and output directory
-        """
-        self.check_outdir()
-        self.reflections_off = any_file(self.mtz_off, force_type="hkl", raise_sorry_if_errors=True)
-        self.reflections_on = any_file(self.mtz_on, force_type="hkl", raise_sorry_if_errors=True)
+    def open_pdb_or_cif(self):
         self.from_cif_create_pdb_file()
         self.model_in = any_file(self.check_and_delete_hydrogen(), force_type="pdb", raise_sorry_if_errors=True)
-
-    def check_all_files(self):
-
-        err = 0
-        err_m = ''
-        for fle in [self.pdb_in, self.mtz_off,self.mtz_on]:
-            if not self.check_single_file(fle):
-                err = 1
-                err_m += '\nFile not found: %s'%fle
-        if err == 0: self.open_files()
-        return err, err_m
-
-    def check_single_file(self, fle):
-        if fle == None:
-            return False
-        else:
-            return os.path.isfile(fle)
 
     def from_cif_create_pdb_file(self):
         """
@@ -555,7 +518,7 @@ class DataHandler(object):
             p.write(pdb_hier.hierarchy.as_pdb_string(crystal_symmetry=pdb_hier.input.crystal_symmetry()))
             # write the columns of the cif file into the pdb file
             p.close()
-            if self.check_single_file(self.outdir+'/'+get_name(self.pdb_in)+'.pdb'):
+            if check_single_file(self.outdir+'/'+ get_name(self.pdb_in)+'.pdb'):
             # check if the created pdb file exists
                 self.pdb_in = os.path.abspath(self.outdir+'/'+get_name(self.pdb_in)+'.pdb')
                 # the input model used is the created pdb file with the info from cif file
@@ -568,13 +531,12 @@ class DataHandler(object):
         pdb_hier = hierarchy.input(file_name=self.pdb_in)
         outname = 'model_edit.pdb'
         if pdb_hier.hierarchy.remove_hd() != 0:
-            print("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" %(outname))
-            print("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" % (outname), file=log)
+            JK_utils.print_terminal_and_log("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" %(outname))
             pdb_hier.hierarchy.remove_hd()
             p = open('%s/%s' %(self.outdir, outname), 'w')
             p.write(pdb_hier.hierarchy.as_pdb_string(crystal_symmetry=pdb_hier.input.crystal_symmetry()))
             p.close()
-            if self.check_single_file('%s/%s' %(self.outdir, outname)):
+            if check_single_file('%s/%s' %(self.outdir, outname)):
                 self.pdb_in = os.path.abspath('%s/%s' %(self.outdir, outname))
             else:
                 self.pdb_in = os.path.abspath(self.pdb_in)
@@ -582,35 +544,6 @@ class DataHandler(object):
             self.pdb_in = os.path.abspath(self.pdb_in) #We will need absolute path of pdb file for later refinements in subdirectories
         return self.pdb_in
 
-    def extract_fobs(self, low_res, high_res):
-        """
-        Extract the actual reflections from the data files and cut at resolution limits (if set)
-        For now Friedel pairs will have to be merged.
-        """
-        self.fobs_off, self.fobs_on = Column_extraction(self.reflections_off,
-                                                        self.reflections_on,
-                                                        low_res,
-                                                        high_res,
-                                                        log = log).extract_columns()
-        
-        if self.fobs_off.anomalous_flag():
-            print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.", file=log)
-            print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
-            self.fobs_off = self.fobs_off.average_bijvoet_mates()
-            self.fobs_on  = self.fobs_on.average_bijvoet_mates()
-        
-        self.fobs_off = self.fobs_off.map_to_asu()
-        #self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
-        self.fobs_on  = self.fobs_on.map_to_asu()
-        #self.fobs_on  = self.resolution_cutoff(self.fobs_on, low_res, high_res)
-
-        #self.fobs_off = self.extract_colums(self.reflections_off, low_res, high_res)
-        #self.fobs_on  = self.extract_colums(self.reflections_on, low_res, high_res)
-        #self.fobs_on = []
-        #for on in self.reflections_on:
-            #f_on = self.extract_colums(on, res)
-            #self.fobs_on.append(f_on)
-            
     def get_UC_and_SG(self):
         """
         Extract unit cell and space group from the model.
@@ -758,9 +691,8 @@ class DataHandler(object):
                 print("Rfree fraction too low, re-assign Rfree flags")
                 self.rfree = self.fmodel.f_obs().generate_r_free_flags(fraction=0.05) #during the two scaling steps some structure factors might be removed and thus new Rfree reflections have to be chosen
                 self.fmodel.update(r_free_flags = self.rfree)
-        
-            
-    def get_common_indices_and_Fobs_off(self, f_obs_on):
+
+    def get_common_indices_and_Fobs_off(self, f_obs_on, log):
         """
         Ugly function to compare all reflections and only keep those that are common between the datasets
         """
@@ -828,7 +760,7 @@ class DataHandler(object):
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
         
-    def scale_fobss(self, b_scaling):
+    def scale_fobss(self, b_scaling, log):
         """
         Scale triggered mtz with internally scaled reference mtz using scaleit.
         """
@@ -846,11 +778,12 @@ class FobsFobs(object):
     """
     Class for the calculation of weighting difference structure factors and maps.
     """
-    def __init__(self, fobs_on, fobs_off):
+    def __init__(self, log, fobs_on, fobs_off):
         self.fobs_on    = fobs_on
         self.fobs_off   = fobs_off
         self.indices    = fobs_off.indices()
         self.get_UC_and_SG()
+        self.log=log
         
     def get_UC_and_SG(self):
         """
@@ -877,21 +810,21 @@ class FobsFobs(object):
         """
         #q = calculate_q(self.fobs_off, self.fobs_on)
         #q_ms   = make_miller_array(self.fobs_off.data(), q, self.SG, self.UC, self.indices)
-        q_ms, self.q_av = calculate_q(self.fobs_off, self.fobs_on, log=log)
+        q_ms, self.q_av = calculate_q(self.fobs_off, self.fobs_on, log=self.log)
         self.q = q_ms.sigmas()
         
     def k_weighting(self, kweight_scale):
         """
         Calculate k-weight, still under development
         """
-        k_ms, self.k_av = calculate_k(self.fobs_off, self.fobs_on, kweight_scale = kweight_scale, log=log)
+        k_ms, self.k_av = calculate_k(self.fobs_off, self.fobs_on, kweight_scale = kweight_scale, log=self.log)
         self.k = k_ms.sigmas()
         
     def outlier_rejection(self):
         """
         Outlier rejection if no weighting is performed.
         """
-        c_ms = outlier_rejection_only(self.fobs_off, self.fobs_on, log=log)
+        c_ms = outlier_rejection_only(self.fobs_off, self.fobs_on, log=self.log)
         self.c = c_ms.sigmas()
     
     def calculate_fdiff(self, kweight_scale = 0.05):
@@ -901,7 +834,7 @@ class FobsFobs(object):
         self.get_fdif()
         self.get_sigf()
         
-        print("----Calculating weight factors----", file=log)
+        print("----Calculating weight factors----", file=self.log)
         #calculate with qweight
         self.q_weighting()
         weight      = self.q/self.q_av
@@ -941,6 +874,7 @@ class Fextrapolate(object):
     Class for the calculation, analysis and usage of extrapolated structure factors.
     """
     def __init__(self,
+                 log,
                  fdif,
                  fdif_q,
                  fdif_k,
@@ -954,6 +888,7 @@ class Fextrapolate(object):
                  occ=1,
                  name_out='Fextrapolate',
                  neg_refl_handle='fill_missing'):
+        self.log=log
         self.fdif            = fdif
         self.fdif_q          = fdif_q
         self.fdif_k          = fdif_k
@@ -1065,7 +1000,7 @@ class Fextrapolate(object):
         return ((self.fobs_on.sigmas()*self.alf)**2+(self.fobs_off.sigmas()*(1-self.alf))**2)**(0.5)
     
     def message(self):
-        print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf), file=log)
+        print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf), file=self.log)
         print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf))
         
     #Next come several functions for the handling of negative reflections
@@ -1074,7 +1009,7 @@ class Fextrapolate(object):
         Remove negative reflections. Should be called in case of "reject_and_fill" or "reject_no_fill"
         """
         print("Negative reflections will be removed")
-        print("Negative reflections will be removed",file=log)
+        print("Negative reflections will be removed",file=self.log)
         return ms.select(ms.data()>=0)
         
     def negatives_zero(self, ms):
@@ -1082,7 +1017,7 @@ class Fextrapolate(object):
         Set negative reflections to zero. Should be called in case of "zero_and_fill" or "zero_no_fill"
         """
         print("Negative reflections will be set to 0")
-        print("Negative reflections will be set to 0",file=log)
+        print("Negative reflections will be set to 0",file=self.log)
         data = ms.data().deep_copy()
         data.set_selected(~(ms.data()>=0),0)
         sigmas = ms.sigmas().deep_copy()
@@ -1096,7 +1031,7 @@ class Fextrapolate(object):
         Add the minimum value to all refletcions. This makes no sense
         """
         #print("Add constant to all relfections to avoid negative reflections")
-        #print("Add constant to all relfections to avoid negative reflections",file=log)        
+        #print("Add constant to all relfections to avoid negative reflections",file=self.log)
         #return miller.array(miller_set = ms,
                             #data       = ms.data()-flex.min(ms.data()),
                             #sigmas     = ms.sigmas())
@@ -1106,7 +1041,7 @@ class Fextrapolate(object):
         Replace the negative reflections by fcalc. Should be called in case of "fcalc_and_fill" or "fcalc_no_fill"
         """
         print("Negative reflecitons replaced by Fcalc")
-        print("Negative reflecitons replaced by Fcalc",file=log)        
+        print("Negative reflecitons replaced by Fcalc",file=self.log)
         data = ms.data().deep_copy()
         sel = ms.data()<0
         data.set_selected(sel, self.fmodel_fobs_off.f_model().amplitudes().data())
@@ -1119,7 +1054,7 @@ class Fextrapolate(object):
         Replace the negative reflections by Fobs_reference. Should be called in case of "fref_and_fill" or "fref_no_fill"
         """
         print("Negative reflecitons replaced by Foff")
-        print("Negative reflecitons replaced by Foff",file=log)        
+        print("Negative reflecitons replaced by Foff",file=self.log)
         data = ms.data().deep_copy()
         sel = ms.data()<0
         data.set_selected(sel, self.fmodel_fobs_off.f_obs().data())
@@ -1135,7 +1070,7 @@ class Fextrapolate(object):
         This means that also the values of the possitive reflecions are altered in order to fulfill the Wilson distrubtions
         """
         print("Square Fs to estimate Is, but keep sign of Fs")
-        print("Square Fs to estimate Is, but keep sign of Fs", file=log)
+        print("Square Fs to estimate Is, but keep sign of Fs", file=self.log)
         I_data = ms.data()**2
         I_data.set_selected(ms.data()<0, I_data*(-1))
         I_sigmas = ms.sigmas()*ms.data()
@@ -1155,9 +1090,9 @@ class Fextrapolate(object):
         mtz_dataset.mtz_object().write(outname)
         
         if algorithm == 'truncate':
-            Corrected_Fs = Extrapolated_column_extraction(outname, labels, log).get_Fs_from_truncate()
+            Corrected_Fs = Extrapolated_column_extraction(outname, labels, self.log).get_Fs_from_truncate()
         else:
-            Corrected_Fs = Extrapolated_column_extraction(outname, labels, log).get_Fs_from_reflection_file_converter()
+            Corrected_Fs = Extrapolated_column_extraction(outname, labels, self.log).get_Fs_from_reflection_file_converter()
         
         if Corrected_Fs==None:
             if "no_fill" in self.neg_refl_handle:
@@ -1165,7 +1100,7 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
             print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
+            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=self.log)
             Corrected_Fs = self.negatives_reject(ms)
         else:
             Corrected_Fs = Corrected_Fs.map_to_asu()
@@ -1191,15 +1126,15 @@ class Fextrapolate(object):
             self.maptype = 'Fextr'
         self.message()
         
-        neg_neflecions_binning(self.fextr_ms, self.maptype, log=log)
+        neg_neflecions_binning(self.fextr_ms, self.maptype, log=self.log)
         neg_reflections = self.fextr_ms.select(~(self.fextr_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fextr_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
                 %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_ms.data().size() *100))
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
-                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_ms.data().size() *100),file=log)
+                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_ms.data().size() *100),file=self.log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=log)
+            print("Negative reflection handling:", file=self.log)
             print("Negative reflection handling:")
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_ms = self.negatives_reject(self.fextr_ms)
@@ -1219,7 +1154,7 @@ class Fextrapolate(object):
                 fextr_ms = self.negatives_foff(self.fextr_ms)
                 self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
             elif self.neg_refl_handle in ['truncate_and_fill', 'truncate_no_fill']:
-                fextr_ms = self.convert_to_I_then_to_F(self.fextr_ms, self.maptype, algorithm='truncate')
+                fextr_ms = self.convert_to_I_then_to_F( self.fextr_ms, self.maptype, algorithm='truncate')
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
                 self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
             # elif self.neg_refl_handle in ['massage_and_fill', 'massage_no_fill']:
@@ -1239,7 +1174,7 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
             print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
+            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=self.log)
             fextr_ms = self.negatives_reject(self.fextr_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
             self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
@@ -1270,14 +1205,14 @@ class Fextrapolate(object):
             self.maptype = 'Fgenick'
         self.message()
         
-        neg_neflecions_binning(self.fgenick_ms, self.maptype, log=log)
+        neg_neflecions_binning(self.fgenick_ms, self.maptype, log=self.log)
         neg_reflections = self.fgenick_ms.select(~(self.fgenick_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fgenick_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100))
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
-                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100), file=log)
+                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100), file=self.log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=log)
+            print("Negative reflection handling:", file=self.log)
             print("Negative reflection handling:")
             self.fgenick_ms = self.negatives_reject(self.fgenick_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(self.fgenick_ms)
@@ -1306,14 +1241,14 @@ class Fextrapolate(object):
             self.maptype = 'Fextr_calc'
         self.message()
             
-        neg_neflecions_binning(self.fextr_calc_ms, self.maptype, log=log)
+        neg_neflecions_binning(self.fextr_calc_ms, self.maptype, log=self.log)
         neg_reflections = self.fextr_calc_ms.select(~(self.fextr_calc_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fextr_calc_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
         print("%d reflections with negative amplitudes (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100))
         print("%d reflections with negative amplitudes (%.2f %% of the data)"
-                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100), file=log)
+                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100), file=self.log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=log)
+            print("Negative reflection handling:", file=self.log)
             print("Negative reflection handling:")
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
@@ -1353,7 +1288,7 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
             print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
+            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=self.log)
             fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
             self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
@@ -1425,28 +1360,28 @@ class Fextrapolate(object):
                                                     sim_annealing_pars = keywords.simulated_annealing,
                                                     map_sharpening     = keywords.map_sharpening.map_sharpening,
                                                     weight_sel_crit    = keywords.target_weights.weight_selection_criteria,
-                                                    log                = log)
+                                                    log                = self.log)
         
-        #print("Refinements:", file=log)
+        #print("Refinements:", file=self.log)
         #print("Refinements:")
         
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
         mtz_out_rec, pdb_out_rec = ref.phenix_reciprocal_space_refinement()
-        print("Output reciprocal space refinement:", file=log)
+        print("Output reciprocal space refinement:", file=self.log)
         print("----------------")
         print("Output reciprocal space refinement:")
         if os.path.isfile(pdb_out_rec):
-            print("    pdb-file: %s"%(pdb_out_rec), file=log)
+            print("    pdb-file: %s"%(pdb_out_rec), file=self.log)
             print("    pdb-file: %s"%(pdb_out_rec))
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_rec = pdb_in
         if os.path.isfile(mtz_out_rec):
-            print("    mtz-file: %s"%(mtz_out_rec), file=log)
+            print("    mtz-file: %s"%(mtz_out_rec), file=self.log)
             print("    mtz-file: %s"%(mtz_out_rec))
         else:
-            print("    mtz-file not found. Refinement failed.", file=log)
+            print("    mtz-file not found. Refinement failed.", file=self.log)
             print("    mtz-file not found. Refinement failed.")
         print("----------------")
         
@@ -1454,25 +1389,25 @@ class Fextrapolate(object):
             print("DENSITY MODIFICATION WITH %s AND %s" %(mtz_F, pdb_out_rec))
             # mtz_dm = ref.phenix_density_modification(mtz_out_rec, pdb_out_rec)
             mtz_dm = ref.ccp4_dm(pdb_out_rec, keywords.density_modification.combine, keywords.density_modification.cycles)
-            print("Output density modification:", file=log)
+            print("Output density modification:", file=self.log)
             print("Output density modification:")
             if os.path.isfile(mtz_dm):
-                print("    mtz-file: %s"%(mtz_dm), file=log)
+                print("    mtz-file: %s"%(mtz_dm), file=self.log)
                 print("    mtz-file: %s" % (mtz_dm))
             else:
-                print("    mtz-file not found. Density modification failed.", file=log)
+                print("    mtz-file not found. Density modification failed.", file=self.log)
                 print("    mtz-file not found. Density modification failed.")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
         pdb_out_real = ref.phenix_real_space_refinement(mtz_map, pdb_in, column_labels)
-        print("Output real space refinement:", file=log)
+        print("Output real space refinement:", file=self.log)
         print("----------------")
         print("Output real space refinement:")
         if os.path.isfile(pdb_out_real):
-            print("    pdb-file: %s"%(pdb_out_real), file=log)
+            print("    pdb-file: %s"%(pdb_out_real), file=self.log)
             print("    pdb-file: %s"%(pdb_out_real))
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_real = pdb_in
         print("----------------")
@@ -1480,28 +1415,28 @@ class Fextrapolate(object):
         if (keywords.density_modification.density_modification and os.path.isfile(mtz_dm)):
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
             pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
-            print("Output real space refinement after reciprocal space refinement:", file=log)
+            print("Output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
             else:
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=self.log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
                 pdb_out_rec_real = pdb_out_rec
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
             pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
-            print("Output real space refinement after reciprocal space refinement:", file=log)
+            print("Output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
             else:
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=self.log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
                 pdb_out_rec_real = pdb_out_rec
             print("----------------")
@@ -1558,7 +1493,7 @@ class Fextrapolate(object):
                  dm_combine            = keywords.density_modification.combine,
                  dm_ncycle             = keywords.density_modification.cycles)
 
-        print("Refinements:", file=log)
+        print("Refinements:", file=self.log)
         #print("Refinements:")
             
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
@@ -1566,49 +1501,49 @@ class Fextrapolate(object):
             mtz_out_rec, pdb_out_rec, mtz_dm = ref.refmac_reciprocal_space_refinement()
         else:
             mtz_out_rec, pdb_out_rec,_ = ref.refmac_reciprocal_space_refinement()
-        print("output reciprocal space refinement:", file=log)
+        print("output reciprocal space refinement:", file=self.log)
         print("----------------")
         print("output reciprocal space refinement:")
         if os.path.isfile(pdb_out_rec):
-            print("    pdb-file: %s"%(pdb_out_rec), file=log)
+            print("    pdb-file: %s"%(pdb_out_rec), file=self.log)
             print("    pdb-file: %s"%(pdb_out_rec))
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_rec = pdb_in
         if os.path.isfile(mtz_out_rec):
-            print("    mtz-file: %s"%(mtz_out_rec), file=log)
+            print("    mtz-file: %s"%(mtz_out_rec), file=self.log)
             print("    mtz-file: %s"%(mtz_out_rec))
         elif mtz_out_rec == mtz_F:
-            print("    mtz-file not found. Refinement failed.", file=log)
+            print("    mtz-file not found. Refinement failed.", file=self.log)
             print("    mtz-file not found. Refinement failed.")
         else:
-            print("    mtz-file not found. Refinement failed.", file=log)
+            print("    mtz-file not found. Refinement failed.", file=self.log)
             print("    mtz-file not found. Refinement failed.")
         if keywords.density_modification.density_modification:
-            print("Output density modification:", file=log)
+            print("Output density modification:", file=self.log)
             print("Output density modification:")
             if mtz_dm == mtz_out_rec:
-                print("    mtz-file not found. Density modification failed.", file=log)
+                print("    mtz-file not found. Density modification failed.", file=self.log)
                 print("    mtz-file not found. Density modification failed.")                
             elif os.path.isfile(mtz_dm):
-                print("    mtz-file: %s" % (mtz_dm), file=log)
+                print("    mtz-file: %s" % (mtz_dm), file=self.log)
                 print("    mtz-file: %s" % (mtz_dm))
             else:
-                print("    mtz-file not found. Density modification failed.", file=log)
+                print("    mtz-file not found. Density modification failed.", file=self.log)
                 print("    mtz-file not found. Density modification failed.")
         print("----------------")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
         pdb_out_real = ref.coot_real_space_refinement(pdb_in, mtz_map, map_column_labels)
-        print("output real space refinement:", file=log)
+        print("output real space refinement:", file=self.log)
         print("----------------")
         print("output real space refinement:")
         if os.path.isfile(pdb_out_real):
-            print("    pdb-file: %s"%(pdb_out_real), file=log)
+            print("    pdb-file: %s"%(pdb_out_real), file=self.log)
             print("    pdb-file: %s"%(pdb_out_real))
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_real = pdb_in
         print("----------------")
@@ -1616,21 +1551,21 @@ class Fextrapolate(object):
         if keywords.density_modification.density_modification:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
             pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_dm, 'PHIDM, FOMDM, FOFCWT, PHFOFCWT' )
-            print("output real space refinement after reciprocal space refinement:", file=log)
+            print("output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
             else:
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
                 pdb_out_rec_real = pdb_out_rec
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
             pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
-            print("output real space refinement after reciprocal space refinement:", file=log)
+            print("output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):

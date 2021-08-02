@@ -26,6 +26,45 @@ from cctbx.array_family import flex
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
 
+def check_all_files(file_list):
+    '''
+    Check if the files exist
+    Args:
+        file_list:
+            list of files to check
+    Returns:
+
+    '''
+    err = 0
+    err_m = ''
+    for fle in file_list:
+        if not check_single_file(fle):
+            err = 1
+            err_m += '\nFile not found: %s' % fle
+
+    if err == 1:
+        print(err_m)
+        print("Check input files and rerun")
+        sys.exit()
+
+    return (err, err_m)
+
+def check_single_file(fle):
+    if fle == None:
+        return False
+    else:
+        return os.path.isfile(fle)
+
+def open_mtz(mtz_off, mtz_on):
+    """
+    get reflections from mtz files
+    """
+    reflections_off = any_file(mtz_off, force_type="hkl", raise_sorry_if_errors=True)
+    reflections_on = any_file(mtz_on, force_type="hkl", raise_sorry_if_errors=True)
+    return (reflections_off, reflections_on)
+
+
+
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
