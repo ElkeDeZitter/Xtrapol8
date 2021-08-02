@@ -88,18 +88,24 @@ class Column_extraction(object):
                     print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
                     print("Found I's: %s Conversion to Fs with truncate" %(labels))
                     
-                if (f_obs == None and i_obs != None):
+                if (f_obs == None and i_obs != None): #I's found, need to convert to F's
                     print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
                     print("Found I's: %s Conversion to Fs with truncate" %(labels))
                     
                     #merge bijvoet mates incase of anomalous data:
                     if ano_flag:
                         i_obs = i_obs.average_bijvoet_mates()
-                else:
-                    #merge bijvoet mates incase of anomalous data:
+                        
+                elif f_obs != None: #F's found
                     if ano_flag:
                         f_obs = f_obs.average_bijvoet_mates()
-
+                    
+                else: #No I's and no F's found, problem with input file
+                    print("Could not find F's nor I's, please check the input file.", file = self.log)
+                    hkl.show_summary(self.log)
+                    print("Could not find F's nor I's, please check the input file.")
+                    hkl.show_summary()
+                
                 return f_obs, i_obs, run_truncate, labels
 
         for array in hkl.file_object.as_miller_arrays():
@@ -119,19 +125,27 @@ class Column_extraction(object):
                     #i_obs = array.map_to_asu()
                     i_obs = array
                     labels = i_obs.info().labels
+                    #print("Found I's: %s" %(labels), file = self.log)
+                    #print("Found I's: %s" %(labels))
         
-        if (f_obs == None and i_obs != None):
+        if (f_obs == None and i_obs != None): #I's found, need to convert to F's
             print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
             print("Found I's: %s Conversion to Fs with truncate" %(labels))
             
             #merge bijvoet mates incase of anomalous data:
             if ano_flag:
                 i_obs = i_obs.average_bijvoet_mates()
-        else:
-            #merge bijvoet mates incase of anomalous data:
+                
+        elif f_obs != None: #F's found
             if ano_flag:
                 f_obs = f_obs.average_bijvoet_mates()
             
+        else: #No I's and no F's found, problem with input file
+            print("Could not find F's nor I's, please check the input file.", file = self.log)
+            hkl.show_summary(self.log)
+            print("Could not find F's nor I's, please check the input file.")
+            hkl.show_summary()
+    
         return f_obs, i_obs, run_truncate, labels
 
     def run_pointless(self, reflections, reflections_ref, prefix):
