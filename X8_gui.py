@@ -372,13 +372,15 @@ class MainFrame(wx.Frame):
             _ = wx.MessageDialog(self, message=message_err, style=wx.OK).ShowModal()
             return False
         else:
-            dlg = wx.MessageDialog(self, message="Warning: No output directory specified.\n Do you want to continue and use the current directory instead ?", style=wx.YES_NO).ShowModal()
-            if dlg == wx.ID_YES:
-                tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd())
-                return True
+            if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
+                dlg = wx.MessageDialog(self, message="Warning: No output directory specified.\n Do you want to continue and use the current directory instead ?", style=wx.YES_NO).ShowModal()
+                if dlg == wx.ID_YES:
+                    tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd())
+                    return True
+                else:
+                    return False
             else:
-                return False
-
+                return True
 
     def OnStopRun(self):
         self.notebook.StopRun()
