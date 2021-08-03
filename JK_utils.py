@@ -196,10 +196,11 @@ def create_cell_file (system, unique_axis, a, b, c, alpha, beta, gamma, newoutdi
     cell = open(cell_name, 'w')
     cell.write('CrystFEL unit cell file version 1.0\n')
     cell.write('\n')
-    cell.write('lattice_type = ' + system + '\n')
+    cell.write('lattice_type = ' + str(system) + '\n')
     spg = str(spacegroup)
     centering = spg[0]
-    cell.write('unique_axis = ' + unique_axis + '\n')
+    if unique_axis!=None:
+        cell.write('unique_axis = ' + str(unique_axis) + '\n')
     cell.write('centering = ' + centering + '\n')
     cell.write('a = ' + str(a) + ' A\n')
     cell.write('b = ' + str(b) + ' A\n')
@@ -313,6 +314,7 @@ def run_in_terminal (cmd, existing_files=False, wait=True):
             i+=1
             if i==100:
                 print_terminal_and_log("this is not working or you are running heavy stuff on a slow machine")
+                sys.exit()
                 break
 
         if existing_files != False:
@@ -324,6 +326,7 @@ def run_in_terminal (cmd, existing_files=False, wait=True):
                     i += 1
                     if i == 100:
                         print_terminal_and_log("this is not working or you are running heavy stuff on a slow machine")
+                        sys.exit()
                         break
 
                  print_terminal_and_log('%s created' % (file)) #print the file was created

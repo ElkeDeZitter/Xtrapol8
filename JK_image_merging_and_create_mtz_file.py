@@ -144,7 +144,7 @@ class Image_merging_and_create_mtz_file(object):
         JK_utils.print_terminal_and_log('---check_hkl---')
         _, check_hkl_output = JK_utils.run_in_terminal(
             "%s/check_hkl %s.hkl -y %s -p %s" % (self.dir_cryst_prog, self.output_file_name, self.pointgroup, cell_symmetry),
-            wait=False)  # run command in terminal
+            wait=True, existing_files=[outdir + '/shells.dat'])  # run command in terminal
 
         statistics_file_name = '%s/statistics_%s.hkl.log' % (outdir, self.output_file_name)
         statistics_file = open(statistics_file_name, 'w')  # create file for all figures of merit
@@ -161,7 +161,7 @@ class Image_merging_and_create_mtz_file(object):
                 _, compare_hkl_output = JK_utils.run_in_terminal(
                     "%s/compare_hkl %s.hkl1 %s.hkl2 -y %s -p %s --fom=%s %s" % (
                     self.dir_cryst_prog, self.output_file_name, self.output_file_name, self.pointgroup, cell_symmetry, stat_type,
-                    other_stats_compare_hkl), wait=False)  # run command in terminal
+                    other_stats_compare_hkl), wait=True, existing_files=[outdir + '/shells.dat'])  # run command in terminal
 
                 print('---compare_hkl--- %s' % (stat_type), file=statistics_file)
                 print(compare_hkl_output,
