@@ -112,7 +112,6 @@ class TabLog(wx.Panel):
         self.indexLOG = 0
         self.LOG_STEPS = []
         self.LOG_IDX = []
-        print("Init:", self.LOG_STEPS)
         self.buildLogSteps()
         self.buttons = []
 
@@ -147,7 +146,6 @@ class TabLog(wx.Panel):
             self.occ = occs[0]
 
         self.LOG_STEPS.extend(self.LOG_STEPS_INIT)
-        print("buildLogStesp", self.LOG_STEPS)
         self.LOG_IDX.extend(self.LOG_IDX_INIT)
 
         if self.FoOnly:
@@ -169,7 +167,6 @@ class TabLog(wx.Panel):
             self.LOG_ENTRIES = self.LOG_ENTRIES_CNC
 
         N = qftype * N_occ
-        print N, self.LOG_STEPS
         self.LOG_STEPS.extend(self.LOG_STEPS_CORE * N)
         self.LOG_IDX.extend(self.LOG_IDX_CORE * N)
 
@@ -196,11 +193,10 @@ class TabLog(wx.Panel):
                     caption = '%s - occ %s' % (qftype, occ)
                     self.buttons[self.LOG_IDX[self.indexLOG]]._label2 = caption
 
-                print self.indexLOG, self.LOG_IDX[self.indexLOG], len(self.LOG_STEPS)
                 if self.indexLOG < len(self.LOG_STEPS) - 1: self.indexLOG += 1
 
         except IndexError:
-            print self.indexLOG, len(self.LOG_STEPS)
+            pass
 
     def CreateCoot(self):
         Button2 = wx.Button(self, wx.ID_ANY, label="Open in Coot")
