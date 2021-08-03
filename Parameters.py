@@ -187,6 +187,11 @@ class Parameters():
             model_in = any_file(self.params.Xtrapol8.input.reference_pdb, force_type="pdb", raise_sorry_if_errors=True)
             unitcell = model_in.crystal_symmetry().unit_cell()
             self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off = unitcell.parameters()
+            spacegroup_off = str(model_in.crystal_symmetry().space_group_info())
+            self.spacegroup_off = ''
+            for i in spacegroup_off:
+                if i != ' ':
+                    self.spacegroup_off += i
 
         else: #get input unit cell parameters if given
 
@@ -215,13 +220,19 @@ class Parameters():
             else:
                 print('Since gamma was not given, the average gamma will be taken')
 
-        # get symmetry parameters
-        self.spacegroup_off = self.params.JackKnife.Off_state.spacegroup
-        if self.spacegroup_off == None:
-            print('Please give the space group for JackKnife')
-            sys.exit()
-        self.unique_axis_off = self.params.JackKnife.Off_state.unique_axis
-        if self.unique_axis_off == None or self.unique_axis_off == ['default']:
+            # get symmetry parameters
+            spacegroup_off = self.params.JackKnife.Off_state.spacegroup
+            if spacegroup_off == None:
+                print('Please give the space group for JackKnife')
+                sys.exit()
+            else:
+                self.spacegroup_off = ''
+                for i in spacegroup_off:
+                    if i != ' ':
+                        self.spacegroup_off += i
+
+        self.unique_axis_off = self.params.JackKnife.Off_state.unique_axis #??? comment recuperer unique axis du pdb?
+        if self.unique_axis_off == None or self.unique_axis_off == 'default':
             self.unique_axis_off = None
 
 
@@ -340,6 +351,13 @@ class Parameters():
                     pointgroup = '-43m'
                 if 221 <= nb_spacegroup <= 230:
                     pointgroup = 'm-3m'
+
+            #get the default unique axis corresponding to the system ??? correct?
+            if unique_axis==None:
+                if system=='monoclinic':
+                    unique_axis='b'
+                if system=='hexagonal' or system=='tetragonal':
+                    unique_axis='c'
 
             if unique_axis != None and (system == 'monoclinic' or system == 'hexagonal' or system == 'tetragonal'):
                 pointgroup = pointgroup + '_ua' + unique_axis
@@ -487,11 +505,12 @@ class Parameters():
 
             print_in_T_and_log('space group = %s\n'
                                             'system = %s\n'
+                                            'unique axis = %s\n'
                                             'point group = %s\n'
-                                            'unit cell = %s' % (spacegroup, system, pointgroup, unit_cell))
-            return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma)
+                                            'unit cell = %s' % (spacegroup, system, unique_axis, pointgroup, unit_cell))
+            return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma, unique_axis)
 
-        self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
+        self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
 
         # get nb of indexed images and number of images to use for JK
         self.n_frames_off = len(self.S_off.frames)  # search number of indexed images (frame is an indexed image)
@@ -549,16 +568,22 @@ class Parameters():
                 print('Since gamma was not given, the average gamma will be taken')
 
             # get symmetry parameters
-            self.spacegroup_on = self.params.JackKnife.On_state.spacegroup
-            if self.spacegroup_on == None:
+            spacegroup_on = self.params.JackKnife.On_state.spacegroup
+            if spacegroup_on == None:
                 print('Please give the space group for JackKnife')
                 sys.exit()
+            else:
+                self.spacegroup_on = ''
+                for i in spacegroup_on:
+                    if i != ' ':
+                        self.spacegroup_on += i
+
             self.unique_axis_on = self.params.JackKnife.On_state.unique_axis
-            if self.unique_axis_on == None or self.unique_axis_on == ['default']:
+            if self.unique_axis_on == None or self.unique_axis_on == 'default':
                 self.unique_axis_on = None
 
             # get pointgroup and system
-            self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on = get_system_and_pointgroup(
+            self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.unique_axis_on = get_system_and_pointgroup(
                 self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
                 self.unique_axis_on)
 
@@ -586,6 +611,9 @@ class Parameters():
             self.method_process_hkl = True
             self.other_process_hkl = None
             self.other_partialator = None
+
+        if self.other_process_hkl==None: self.other_process_hkl=''
+        if self.other_partialator==None: self.other_partialator=''
 
     #getting statistics
         self.other_stats_compare_hkl = self.params.JackKnife.Statistics.other_stats_compare_hkl
