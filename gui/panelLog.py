@@ -353,8 +353,8 @@ class TabOccResults(ScrolledPanel):
         self.occNfextrSizer.AddSpacer(30)
         self.occNfextrSizer.Add(self.coot_button, 0, wx.ALIGN_CENTER_VERTICAL, border=5)
         self.occNfextrSizer.Layout()
-        #self.occNfextrSizer.Hide(self.coot_button)
-	    #self.occNfextrSizer.Layout()
+        self.occNfextrSizer.Hide(self.coot_button)
+        self.occNfextrSizer.Layout()
         self.ImgSizer = wx.BoxSizer(wx.VERTICAL)
 
         self.mainSizer.AddSpacer(30)
@@ -414,7 +414,7 @@ class TabOccResults(ScrolledPanel):
         evt.Skip()
 
     def onCoot(self, evt):
-        script_coot = os.path.join(self.coot_scripts[self.fextr],'coot_all_%s.py' %self.Fextr_png_name)
+        script_coot = os.path.join(self.coot_scripts[self.fextr], 'coot_all_%s.py' % self.Fextr_png_name)
         os.system("coot --script %s &" % (script_coot))
 
     def addImg(self, filepath):
@@ -435,7 +435,6 @@ class TabOccResults(ScrolledPanel):
             self.FitInside()
 
     def onFinished(self):
-        self.finished = True
         fextrs = self.options.f_and_maps.f_extrapolated_and_maps
         for fextr in fextrs:
             if fextr.startswith('q'):
