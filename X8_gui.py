@@ -707,9 +707,9 @@ class MainFrame(wx.Frame):
 
         X8Mode = tabExt.X8Modes.GetSelection()
         if X8Mode == 1:
-            tobeparsed += "f_and_maps.fast_and_furious = True"
+            tobeparsed += "f_and_maps.fast_and_furious = True\n"
         if X8Mode == 2:
-            tobeparsed += "output.generate_fofo_only = True"
+            tobeparsed += "output.generate_fofo_only = True\n"
 
 
         ################################
