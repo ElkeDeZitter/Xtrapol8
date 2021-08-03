@@ -141,7 +141,7 @@ class TabLog(wx.Panel):
         except TypeError:
             occs = np.linspace(self.options.occupancies.low_occ,
                                       self.options.occupancies.high_occ,
-                                      self.options.occupancies.steps, endpoint=True)
+                                      self.options.occupancies.steps+1, endpoint=True)
             N_occ = np.size(occs)
             self.occ = occs[0]
 
@@ -315,7 +315,7 @@ class TabOccResults(ScrolledPanel):
         except TypeError:
             self.occ_list = [str(choice) for choice in np.linspace(self.options.occupancies.low_occ,
                                                               self.options.occupancies.high_occ,
-                                                              self.options.occupancies.steps, endpoint=True)]
+                                                              self.options.occupancies.steps+1, endpoint=True)]
         self.OccChoice = wx.Choice(self, wx.ID_ANY, choices=self.occ_list)
         self.OccChoice.SetSelection(0)
         self.occ = self.occ_list[0]
