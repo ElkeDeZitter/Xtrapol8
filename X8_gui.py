@@ -411,6 +411,7 @@ class MainFrame(wx.Frame):
 
         # Clear List
         tabIO.list.DeleteAllItems()
+        tabIO.files = {}
         # Fill listCtrl with input files
         if user_params.input.reference_mtz is not None:
             index = tabIO.list.InsertStringItem(sys.maxint, user_params.input.reference_mtz)
