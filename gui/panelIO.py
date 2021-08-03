@@ -185,7 +185,7 @@ class TabIO(wx.Panel):
             self.defaultDir = os.path.dirname(path)
             _, ext = os.path.splitext(path)
 
-            if ext not in ['.pdb', '.cif', '.mtz']:
+            if ext not in ['.pdb', '.cif', '.mtz','.edits', '.edit']:
                 print("Sorry: this file type is not (yet?) accepted")
                 return
 
@@ -211,6 +211,9 @@ class TabIO(wx.Panel):
                     except AssertionError:
                         self.list.SetStringItem(index, 1, 'Restraints')
                         self.files["Restraints"].append(path)
+            elif ext == '.edits' or ext == '.edit':
+                self.list.SetStringItem(index, 1, "Restraints")
+                self.files["Restraints"].append(path)
             else:
                 if self.refMTZ:
                     self.list.SetStringItem(index, 1, 'Triggered mtz')
