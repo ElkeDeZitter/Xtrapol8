@@ -101,7 +101,7 @@ class MainNotebook(AuiNotebook):
         self.threads = []
         self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.OnPageChanged, self)
         pub.subscribe(self.OnUpdateLog, 'update_log')
-        pub.subscribe(self.onFinished,'END')
+        pub.subscribe(self.onFinished, 'END')
 
     def StopRun(self):
         pageIdx = self.GetSelection()
@@ -161,7 +161,7 @@ class X8Thread(Thread):
 
             line = p.stdout.readline()
             if not line:
-                pub.sendMessage("END", Nlog = self.Nlog)
+                pub.sendMessage("END", Nlog=self.Nlog)
                 return
             if self.stopped():
                 print("Run stopped")
@@ -301,7 +301,7 @@ class MainFrame(wx.Frame):
                         print("%s does not exists" %filepath)
 
     def OnPageClose(self, evt):
-        run = self.notebook.GetSelection() -1
+        run = self.notebook.GetSelection()-1
         self.notebook.OnPageClose(run) # will check that the run is not running - will clean its thread list accordingly
         # Variables to update after deleting the run tab of the main notebook
         self.inputs.pop(run)
@@ -309,7 +309,6 @@ class MainFrame(wx.Frame):
 
     def OnClose(self, event):
         # Should check if any job is running
-
         if self.timer.IsRunning(): self.timer.Stop()
         if self.timerFextr.IsRunning(): self.timer.Stop()
         self.Destroy()
@@ -365,7 +364,6 @@ class MainFrame(wx.Frame):
         input_phil = self.extract_phil()
         modified_phil = master_phil.format(python_object=input_phil)
         modified_phil.show(out=open(filename, "w"))
-
 
     def SetWidgets(self, user_params):
 
@@ -594,7 +592,7 @@ class MainFrame(wx.Frame):
             :return: None
             """
             dlg = wx.FileDialog(self,
-                                message = 'Open File',
+                                message='Open File',
                                 defaultDir = '',
                                 defaultFile='',
                                 wildcard=wildcard,
@@ -611,8 +609,9 @@ class MainFrame(wx.Frame):
         :return: phil input file
         """
         #master_phil = iotbx.phil.parse(input_string,process_includes=True)
-        tabIO = self.notebook.Configure.tabIO
 
+        tabIO = self.notebook.Configure.tabIO
+        print(tabIO.files)
         #TODO: Here check that you have a single ref model, ref mtz and at least a trigg mtz
 
         tobeparsed = "input.reference_mtz = %s \n" % tabIO.files["Reference mtz"][0] + \

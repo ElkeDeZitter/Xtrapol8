@@ -38,7 +38,6 @@ class TabIO(wx.Panel):
         # Setting font
         self.defont = wx.Font(11, wx.MODERN, wx.NORMAL, wx.NORMAL, False, 'MS Shell Dlg 2')
         self.SetFont(self.defont)
-        # A majority of the sizers in this panel use a special class defined in Sizers.py
 
         # Dealing with inputs file
         self.list = wx.ListCtrl(self, wx.ID_ANY, style=wx.LC_REPORT | wx.LC_SINGLE_SEL)
@@ -46,12 +45,12 @@ class TabIO(wx.Panel):
         self.list.InsertColumn(1, 'Data type', width=150)
 
         HorBox = wx.BoxSizer(wx.HORIZONTAL)
-        self.AddButton = wx.Button(self, wx.ID_ANY, label="Add file", size=(100,30))
+        self.AddButton = wx.Button(self, wx.ID_ANY, label="Add file", size=(100, 30))
         self.DelButton = wx.Button(self, wx.ID_ANY, label="Remove file", size=(100, 30))
         highRes = wx.StaticText(self, wx.ID_ANY, label="High resolution :")
-        self.highRes = wx.TextCtrl(self, wx.ID_ANY, "", size=(80,30))
+        self.highRes = wx.TextCtrl(self, wx.ID_ANY, "", size=(80, 30))
         lowRes = wx.StaticText(self, wx.ID_ANY, label="Low resolution :")
-        self.lowRes = wx.TextCtrl(self, wx.ID_ANY, "", size=(80,30)) 
+        self.lowRes = wx.TextCtrl(self, wx.ID_ANY, "", size=(80, 30))
         HorBox.Add(self.AddButton, 0, wx.ALIGN_CENTER_VERTICAL)
         HorBox.AddSpacer(10)
         HorBox.Add(self.DelButton, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -85,8 +84,6 @@ class TabIO(wx.Panel):
         sizer_hor_out.Add(root_static, 1, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         sizer_hor_out.Add(self.outname, 0, wx.ALL, 10)
 
-        # Adding the phil only option
-        # self.FoFoOnly = wx.CheckBox(self, wx.ID_ANY, "Only Generate FoFo")
 
         # All outputs are gathered in a vertical StaticBoxSizer
         Output = wx.StaticBox(self, 1, "Output Files", size=(820, 800))
@@ -129,12 +126,6 @@ class TabIO(wx.Panel):
 
     def MenuSelectionCb(self, evt):
         ID = evt.GetId()
-        print("********************")
-        print("Brefore substituion:")
-        print("Reference mtz:")
-        print self.files['Reference mtz']
-        print("********************")
-        print("\n\n")
 
         fn = self.list.GetItem(self.index, 0).GetText()
         if ID == 1:
@@ -145,12 +136,6 @@ class TabIO(wx.Panel):
             self.files["Triggered mtz"].append(fn)
             self.files["Reference mtz"].remove(fn)
             self.list.SetStringItem(self.index, 1, "Triggered mtz")
-        print("********************")
-        print("After substituion:")
-        print("Reference mtz:")
-        print self.files['Reference mtz']
-        print("********************")
-        print("\n\n")
 
     def onBrowseDir(self, evt, text_static, multi, key):
         """
@@ -207,14 +192,25 @@ class TabIO(wx.Panel):
             index = self.list.InsertStringItem(sys.maxint, path)
             if ext == '.pdb':
                 self.list.SetStringItem(index, 1, 'Reference model')
+                self.files['Reference model'].append(path)
             elif ext == '.cif':
                 try:
                     cif = any_file(path, force_type="pdb")
                     self.list.SetStringItem(index, 1, 'Reference model')
                     self.files['Reference model'].append(path)
                 except ValueError:
-                    self.list.SetStringItem(index, 1, 'Restraints')
-                    self.files["Restraints"].append(path)
+                    try:
+                        cif = any_file(path, force_type="hkl")
+                        if self.refMTZ:
+                            self.list.SetStringItem(index, 1, "Triggered mtz")
+                            self.files["Triggered mtz"].append(path)
+                        else:
+                            self.list.SetStringItem(index, 1, 'Reference mtz')
+                            self.refMTZ = True
+                            self.files["Reference mtz"].append(path)
+                    except AssertionError:
+                        self.list.SetStringItem(index, 1, 'Restraints')
+                        self.files["Restraints"].append(path)
             else:
                 if self.refMTZ:
                     self.list.SetStringItem(index, 1, 'Triggered mtz')
@@ -243,14 +239,13 @@ class TabIO(wx.Panel):
             if self._dmin > self.dmin:
                 self.dmin = self._dmin
         self.highRes.SetValue("%4.2f" % self._dmin)
-        #print self._dmin, self._dmax
+
 
     def onDelFile(self, evt):
         if self.list.ItemCount > 0 and hasattr(self,"index"):
             fn = self.list.GetItem(self.index, 0).GetText()
             file_type = self.list.GetItem(self.index, 1).GetText()
             self.files[file_type].remove(fn)
-            print self.files[file_type]
             self.list.DeleteItem(self.index)
             evt.Skip()
 
