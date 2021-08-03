@@ -323,24 +323,62 @@ class MainFrame(wx.Frame):
             self.OnStopRun()
 
     def OnrunX8(self):
-        self.input_phil = self.extract_phil()
-        modified_phil = master_phil.format(python_object=self.input_phil)
-        modified_phil.show(out=open("tmp.phil", "w"))
-        # for debugging purpose
-        # self.input_phil = self.extract_debug_phil(input_debug_phil)
-        self.notebook.Runs += 1
-        self.notebook.ResultsBooks.append(NoteBookResults(self.notebook, self.input_phil))
-        self.inputs.append(self.input_phil)
-        self.notebook.AddPage(self.notebook.ResultsBooks[self.notebook.Runs], "Run #%i" % (self.notebook.Runs + 1))
-        if not self.timer.IsRunning():
-            self.timer.Start(2000)
-        thread = X8Thread(self.input_phil, self.notebook.Runs)
+        if self.check_user_input():
 
-        ## All this should be in a class that deals with the outputs
-        self.notebook.threads.append(thread)
-        self.pngs_idx.append(0)
-        self.inputs.append(self.input_phil)
-        thread.start()
+            self.input_phil = self.extract_phil()
+            modified_phil = master_phil.format(python_object=self.input_phil)
+            modified_phil.show(out=open("tmp.phil", "w"))
+            # for debugging purpose
+            # self.input_phil = self.extract_debug_phil(input_debug_phil)
+            self.notebook.Runs += 1
+            self.notebook.ResultsBooks.append(NoteBookResults(self.notebook, self.input_phil))
+            self.inputs.append(self.input_phil)
+            self.notebook.AddPage(self.notebook.ResultsBooks[self.notebook.Runs], "Run #%i" % (self.notebook.Runs + 1))
+            if not self.timer.IsRunning():
+                self.timer.Start(2000)
+            thread = X8Thread(self.input_phil, self.notebook.Runs)
+    
+            ## All this should be in a class that deals with the outputs
+            self.notebook.threads.append(thread)
+            self.pngs_idx.append(0)
+            self.inputs.append(self.input_phil)
+            thread.start()
+
+    def check_user_input(self):
+        tabIO = self.notebook.Configure.tabIO
+        message_err="Error with your input files.\nXtrapol8 needs:\n"
+        err = 0
+        if len(tabIO.files["Reference model"]) == 0:
+            message_err += "\n- a reference model (pdb or cif)"
+            err = 1
+        if len(tabIO.files["Reference model"]) > 1:
+            message_err += "\n- a single reference model (pdb or cif)"
+            err = 1
+        if len(tabIO.files["Reference mtz"]) == 0:
+            message_err += "\n- a reference mtz (mtz or cif)"
+            err = 1
+        if len(tabIO.files["Reference mtz"]) > 1:
+            message_err += "\n- a single reference mtz (mtz or cif)"
+            err = 1
+
+        if len(tabIO.files["Triggered mtz"]) == 0:
+            message_err += "\n- at least one triggered mtz (mtz or cif)"
+
+        if err == 1:
+            if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
+                message_err +='\n\n Warning: No output directory specified.'
+            else:
+                message_err += '.'
+            _ = wx.MessageDialog(self, message=message_err, style=wx.OK).ShowModal()
+            return False
+        else:
+            dlg = wx.MessageDialog(self, message="Warning: No output directory specified.\n Do you want to continue and use the current directory instead ?", style=wx.YES_NO).ShowModal()
+            if dlg == wx.ID_YES:
+                tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd())
+                return True
+            else:
+                return False
+
 
     def OnStopRun(self):
         self.notebook.StopRun()
@@ -611,7 +649,7 @@ class MainFrame(wx.Frame):
         #master_phil = iotbx.phil.parse(input_string,process_includes=True)
 
         tabIO = self.notebook.Configure.tabIO
-        print(tabIO.files)
+        #print(tabIO.files)
         #TODO: Here check that you have a single ref model, ref mtz and at least a trigg mtz
 
         tobeparsed = "input.reference_mtz = %s \n" % tabIO.files["Reference mtz"][0] + \
