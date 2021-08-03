@@ -228,7 +228,7 @@ class TabMainImg(ScrolledPanel):
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
         self.SetSizer(self.mainSizer)
         self.SetAutoLayout(1)
-        self.photoMaxSize = 900
+        self.photoMaxSize = 1000
 
     def addImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
