@@ -682,7 +682,7 @@ class MainFrame(wx.Frame):
         #######################
         tobeparsed += "output.outdir = %s\n" % self.get_txtctrl_values(tabIO.outdir_sizer.TextCtrl) + \
                       "output.outname = %s\n" % self.get_txtctrl_values(tabIO.outname) + \
-                      "output.GUI = True\n"
+                      "output.GUI = True\noutput.open_coot = False\n"
 
         #####################
         ### Occ - Ext_tab ###
