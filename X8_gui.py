@@ -263,12 +263,18 @@ class MainFrame(wx.Frame):
         :param event: wx.EVT_TIMER
         :return: None
         """
-        run = self.notebook.GetSelection()-1
+        run = self.notebook.GetSelection() - 1
+        print(run)
         if run >= 0 and self.notebook.threads[run].is_alive():
                 if self.pngs_idx[run] < len(self.pngs):
                     png = self.pngs[self.pngs_idx[run]]
+                    
                     filepath = os.path.join(self.inputs[run].output.outdir, png)
-
+                    print("Run1:")
+                    print(self.inputs[0].output.outdir)
+                    print("Run2")
+                    print(self.inputs[1].output.outdir)
+                    print(len(self.inputs))
                     if os.path.isfile(filepath):
                         self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
                         if self.pngs_idx[run] <= len(self.pngs) - 1:
@@ -332,7 +338,6 @@ class MainFrame(wx.Frame):
             # self.input_phil = self.extract_debug_phil(input_debug_phil)
             self.notebook.Runs += 1
             self.notebook.ResultsBooks.append(NoteBookResults(self.notebook, self.input_phil))
-            self.inputs.append(self.input_phil)
             self.notebook.AddPage(self.notebook.ResultsBooks[self.notebook.Runs], "Run #%i" % (self.notebook.Runs + 1))
             if not self.timer.IsRunning():
                 self.timer.Start(2000)
