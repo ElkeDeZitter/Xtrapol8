@@ -333,15 +333,11 @@ map_explorer{
 refinement{
     reciprocal_space_phil = None
         .type = path
-        .help = input file with (non-default) parameters for reciprocal space refinement. Replaces the refinement 
-        parameters from the Xtrapol8 run. Input files will automatically be filled but additional cif files can be 
-        added. Do not specify output parameters to avoid problems in the downstream analysis.
+        .help = input file with (non-default) parameters for reciprocal space refinement. Replaces the refinement parameters from the Xtrapol8 run. Input files will automatically be filled but additional cif files can be added. Do not specify output parameters to avoid problems in the downstream analysis.
         .expert_level = 0
     real_space_phil = None
         .type = path
-        .help = input file with (non-default) parameters for real space refinements. Replaces the refinement 
-        parameters from the Xtrapol8 run. Input files will automatically be filled but additional cif files can be 
-        added. Do not specify output parameters to avoid problems in the downstream analysis.
+        .help = input file with (non-default) parameters for real space refinements. Replaces the refinement parameters from the Xtrapol8 run. Input files will automatically be filled but additional cif files can be added. Do not specify output parameters to avoid problems in the downstream analysis.
         .expert_level = 0
 }
 """, process_includes=True)
