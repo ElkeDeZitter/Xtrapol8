@@ -157,9 +157,11 @@ class TabIO(wx.Panel):
         path = dlg.GetPath()
         
         if multi:
-            text_static.WriteText(path+'\n')
+            text_static.SetValue(path+'\n')
+            #text_static.WriteText(path+'\n')
         else:
-            text_static.WriteText(path)
+            text_static.SetValue(path)
+            #text_static.WriteText(path)
 
     def onAddFile(self, evt):
         """
