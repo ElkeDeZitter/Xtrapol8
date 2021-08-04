@@ -198,7 +198,7 @@ class TabIO(wx.Panel):
                     cif = any_file(path, force_type="pdb")
                     self.list.SetStringItem(index, 1, 'Reference model')
                     self.files['Reference model'].append(path)
-                except ValueError:
+                except:
                     try:
                         cif = any_file(path, force_type="hkl")
                         if self.refMTZ:
@@ -208,7 +208,7 @@ class TabIO(wx.Panel):
                             self.list.SetStringItem(index, 1, 'Reference mtz')
                             self.refMTZ = True
                             self.files["Reference mtz"].append(path)
-                    except AssertionError:
+                    except:
                         self.list.SetStringItem(index, 1, 'Restraints')
                         self.files["Restraints"].append(path)
             elif ext == '.edits' or ext == '.edit':
