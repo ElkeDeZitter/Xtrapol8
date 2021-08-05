@@ -17,15 +17,15 @@ Xtrapol8_master_phil = iotbx.phil.parse("""
 input{
     reference_mtz = None
         .type = path
-        .help = Reference data in mtz format (merged).
+        .help = Reference data in mtz or mmcif format (merged).
         .expert_level = 0
     triggered_mtz = None
         .type = path
-        .help = Triggered data in mtz format (merged).
+        .help = Triggered data in mtz or mmcif format (merged).
         .expert_level = 0
-    model_pdb = None
+    reference_pdb = None
         .type = path
-        .help = Reference coordinates in pdb format.
+        .help = Reference coordinates in pdb or mmcif format. (in former versions this was called model_pdb)
         .expert_level = 0
     additional_files = None
         .type = path
@@ -40,11 +40,6 @@ input{
         .type = float
         .help = Low resolution cutoff (Angstrom).
         .expert_level = 0
-    ligand_binding = False
-        .type = bool
-        .help = The difference between reference and triggered data comes from a ligand binding and the model pdb is the apo-protein. It makes no sense to continue with refinement without the modeled ligand.
-        .expert_level = 1
-        
     }
 occupancies{
     low_occ = 0.1
@@ -79,27 +74,31 @@ f_and_maps{
         .type = float(value_min=0, value_max=1)
         .help = scale factor for structure factor difference in k-weigting scheme (for calculation of kfofo)
         .expert_level = 3
-    f_extrapolated_and_maps = *qfextr fextr qfgenick fgenick qfextr_calc fextr_calc
+    f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
         .type = choice(multi=True)
-        .help = Extrapolated structure factors and map types: qFextr, Fextr: (q-weighted)-Fextr structure factors and maps by Coquelle method (Fextr= alpha*(Fobs,triggered-Fobs,reference)+Fobs,triggered, map 2mFextr|-D|Fcalc|, phi_model). qFgenick, Fgenick: (q-weighted)-Fextr structure factors and maps by Genick method (|Fextr|= alpha*(|Fobs,triggered|-|Fobs,reference|)+|Fobs,triggered|, map: m|Fextr|, phi_model). q_Fextr_calc, Fextr_calc: (q-weighted)-Fextr structure factors and maps by Fcalc method (|Fextr|= alpha*(|Fobs,triggered|-|Fobs,reference|)+|Fcalc|, map" 2m|Fextr|-D|Fcalc|, phi_model).
+        .help = Extrapolated structure factors and map types: qFextr, kFextr, Fextr: (q/k-weighted)-Fextr structure factors and maps by Coquelle method (Fextr= alpha*(Fobs,triggered-Fobs,reference)+Fobs,triggered, map 2mFextr|-D|Fcalc|, phi_model). qFgenick, kFgenick, Fgenick: (q/k-weighted)-Fextr structure factors and maps by Genick method (|Fextr|= alpha*(|Fobs,triggered|-|Fobs,reference|)+|Fobs,triggered|, map: m|Fextr|, phi_model). qFextr_calc, kFextr_calc, Fextr_calc: (q-weighted)-Fextr structure factors and maps by Fcalc method (|Fextr|= alpha*(|Fobs,triggered|-|Fobs,reference|)+|Fcalc|, map" 2m|Fextr|-D|Fcalc|, phi_model).
         .expert_level = 0
     all_maps = False
         .type = bool
-        .help = calculate qFextr, Fextr, qFgenick, Fgenick, q_Fextr_calc, Fextr_calc
+        .help = Calculate all extrapolated structure factors and maps
         .expert_level = 0
     only_qweight = False
         .type = bool
-        .help = In combination with Fextrapolated_map_types or all_maps, calculate all extrapolated structure factors and maps with q-weighting
+        .help = Calculate all extrapolated structure factors and maps with q-weighting
         .expert_level = 0
-    no_qweight = False
+    only_kweight = False
         .type = bool
-        .help = In combination with Fextrapolated_map_types or all_maps, calculate all extrapolated structure factors and maps without q-weighting
+        .help = Calculate all extrapolated structure factors and maps with q-weighting
+        .expert_level = 0
+    only_no_weight = False
+        .type = bool
+        .help = Calculate all extrapolated structure factors and maps without q/k-weighting
         .expert_level = 0
     fast_and_furious = False
         .type = bool
-        .help = Run fast and furious (aka without supervision). Will only calculate qFextr and associated maps, use highest peaks for alpha/occupancy determination (alpha/occupancy will be nonsense if map_explorer parameters being bad), run refinement with finally with derived alpha/occupancy. Not recommended but can be usefull for a first quick evaluation.
+        .help = Run fast and furious (aka without supervision). Will only calculate qFextr and associated maps, use highest peaks for alpha/occupancy determination (alpha/occupancy will be nonsense if map_explorer parameters being bad), run refinement with finally with derived alpha/occupancy, use truncate_and_fill for negative and missing handling. Usefull for a first quick evaluation.
         .expert_level = 0
-    negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill fill_missing no_fill reject_and_fill reject_no_fill massage_and_fill massage_no_fill zero_and_fill zero_no_fill
+    negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill fill_missing no_fill reject_and_fill reject_no_fill zero_and_fill zero_no_fill
         .type = choice(multi=False)
         .help = Handling of negative and missing extrapolated reflections (note that this will not be applied on FoFo difference maps). Please check the manual for more information. This parameters is NOT applicable for (q)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied.
         .expert_level = 2
@@ -122,10 +121,14 @@ map_explorer{
         .expert_level = 0
     use_occupancy_from_distance_analysis = False
         .type = bool
-        .help = Use occupancy from determination based on the differences between model_pdb and real-space refined model (only in slow_and_curious mode) instead of map explorer
+        .help = Use occupancy from determination based on the differences between reference_pdb and real-space refined model (only in calm_and_curious mode) instead of map explorer
         .expert_level = 1
     }
 refinement{
+    run_refinement = True
+    .type = bool
+    .help = Run the automatic refinements. Setting this parameter to False can be useful when a manual intervention is required before running the refinements. The Refiner.py script can be used to run the refinements and subsequent analysis afterwards.
+    .expert_level = 1
     use_refmac_instead_of_phenix = False
         .type = bool
         .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine
@@ -170,6 +173,28 @@ refinement{
             .type = bool
             .help = Add and remove ordered solvent during reciprocal space refinement
             .expert_level = 0
+            simulated_annealing = False
+            .type = bool
+            .help = Simulated annealing during refinement
+            .expert_level = 1
+            }
+        simulated_annealing{
+            start_temperature = 5000
+            .type = float
+            .help = start temperature for simulated annealing
+            .expert_level = 2
+            final_temperature = 300
+            .type = float
+            .help = final temperature for simulated annealing
+            .expert_level = 2
+            cool_rate = 100
+            .type = float
+            .help = cool rate for simulated annealing
+            .expert_level = 2
+            mode = every_macro_cycle *second_and_before_last once first first_half
+            .type = choice(multi=False)
+            .help = simulated annealing mode
+            .expert_level = 2
             }
         map_sharpening{
             map_sharpening = False
@@ -186,7 +211,15 @@ refinement{
         density_modification{
             density_modification = False
             .type = bool
-            .help = use phenix.density_modification for density modification
+            .help = use dm (ccp4) for density modification
+            .expert_level = 2
+            combine = *PERT OMIT
+            .type = choice(multi=False)
+            .help = dm combine mode
+            .expert_level = 2
+            cycles = 10
+            .type = int
+            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT
             .expert_level = 2
             }
         }
@@ -284,7 +317,7 @@ output{
         .expert_level = 0
     outname = None
         .type = str
-        .help = Output prefix (max 60 characters). Prefix of triggered_mtz will be used if not specified.
+        .help = Output prefix. Prefix of triggered_mtz will be used if not specified.
         .expert_level = 0
     generate_phil_only = False
         .type = bool
@@ -304,7 +337,7 @@ output{
         .expert_level = 2
     GUI = False
         .type = bool
-        .help = Xtrapol8 launched from GUI
+        .help = Xtrapol8 launched from GUI.
         .expert_level = 3
     }
 """, process_includes=True)
@@ -801,7 +834,7 @@ def run(args):
     DH = DataHandler(params.input.model_pdb,
                      Xtrapol8_params.input.additional_files,
                      Xtrapol8_params.output.outdir,
-                     Xtrapol8_params.input.model_pdb,
+                     Xtrapol8_params.input.reference_pdb,
                      params.refinement.reciprocal_space_phil,
                      params.refinement.real_space_phil,
                      params.map_explorer.residue_list)
