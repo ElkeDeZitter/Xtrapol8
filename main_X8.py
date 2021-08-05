@@ -49,12 +49,11 @@ import Parameters
 from Parameters import Parameters
 
 
-def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, main_log, only_Xtrapol8=False):
+def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, only_Xtrapol8=False):
 
 #init
     #get output directory for Xtrapol8
-    outdir = outdir_and_mtz_file_off_on[0] + '/Xtrapol8'
-    os.mkdir(outdir)
+    outdir = outdir_and_mtz_file_off_on[0]
     os.chdir(outdir)
     #get mtz files
     mtz_off = outdir_and_mtz_file_off_on[1]
@@ -64,12 +63,8 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, mai
     #get reflections
     reflections_off, reflections_on = open_mtz(mtz_off, mtz_on)
     #get log file
-    if only_Xtrapol8==False:
-        #create new log file
-        logname, log = JK_utils.create_log(outdir)
-        print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' %(mtz_off, mtz_on, logname), file=main_log)
-    else: #launching only Xtrapol8
-        log = main_log #keep the main log
+    logname = outdir_and_mtz_file_off_on[3]
+    log = open(logname, "w")
 
 #function from Fextr.DH
     def extract_fobs(low_res, high_res):

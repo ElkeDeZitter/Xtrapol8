@@ -97,17 +97,7 @@ class Parameters():
         if self.processors > multiprocessing.cpu_count():
             self.processors = multiprocessing.cpu_count()
 
-        # get output name, or take prefix of triggered mtz or take dummy name if name is too long.
-        if self.params.output.outname == None:
-            self.params.output.outname = 'outname_not_defined'  # Fextr_utils.get_name(DH.mtz_on) ??? outname if not given
-        if len(self.params.output.outname) > 50:
-            self.outname = 'triggered'
-            print_in_T_and_log(
-                "output.outname='%s' is too long. It will be substituted by '%s' during the excecution of Xtrapol8 and at the end the file names will be converted to the real output names. Please take this into account when inspecting log files." % (
-                    self.params.output.outname, self.outname))
-            print_in_T_and_log('---------------------------')
-        else:
-            self.outname = self.params.output.outname
+
 
     def get_parameters_JK(self):
         '''
@@ -256,6 +246,8 @@ class Parameters():
                 spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma
             '''
 
+            merge_friedel_pairs = True #var to give a spacegroup with which the fliedel pairs will be merged when merging intensities
+
             # 1. Checking if spacegroup exists
             unit_cell = [a, b, c, alpha, beta, gamma]
             try:
@@ -265,19 +257,26 @@ class Parameters():
                 sys.exit()
 
             nb_spacegroup = crystal.symmetry.space_group_number(symmetry)
+            print('spacegroup number:', nb_spacegroup)
 
             # 2.  From spacegroup, getting system and pointgroup
             if nb_spacegroup in [1, 2]:
                 system = 'triclinic'
                 if nb_spacegroup == 1:
-                    pointgroup = '1'
+                    if merge_friedel_pairs:
+                        pointgroup = '-1'
+                    else:
+                        pointgroup = '1'
                 if nb_spacegroup == 2:
                     pointgroup = '-1'
 
             elif 3 <= nb_spacegroup <= 15:
                 system = 'monoclinic'
                 if 3 <= nb_spacegroup <= 5:
-                    pointgroup = '2'
+                    if merge_friedel_pairs:
+                        pointgroup = '2/m'
+                    else:
+                        pointgroup = '2'
                 if 6 <= nb_spacegroup <= 9:
                     pointgroup = 'm'
                 if 10 <= nb_spacegroup <= 15:
@@ -286,7 +285,10 @@ class Parameters():
             elif 16 <= nb_spacegroup <= 74:
                 system = 'orthogonal'
                 if 16 <= nb_spacegroup <= 24:
-                    pointgroup = '222'
+                    if merge_friedel_pairs:
+                        pointgroup = 'mmm'
+                    else:
+                        pointgroup = '222'
                 if 25 <= nb_spacegroup <= 46:
                     pointgroup = 'mm2'
                 if 47 <= nb_spacegroup <= 74:
@@ -295,28 +297,40 @@ class Parameters():
             elif 75 <= nb_spacegroup <= 142:
                 system = 'tetratgonal'
                 if 75 <= nb_spacegroup <= 80:
-                    pointgroup = '4'
+                    if merge_friedel_pairs:
+                        pointgroup = '-4'
+                    else:
+                        pointgroup = '4'
                 if 81 <= nb_spacegroup <= 82:
                     pointgroup = '-4'
                 if 83 <= nb_spacegroup <= 88:
                     pointgroup = '4/m'
                 if 89 <= nb_spacegroup <= 98:
-                    pointgroup = '422'
+                    if merge_friedel_pairs:
+                        pointgroup = '4/mmm'
+                    else:
+                        pointgroup = '422'
                 if 99 <= nb_spacegroup <= 110:
                     pointgroup = '4mm'
                 if 111 <= nb_spacegroup <= 122:
                     pointgroup = '-42m'
                 if 123 <= nb_spacegroup <= 142:
-                    pointgroup = 'mm'
+                    pointgroup = '4/m'
 
             elif 143 <= nb_spacegroup <= 167:
                 system = 'trigonal'
                 if 143 <= nb_spacegroup <= 146:
-                    pointgroup = '3'
+                    if merge_friedel_pairs:
+                        pointgroup = '-3'
+                    else:
+                        pointgroup = '3'
                 if 147 <= nb_spacegroup <= 148:
                     pointgroup = '-3'
                 if 149 <= nb_spacegroup <= 155:
-                    pointgroup = '312'
+                    if merge_friedel_pairs:
+                        pointgroup = '-31m'
+                    else:
+                        pointgroup = '312'
                 if 156 <= nb_spacegroup <= 161:
                     pointgroup = '3m'
                 if 162 <= nb_spacegroup <= 167:
@@ -325,28 +339,40 @@ class Parameters():
             elif 168 <= nb_spacegroup <= 194:
                 system = 'hexagonal'
                 if 168 <= nb_spacegroup <= 173:
-                    pointgroup = '6'
+                    if merge_friedel_pairs:
+                        pointgroup = '-6'
+                    else:
+                        pointgroup = '6'
                 if nb_spacegroup <= 174:
                     pointgroup = '-6'
                 if 175 <= nb_spacegroup <= 176:
                     pointgroup = '6/m'
                 if 177 <= nb_spacegroup <= 182:
-                    pointgroup = '622'
+                    if merge_friedel_pairs:
+                        pointgroup = '6/mmm'
+                    else:
+                        pointgroup = '622'
                 if 183 <= nb_spacegroup <= 186:
                     pointgroup = '6mm'
                 if 187 <= nb_spacegroup <= 190:
                     pointgroup = '-6m2'
                 if 191 <= nb_spacegroup <= 194:
-                    pointgroup = 'mm'
+                    pointgroup = '6/m'
 
             elif 195 <= nb_spacegroup <= 230:
                 system = 'cubic'
                 if 195 <= nb_spacegroup <= 199:
-                    pointgroup = '23'
+                    if merge_friedel_pairs:
+                        pointgroup = 'm-3'
+                    else:
+                        pointgroup = '23'
                 if 200 <= nb_spacegroup <= 206:
                     pointgroup = 'm-3'
                 if 207 <= nb_spacegroup <= 214:
-                    pointgroup = '432'
+                    if merge_friedel_pairs:
+                        pointgroup = 'm-3m'
+                    else:
+                        pointgroup = '432'
                 if 215 <= nb_spacegroup <= 220:
                     pointgroup = '-43m'
                 if 221 <= nb_spacegroup <= 230:
@@ -511,7 +537,6 @@ class Parameters():
             return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma, unique_axis)
 
         self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
-
         # get nb of indexed images and number of images to use for JK
         self.n_frames_off = len(self.S_off.frames)  # search number of indexed images (frame is an indexed image)
         self.n_frames_to_keep_off = int(self.n_frames_off * self.fraction)
@@ -586,7 +611,6 @@ class Parameters():
             self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.unique_axis_on = get_system_and_pointgroup(
                 self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
                 self.unique_axis_on)
-
             # get nb of indexed images and number of images to use for JK
             self.n_frames_on = len(S_on.frames)  # search number of indexed images (frame is an indexed image)
             self.n_frames_to_keep_on = int(self.n_frames_on * self.fraction)
@@ -620,13 +644,17 @@ class Parameters():
         if self.other_stats_compare_hkl == None:
             self.other_stats_compare_hkl = ''
 
-    # getting low and high resolution if specified ??? only if X8 a utiliser pour les stats
-    #     self.dmin = self.dmax = ''
-    #     if self.run_Xtrapol8:
-    #         if self.params.Xtrapol8.input.low_resolution != None:
-    #             self.dmin = self.params.Common_X8.low_resolution
-    #         if self.params.Xtrapol8.input.high_resolution != None:
-    #             self.dmax = self.params.Common_X8.high_resolution
+    #getting low and high resolution if specified only if run_Xtrapol8 too #??? add to check_hkl too?
+        self.lowres = self.highres = None
+        if self.run_Xtrapol8:
+            if self.params.Xtrapol8.input.low_resolution != None:
+                self.lowres = self.params.Common_X8.low_resolution
+                if not '--rmin' in self.other_stats_compare_hkl and not '--lowres' in self.other_stats_compare_hkl:
+                    self.other_stats_compare_hkl += ' --lowres ' + str(self.lowres) #low resolution added to the other_stats_compare_hkl
+            if self.params.Xtrapol8.input.high_resolution != None:
+                self.highres = self.params.Common_X8.high_resolution
+                if not '--rmax' in self.other_stats_compare_hkl and not '--highres' in self.other_stats_compare_hkl:
+                    self.other_stats_compare_hkl += ' --highres ' + str(self.highres) #high resolution added to the other_stats_compare_hkl
 
 #        return (
 #            self.repeats, self.stream_file, self.stream_file_name, self.fraction, self.percentage, self.n_frames_to_keep, self.pointgroup,
@@ -741,9 +769,62 @@ class Parameters():
             else:
                 self.params.Xtrapol8.occupancies.list_occ = self.occ_lst
 
+    def get_parameters_JK_X8_output(self, DH):
+        '''
+        Get the values of the output parameters from the phil file (for JK and/or X8)
+        Args:
+            params
+        Returns:
+            outname, output
+        '''
 
+        # get output name, or take prefix of triggered mtz or take dummy name if name is too long.
+        if self.params.output.outname == None:
+            if self.run_Xtrapol8 and not self.run_JackKnife:
+                self.params.output.outname = Fextr_utils.get_name(DH.mtz_on)
+            else:
+                self.params.output.outname = self.stream_file_name_on
 
+        if len(self.params.output.outname) > 50:
+            self.outname = 'triggered'
+            print_in_T_and_log(
+                "output.outname='%s' is too long. It will be substituted by '%s' during the excecution of Xtrapol8 and at the end the file names will be converted to the real output names. Please take this into account when inspecting log files." % (
+                    self.params.output.outname, self.outname))
+            print_in_T_and_log('---------------------------')
+        else:
+            self.outname = self.params.output.outname
 
+        print('GETTING OUTPUT DIRECTORY\n==============================================================')
+        #get output and change to output directory
+        self.startdir = os.getcwd()
+        if self.params.output.outdir != None and os.path.isdir(self.params.output.outdir):
+            self.outdir = self.params.output.outdir
+        elif self.params.output.outdir != None and os.path.exists(self.params.output.outdir)==False:
+            try:
+                os.mkdir(self.params.output.outdir)
+                print('Output directory not present thus being created: %s' % (self.params.output.outdir))
+            except OSError:
+                os.makedirs(self.params.output.outdir)
+            self.outdir = os.path.abspath(self.params.output.outdir)
+        else:
+            self.outdir = os.getcwd()
+
+        if not self.JK_one_stream_file:
+            outdir_0 = self.outdir + '/' + self.outname
+            if self.run_JackKnife:
+                outdir_0 = outdir_0 + '_JackKnife'
+            if self.run_Xtrapol8:
+                outdir_0 = outdir_0 + '_Xtrapol8'
+
+            outdir_i=outdir_0
+            i = 1
+            while os.path.isdir(outdir_i):
+                outdir_i = outdir_0 + '_' + str(i)
+                i += 1
+            self.outdir=outdir_i
+
+        if not os.path.isdir(self.outdir):
+            os.mkdir(self.outdir)
 
     def get_parameters_DH_scaleit_X8(self, DH):
 

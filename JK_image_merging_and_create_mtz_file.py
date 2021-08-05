@@ -7,11 +7,12 @@ from Fextr_utils import get_name
 
 class Image_merging_and_create_mtz_file(object):
 
-    def __init__(self, stream_file, output_file_name, pointgroup, dir_cryst_prog):
+    def __init__(self, stream_file, output_file_name, pointgroup, dir_cryst_prog, log):
         self.stream_file = stream_file
         self.output_file_name = output_file_name
         self.pointgroup = pointgroup
         self.dir_cryst_prog = dir_cryst_prog
+        self.log = log
 
 
     def merge_I_montecarlo(self, other_process_hkl):
@@ -41,15 +42,15 @@ class Image_merging_and_create_mtz_file(object):
         # merge intensities with montecarlo:
         process_hkl_done, _ = JK_utils.run_in_terminal("%s/process_hkl -i %s -o %s.hkl -y %s %s" % (
         self.dir_cryst_prog, self.stream_file, self.output_file_name, self.pointgroup, other_process_hkl),
-                                                       existing_files=[self.output_file_name + '.hkl'])
+                                                       existing_files=[self.output_file_name + '.hkl'], log=self.log)
         # merging of all the images
         process_hkl1_done, _ = JK_utils.run_in_terminal("%s/process_hkl -i %s -o  %s.hkl1 --even-only -y %s %s" % (
         self.dir_cryst_prog, self.stream_file, self.output_file_name, self.pointgroup, other_process_hkl),
-                                                        existing_files=[self.output_file_name + '.hkl1'])
+                                                        existing_files=[self.output_file_name + '.hkl1'], log=self.log)
         # merging of the even half of the images
         process_hkl2_done, _ = JK_utils.run_in_terminal("%s/process_hkl -i %s -o %s.hkl2 --odd-only -y %s %s" % (
         self.dir_cryst_prog, self.stream_file, self.output_file_name, self.pointgroup, other_process_hkl),
-                                                        existing_files=[self.output_file_name + '.hkl2'])
+                                                        existing_files=[self.output_file_name + '.hkl2'], log=self.log)
         # merging of the odd half of the images
 
         # file names
@@ -60,12 +61,12 @@ class Image_merging_and_create_mtz_file(object):
         # check if process_hkl done
         if process_hkl1_done == False or process_hkl2_done == False:
             do_hkl12_statistics = False  # parameters for figure of merit false
-            JK_utils.print_terminal_and_log('process_hkl did not succeed for the two halfs, the compared figure of merit will not be calculated')
+            JK_utils.print_terminal_and_log('process_hkl did not succeed for the two halfs, the compared figure of merit will not be calculated', log=self.log)
         else:
             do_hkl12_statistics = True  # parameters for figure of merit true
 
         if process_hkl_done == False:
-            print('Process_hkl did not succeed')
+            JK_utils.print_terminal_and_log('Process_hkl did not succeed', log=self.log)
             sys.exit()  # stop program
 
         return (hkl_file_name, do_hkl12_statistics)
@@ -89,13 +90,13 @@ class Image_merging_and_create_mtz_file(object):
         '''
 
         JK_utils.print_terminal_and_log(
-            '>>>MERGING INTENSITIES WITH PARTIALATOR<<<\n--------------------%s----------------------' % (self.stream_file))
+            '>>>MERGING INTENSITIES WITH PARTIALATOR<<<\n--------------------%s----------------------' % (self.stream_file), log=self.log)
 
         # merging of intensities with partialator
         partialator, _ = JK_utils.run_in_terminal("%s/partialator -i %s -o %s.hkl -y %s %s" % (
         self.dir_cryst_prog, self.stream_file, self.output_file_name, self.pointgroup, other_partialator),
                                                   existing_files=[self.output_file_name + '.hkl', self.output_file_name + '.hkl1',
-                                                                  self.output_file_name + '.hkl2'])
+                                                                  self.output_file_name + '.hkl2'], log=self.log)
 
         # file names
         hkl_file_name = self.output_file_name + '.hkl'
@@ -104,7 +105,7 @@ class Image_merging_and_create_mtz_file(object):
 
         # check if process_hkl done
         if partialator == False:
-            print('Partialator did not succeed')
+            JK_utils.print_terminal_and_log('Partialator did not succeed', log=self.log)
             sys.exit()  # stop program
         if partialator == True: do_hkl12_statistics = True  # if the partialator worked, the code can continue and statistics can be calculated
 
@@ -141,10 +142,10 @@ class Image_merging_and_create_mtz_file(object):
         JK_utils.print_terminal_and_log('>>>CALCULATING STATISTICS<<<\n------------------------------------------')
 
         # calculate figure of merit check_hkl
-        JK_utils.print_terminal_and_log('---check_hkl---')
+        JK_utils.print_terminal_and_log('---check_hkl---', log=self.log)
         _, check_hkl_output = JK_utils.run_in_terminal(
             "%s/check_hkl %s.hkl -y %s -p %s" % (self.dir_cryst_prog, self.output_file_name, self.pointgroup, cell_symmetry),
-            wait=True, existing_files=[outdir + '/shells.dat'])  # run command in terminal
+            wait=True, existing_files=[outdir + '/shells.dat'], log=self.log)  # run command in terminal
 
         statistics_file_name = '%s/statistics_%s.hkl.log' % (outdir, self.output_file_name)
         statistics_file = open(statistics_file_name, 'w')  # create file for all figures of merit
@@ -157,11 +158,11 @@ class Image_merging_and_create_mtz_file(object):
         if do_hkl12_statistics == True:
             # calculate figure of merit compare_hkl for 'Rsplit', 'CC','CCstar'
             for stat_type in ['Rsplit', 'CC', 'CCstar']:
-                JK_utils.print_terminal_and_log('---compare_hkl--- %s' % (stat_type))
+                JK_utils.print_terminal_and_log('---compare_hkl--- %s' % (stat_type), log=self.log)
                 _, compare_hkl_output = JK_utils.run_in_terminal(
                     "%s/compare_hkl %s.hkl1 %s.hkl2 -y %s -p %s --fom=%s %s" % (
                     self.dir_cryst_prog, self.output_file_name, self.output_file_name, self.pointgroup, cell_symmetry, stat_type,
-                    other_stats_compare_hkl), wait=True, existing_files=[outdir + '/shells.dat'])  # run command in terminal
+                    other_stats_compare_hkl), wait=True, existing_files=[outdir + '/shells.dat'], log=self.log)  # run command in terminal
 
                 print('---compare_hkl--- %s' % (stat_type), file=statistics_file)
                 print(compare_hkl_output,
@@ -242,7 +243,7 @@ class Image_merging_and_create_mtz_file(object):
         '''
 
         hkl_file_name = get_name(hkl_file)
-        JK_utils.print_terminal_and_log('>>>CREATE MTZ for %s<<<\n------------------------------------------' % (hkl_file_name))
+        JK_utils.print_terminal_and_log('>>>CREATE MTZ for %s<<<\n------------------------------------------' % (hkl_file_name), log=self.log)
 
         # get file names with format
         mtzoutfile = self.output_file_name + '.mtz'
@@ -262,7 +263,7 @@ class Image_merging_and_create_mtz_file(object):
         hkl_file_open.close()
         tmphkl_open.close()
 
-        JK_utils.print_terminal_and_log('Running f2mtz...')
+        JK_utils.print_terminal_and_log('Running f2mtz...', log=self.log)
         # run f2mtz in terminal to create mtz file
         JK_utils.run_in_terminal('unset SYMINFO\n'
                                  'f2mtz HKLIN %s HKLOUT %s > out.html << EOF\n'
@@ -275,7 +276,7 @@ class Image_merging_and_create_mtz_file(object):
                                  'CTYPE  H H H J     Q\n'
                                  'FORMAT "(3(F4.0,1X),F10.2,10X,F10.2)"\n'
                                  'EOF' % (tmphkl, mtzoutfile, a, b, c, alpha, beta, gamma, spacegroup),
-                                 existing_files=[mtzoutfile])
+                                 existing_files=[mtzoutfile], log=self.log)
 
         # remove tmphkl file???    os.remove(tmphkl)
         return mtzoutfile

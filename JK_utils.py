@@ -105,7 +105,7 @@ def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, strea
             str
             new output path
         table_dir_streamfile:
-            list of lists of 2 argument [[outdirfiles, newstreamfiledir],[outdirfiles, newstreamfiledir]...]
+            list of lists of 2 argument [[outdirfiles, newstreamfiledir, log],[outdirfiles, newstreamfiledir, log]...]
             list of output directory for every portion of images
     '''
 
@@ -147,13 +147,16 @@ def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, strea
             os.mkdir(outdirfiles)
         print('%s directory created' % (outdirfiles))
 
+    # 1,5.create log file
+        logname, log = create_log(outdirfiles)
+
     #2.create stream files
         newstreamfiledir = '%s/%s_%iimages.stream' % (outdirfiles, stream_file_name, n_frames_to_keep) #new stream file directory with new name
 
         Stream(stream_file).save_random_selection(n_frames_to_keep, newstreamfiledir) #creates a new stream file with only the number of random images to keep
         print_terminal_and_log('%s stream file created in %s' % (newstreamfiledir, outdirfiles))
 
-        table_dir_streamfile.append([outdirfiles, newstreamfiledir]) #add list of output directory and new stream file directory to the list
+        table_dir_streamfile.append([outdirfiles, newstreamfiledir, logname]) #add list of output directory and new stream file directory to the list
 
         # print the summary of the stream file created
         print_terminal_and_log("----> %s : %s_%iimages.stream <---- " % (i, stream_file_name,  n_frames_to_keep))
@@ -166,7 +169,8 @@ def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, strea
     if total == True:
         total_outdirfiles = newoutdir + '/' + stream_file_name + '_total'
         os.mkdir(total_outdirfiles)
-        table_dir_streamfile.append([total_outdirfiles, stream_file])  # add list of total output directory and stream file directory to the list
+        logname, log = create_log(total_outdirfiles)
+        table_dir_streamfile.append([total_outdirfiles, stream_file, logname])  # add list of total output directory and stream file directory to the list
 
     return (newoutdir, table_dir_streamfile)
 
@@ -274,7 +278,7 @@ def print_file_content(fle_in_dir, fle_out_dir):
         print_terminal_and_log('%s content copied into %s' % (fle_in_dir, fle_out_dir))
     return (filelines)
 
-def run_in_terminal (cmd, existing_files=False, wait=True):
+def run_in_terminal (cmd, existing_files=False, wait=True, log=None):
     '''
     Run the command in the terminal and wait until it has completed
 
@@ -329,7 +333,7 @@ def run_in_terminal (cmd, existing_files=False, wait=True):
                         sys.exit()
                         break
 
-                 print_terminal_and_log('%s created' % (file)) #print the file was created
+                 print_terminal_and_log('%s created' % (file), log=log) #print the file was created
 
         cmd_done = True #the command has been executed
 
@@ -338,14 +342,14 @@ def run_in_terminal (cmd, existing_files=False, wait=True):
         P = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE) # launch the command
         cmd_done = True  # the command has been executed
         _, cmd_output = P.communicate() #get the output of the terminal
-        print_terminal_and_log(cmd_output) #print the output of the terminal in terminal and log file
+        print_terminal_and_log(cmd_output, log=log) #print the output of the terminal in terminal and log file
 
     return (cmd_done, cmd_output)
 
 
 #class log():
 
-def create_log(outdir):
+def create_log(outdir, global_log=False):
     '''
     Generate log-file in the output directory
 
@@ -368,32 +372,34 @@ def create_log(outdir):
 
     #write the header for log file
     log = open(logname, "w")
-    global log
+    if global_log == True:
+        log_main=log
+        global log_main
     print("Xtrapol8 -- version 0.9.5 -- run date: %s" % (now), file=log)
     print('-----------------------------------------')
     print("Xtrapol8 -- version 0.9.5 -- run date: %s" % (now))
     return (logname, log)
 
-def move_log (logname, outdir, newoutdir):
-    '''
-    Move log file to new output directory
-    Args:
-        logname:
-            str
-            log file name
-        outdir:
-            path
-            current directory of the log file
-        newoutdir:
-            path
-            new directory where to move the log file
-    Returns:
+# def move_log (logname, outdir, newoutdir):
+#     '''
+#     Move log file to new output directory
+#     Args:
+#         logname:
+#             str
+#             log file name
+#         outdir:
+#             path
+#             current directory of the log file
+#         newoutdir:
+#             path
+#             new directory where to move the log file
+#     Returns:
+#
+#     '''
+#     if os.path.isfile(logname): #if the log file exists
+#         shutil.move(logname, logname.replace(outdir, newoutdir))
 
-    '''
-    if os.path.isfile(logname): #if the log file exists
-        shutil.move(logname, logname.replace(outdir, newoutdir))
-
-def print_terminal_and_log(x, log1=None):
+def print_terminal_and_log(x, log=None):
     '''
     Print x in the log file and the terminal
     Args:
@@ -402,38 +408,35 @@ def print_terminal_and_log(x, log1=None):
             element to print
     Returns:
     '''
-    if log1!=None and os.path.isfile(log1):
-        print(x, file=log1)
-        print(x)
-    else:
+    if log!=None:
         print(x, file=log)
         print(x)
-
-
+    else:
+        print(x, file=log_main)
+        print(x)
 
 #From Fextr DH
-def check_single_file(fle):
-    if fle == None:
-        return False
-    else:
-        return os.path.isfile(fle)
-
+# def check_single_file(fle):
+#     if fle == None:
+#         return False
+#     else:
+#         return os.path.isfile(fle)
 
 
 #Class get params
 #From Fextr DH
-def get_UC_and_SG(self):
-    """
-    Extract unit cell and space group from the reference data set
-    """
-    SG = re.search(r"(.+?)\(No",self.fobs_off.space_group_info().symbol_and_number()).group(1)
-    #What is fobs_off???
-    UC = self.fobs_off.unit_cell()
-    return UC, SG
-
-    model_in = any_file("DATA/darkmodel.pdb", force_type="pdb", raise_sorry_if_errors=True)
-    test = model_in.crystal_symmetry().unit_cell()
-    a, b, c, alf, bet, gam = test.parameters()
+# def get_UC_and_SG(self):
+#     """
+#     Extract unit cell and space group from the reference data set
+#     """
+#     SG = re.search(r"(.+?)\(No",self.fobs_off.space_group_info().symbol_and_number()).group(1)
+#     #What is fobs_off???
+#     UC = self.fobs_off.unit_cell()
+#     return UC, SG
+#
+#     model_in = any_file("DATA/darkmodel.pdb", force_type="pdb", raise_sorry_if_errors=True)
+#     test = model_in.crystal_symmetry().unit_cell()
+#     a, b, c, alf, bet, gam = test.parameters()
 
 # class Stream():
 # #From Stream_EDZ

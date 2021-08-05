@@ -54,32 +54,33 @@ def image_merging_and_create_mtz_file(dir_streamfile, pointgroup, other_process_
     '''
     outdirfiles = dir_streamfile[0] #getting directory of the output files and the input stream file
     stream_fle = dir_streamfile[1] #getting the stream file
-
+    logname = dir_streamfile[2] #getting the log file
+    log = open(logname, "w")
     os.chdir(outdirfiles) #changing directory to folder with stream file and where to put output files
     output_file_name = Fextr_utils.get_name(stream_fle) #get name of output files = stream file name
 
     #1. Merging intensities (creating hkl files)
     if method_process_hkl: #if the method to use is montecarlo
-        hkl_file, do_hkl12_statistics = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog).merge_I_montecarlo(other_process_hkl)
+        hkl_file, do_hkl12_statistics = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).merge_I_montecarlo(other_process_hkl)
         #merging intensities with montecarlo
 
     if method_partialator: #if the method to use is partialator
-        hkl_file, do_hkl12_statistics = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog).merge_I_partialator(other_partialator)
+        hkl_file, do_hkl12_statistics = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).merge_I_partialator(other_partialator)
         #merging intensities with partialator
 
     #2. Get figures of merit
-    statistics_file_name = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog).statistics( cell, other_stats_compare_hkl, outdirfiles, do_hkl12_statistics)
-    JK_utils.print_terminal_and_log('The figures of merit are regrouped in the file : %s' % (statistics_file_name))
+    statistics_file_name = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).statistics( cell, other_stats_compare_hkl, outdirfiles, do_hkl12_statistics)
+    JK_utils.print_terminal_and_log('The figures of merit are regrouped in the file : %s' % (statistics_file_name), log=log)
 
     #3. Create mtz files
-    mtzoutfile = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog).create_mtz(spacegroup, a, b, c, alpha, beta, gamma, hkl_file)
-    JK_utils.print_terminal_and_log('mtz file %s created in %s' % (mtzoutfile, outdirfiles))
+    mtzoutfile = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).create_mtz(spacegroup, a, b, c, alpha, beta, gamma, hkl_file)
+    JK_utils.print_terminal_and_log('mtz file %s created in %s' % (mtzoutfile, outdirfiles), log=log)
     mtzoutdir = outdirfiles + '/' + mtzoutfile #get directory of mtz file
 
     return [outdirfiles, mtzoutdir] #returning directory of mtz file
 
 def run_JK(P, outdir,  stream_file, stream_file_name, n_frames_to_keep, system, pointgroup, unique_axis, a, b, c, alpha, beta, gamma,
-                                             spacegroup, state='off', total=False):
+                                             spacegroup, log, state='off', total=False):
     '''
 
     Args:
@@ -112,11 +113,11 @@ def run_JK(P, outdir,  stream_file, stream_file_name, n_frames_to_keep, system, 
             list of [directory where to find mtz file, mtz file complete directory]
     '''
 
-    JK_utils.print_terminal_and_log('CREATING NEW DIRECTORIES AND MOVING LOG FILE TO NEW DIRECTORY\n==============================================================')
+    JK_utils.print_terminal_and_log('CREATING NEW DIRECTORIES\n==============================================================')
     #Create new directories
     newoutdir, table_dir_streamfile = JK_utils.create_files(stream_file_name, P.percentage, n_frames_to_keep,
                                                                 P.repeats, stream_file, outdir, state=state, total=total)
-    JK_utils.print_terminal_and_log('The output directory of the files for Jack Knife is : %s' %(newoutdir))
+    JK_utils.print_terminal_and_log('The output directory of the files for Jack Knife is : %s' %(newoutdir), log=log)
 
     JK_utils.print_terminal_and_log('CREATING CELL FILE\n==============================================================')
     #creating cell file containing the symmetry of the crystal
