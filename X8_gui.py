@@ -19,7 +19,7 @@ from wx.aui import AuiNotebook
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
 
-
+script_dir = os.path.dirname(os.path.abspath(__file__))
 # Notebook styles to have, or not, a widget to close the tab
 bookStyleNO = wx.aui.AUI_NB_DEFAULT_STYLE & ~(wx.aui.AUI_NB_CLOSE_ON_ACTIVE_TAB)
 bookStyleYES = wx.aui.AUI_NB_DEFAULT_STYLE & wx.aui.AUI_NB_CLOSE_ON_ACTIVE_TAB
@@ -211,9 +211,9 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        self.ToolBar.AddTool(101, wx.Bitmap("gui/pngs/settings_scaled.png"))
-        self.ToolBar.AddTool(102, wx.Bitmap("gui/pngs/run_scaled.png"))
-        self.ToolBar.AddTool(103, wx.Bitmap("gui/pngs/cancel_scaled.png"))
+        self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
+        self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
+        self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
         self.ToolBar.Bind(wx.EVT_TOOL, self.OnToolBar)
         self.ToolBar.Realize()
 
@@ -270,11 +270,6 @@ class MainFrame(wx.Frame):
                     png = self.pngs[self.pngs_idx[run]]
                     
                     filepath = os.path.join(self.inputs[run].output.outdir, png)
-                    print("Run1:")
-                    print(self.inputs[0].output.outdir)
-                    print("Run2")
-                    print(self.inputs[1].output.outdir)
-                    print(len(self.inputs))
                     if os.path.isfile(filepath):
                         self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
                         if self.pngs_idx[run] <= len(self.pngs) - 1:
