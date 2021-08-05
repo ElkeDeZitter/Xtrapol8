@@ -658,12 +658,25 @@ class MainFrame(wx.Frame):
         tabIO = self.notebook.Configure.tabIO
         #print(tabIO.files)
         #TODO: Here check that you have a single ref model, ref mtz and at least a trigg mtz
+        try:
+            input_reference_mtz = tabIO.files["Reference mtz"][0]
+        except IndexError:
+            input_reference_mtz = "None"
+        try:
+            input_triggered_mtz = tabIO.files["Triggered mtz"][0]
+        except IndexError:
+            input_triggered_mtz = "None"
+        try:
+            reference_model = tabIO.files["Reference model"][0]
+        except IndexError:
+            reference_model = "None"
+        tobeparsed = "input.reference_mtz = %s \n" % input_reference_mtz + \
+                     "input.triggered_mtz = %s \n" % input_triggered_mtz + \
+                     "input.reference_pdb = %s\n" % reference_model
 
-        tobeparsed = "input.reference_mtz = %s \n" % tabIO.files["Reference mtz"][0] + \
-                     "input.triggered_mtz = %s \n" % tabIO.files["Triggered mtz"][0] + \
-                     "input.reference_pdb = %s\n" % tabIO.files["Reference model"][0]
-        for _add_file in tabIO.files["Restraints"]:
-            if len(_add_file) > 0: tobeparsed += "input.additional_files = %s\n" % _add_file
+        if len(tabIO.files["Restraints"]) > 0:
+            for _add_file in tabIO.files["Restraints"]:
+                if len(_add_file) > 0: tobeparsed += "input.additional_files = %s\n" % _add_file
         if len(tabIO.highRes.GetValue()) > 0:
             highRes = tabIO.highRes.GetValue()
         else:
@@ -790,17 +803,21 @@ class MainFrame(wx.Frame):
                       "refinement.phenix_keywords.main.ordered_solvent = %s\n" % tabRefine.ordered_solvent.IsChecked()
         Ref_checkBoxes = ['individual_sites', 'individual_sites_real_space', 'rigid_body', 'individual_adp', 'group_adp', 'tls',
                           'occupancies', 'group_anomalous']
-        strategy = []
+        strategy = ""
         for checkBox in Ref_checkBoxes:
-            if getattr(self.notebook.Configure.tabRefine, checkBox).IsChecked(): strategy.append(checkBox)
-        tobeparsed += "refinement.phenix_keywords.refine.strategy =%s\n" % " *".join(strategy) +\
+            if getattr(self.notebook.Configure.tabRefine, checkBox).IsChecked():
+                strategy += " *%s" % checkBox
+            else:
+                strategy += " %s" % checkBox
+
+        tobeparsed += "refinement.phenix_keywords.refine.strategy =%s\n" % strategy +\
                       "refinement.phenix_keywords.main.cycles = %s\n" % self.get_txtctrl_values(tabRefine.NCyclesReciprocal_TextCtrl) +\
                       "refinement.phenix_keywords.main.ordered_solvent = %s\n" % tabRefine.ordered_solvent.IsChecked() +\
                       "refinement.phenix_keywords.main.simulated_annealing = %s\n" % tabRefine.sim_ann.IsChecked() +\
                       "refinement.phenix_keywords.simulated_annealing.start_temperature = %s\n" % self.get_txtctrl_values(tabRefine.start_T) + \
                       "refinement.phenix_keywords.simulated_annealing.final_temperature = %s\n" % self.get_txtctrl_values(tabRefine.final_T) + \
                       "refinement.phenix_keywords.simulated_annealing.cool_rate = %s\n" % self.get_txtctrl_values(tabRefine.cooling_rate) + \
-                      "refinement.phenix_keywords.map_sharpening.map_shaprening = %s\n" % tabRefine.map_sharpening.IsChecked() + \
+                      "refinement.phenix_keywords.map_sharpening.map_sharpening = %s\n" % tabRefine.map_sharpening.IsChecked() + \
                       "refinement.phenix_keywords.real_space_refine.cycles = %s\n" % self.get_txtctrl_values(tabRefine.NCyclesReal_TextCtrl) + \
                       "refinement.phenix_keywords.density_modification.density_modification = %s\n" % tabRefine.density_modification.IsChecked() +\
                       "refinement.phenix_keywords.density_modification.combine = %s\n" % tabRefine.combine.GetStringSelection() + \
