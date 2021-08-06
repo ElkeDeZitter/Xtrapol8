@@ -6,6 +6,7 @@ import sys
 import wx
 import time
 import subprocess
+
 from wx.lib.pubsub import pub
 from gui import panelIO, panelExtrapolation, panelRefinement, panelLog
 from gui.panelLog import TabLog, TabMainImg, TabOccResults
@@ -127,17 +128,6 @@ class MainNotebook(AuiNotebook):
         if self.idx > 0 : self.SetWindowStyleFlag(bookStyleYES)
         else : self.SetWindowStyleFlag(bookStyleNO)
 
-    def OnPageClose(self, idx):
-        SelectedThread = self.threads[idx]
-        if SelectedThread.is_alive():
-            Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus', wx.YES_NO | wx.NO_DEFAULT).ShowModal()
-            if Stop == wx.ID_YES:
-                SelectedThread.stop()
-            else:
-                evt.Veto()
-                return
-        self.threads.pop(idx)
-
 
 class X8Thread(Thread):
     """This is the thread which will run the code"""
@@ -155,13 +145,14 @@ class X8Thread(Thread):
         # For debugging purpose
         #pub.sendMessage("END", Nlog=self.Nlog)
         #return
-        p = subprocess.Popen(['phenix.python', 'Fextr.py', 'tmp.phil'], stdout=subprocess.PIPE, stderr=sys.stdout.fileno())
+        p = subprocess.Popen(['phenix.python', os.path.join(script_dir, 'Fextr.py'), 'tmp.phil'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)#sys.stdout.fileno())
 
         while True:
 
             line = p.stdout.readline()
             if not line:
                 pub.sendMessage("END", Nlog=self.Nlog)
+                print("JOB FINISHED")
                 return
             if self.stopped():
                 print("Run stopped")
@@ -264,7 +255,6 @@ class MainFrame(wx.Frame):
         :return: None
         """
         run = self.notebook.GetSelection() - 1
-        print(run)
         if run >= 0 and self.notebook.threads[run].is_alive():
                 if self.pngs_idx[run] < len(self.pngs):
                     png = self.pngs[self.pngs_idx[run]]
@@ -298,15 +288,29 @@ class MainFrame(wx.Frame):
                     if os.path.isfile(filepath):
                         tab.addFextrImg(filepath)
 
-                    else:
-                        print("%s does not exists" %filepath)
+#                    else:
+#                        print("%s does not exists" %filepath)
 
     def OnPageClose(self, evt):
-        run = self.notebook.GetSelection()-1
-        self.notebook.OnPageClose(run) # will check that the run is not running - will clean its thread list accordingly
+        # will check that the run is not running - will clean its thread list accordingly
         # Variables to update after deleting the run tab of the main notebook
-        self.inputs.pop(run)
-        self.pngs_idx.pop(run)
+
+        run = self.notebook.GetSelection()-1
+        SelectedThread = self.notebook.threads[run]
+        if SelectedThread.is_alive():
+            Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus',
+                                    wx.YES_NO | wx.NO_DEFAULT).ShowModal()
+            #print Stop
+            if Stop == wx.ID_YES:
+                print("Clicked YES")
+                SelectedThread.stop()
+                self.notebook.threads.pop(run)
+                self.notebook.ResultsBooks.pop(run)
+                self.inputs.pop(run)
+                self.pngs_idx.pop(run)
+            else:
+                evt.Veto()
+
 
     def OnClose(self, event):
         # Should check if any job is running

@@ -14,6 +14,9 @@ from wxtbx import metallicbutton
 from wx.lib.pubsub import pub
 import glob
 
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+
 class GradientButton (metallicbutton.MetallicButton):
     def __init__ (self, parent, label='', label2='', bmp=None,
                   size=wx.DefaultSize, style=metallicbutton.MB_STYLE_DEFAULT,
@@ -200,7 +203,7 @@ class TabLog(wx.Panel):
 
     def CreateCoot(self):
         Button2 = wx.Button(self, wx.ID_ANY, label="Open in Coot")
-        bmp = wx.Image('gui/pngs/coot_logo_small.png', type=wx.BITMAP_TYPE_ANY, index=-1).ConvertToBitmap()
+        bmp = wx.Image(os.path.join(script_dir,'pngs/coot_logo_small.png'), type=wx.BITMAP_TYPE_ANY, index=-1).ConvertToBitmap()
 
         # if size is not None :
         #        (w,h) = size
@@ -334,7 +337,7 @@ class TabOccResults(ScrolledPanel):
         FextrStatic = wx.StaticText(self, wx.ID_ANY, "Fextr type : ")
         self.best_occ_Static = wx.StaticText(self, wx.ID_ANY, "best estimation @ ...")
         self.coot_button = wx.Button(self, wx.ID_ANY, label="Open in Coot")
-        bmp = wx.Image('gui/pngs/coot_logo_small.png', type=wx.BITMAP_TYPE_ANY, index=-1).ConvertToBitmap()
+        bmp = wx.Image(os.path.join(script_dir,'pngs/coot_logo_small.png'), type=wx.BITMAP_TYPE_ANY, index=-1).ConvertToBitmap()
         self.coot_button.SetBitmapMargins((2, 2))
         self.coot_button.SetBitmap(bmp)
         self.coot_button.Bind(wx.EVT_BUTTON, self.onCoot)
