@@ -2,7 +2,7 @@
 authors and contact information
 -------
 Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
 Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
 Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
 
@@ -11,8 +11,6 @@ Script to calculate the occupancy based on the real space refined models of a re
 coefficients calculated with different occupancy (alpha).
 
 Automatically run in Xtrapol8 routine but can be run on a standalone basis.
-
-For use on standalone basis, change script below "if __name__ == '__main__':" and run script with python Distance_analysis_EDZ.py
 
 What do you need?
 - list with PDB files. The first PDB file in the list is the reference
@@ -25,7 +23,7 @@ What do you need?
         size of the ASU, this can become computationally very intensive (You are warned and I take no
         responsibility of your computer crashes)
     - Outsuffix to be added to the output figure
-    - Log-file. If not provided, then output will be printed to the screen
+    - Log-file. If not provided, then output will written to a predifined file
 """
 
 from __future__ import division, print_function
@@ -596,5 +594,6 @@ if __name__ == '__main__':
     else:
         do_the_distance_analysis(pdbs, occupancies, resids_lst, use_waters = use_waters, outsuffix = outsuffix, log = log)        
 
-    if  args.log_file != None:
-        log.close()
+    #if  args.log_file != None:
+        #log.close()
+    log.close()
