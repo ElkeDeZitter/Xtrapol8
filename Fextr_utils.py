@@ -767,7 +767,7 @@ def plot_Fextr_sigmas(pickle_file='Fextr_binstats.pickle'):
     ax0.set_title('%s for high resolution reflections' %(FoFo_type),fontsize = 'medium',fontweight="bold")
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.85, top = 0.95)
     plt.savefig('%s_sigmas.pdf' %(FoFo_type),dpi=300, transparent=True)
-    plt.savefig('%s_sigmas.png' %(FoFo_type),dpi=300, transparent=True)
+    plt.savefig('%s_sigmas.png' %(FoFo_type),dpi=300)
     
     
 def plot_Fextr_sigmas_allinone(pickle_file='Fextr_binstats.pickle', maptype_lst=['qFextr', 'Fextr', 'qFgenick', 'Fgenick', 'qFextr_calc', 'Fextr_calc'], occ_lst = None):
