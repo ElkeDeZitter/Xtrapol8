@@ -481,6 +481,39 @@ class DataHandler(object):
         self.additional = additional
         self.outdir = outdir
 
+    def extract_fobs(self, reflections_off, reflections_on, low_res, high_res, log):
+        """
+        Extract the actual reflections from the data files and cut at resolution limits (if set)
+        For now Friedel pairs will have to be merged.
+        """
+        self.fobs_off, self.fobs_on = Column_extraction(reflections_off,
+                                                        reflections_on,
+                                                        low_res,
+                                                        high_res,
+                                                        log=log).extract_columns()
+
+        if self.fobs_off.anomalous_flag():
+            print(
+                "I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.",
+                file=log)
+            print(
+                "I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
+            self.fobs_off = self.fobs_off.average_bijvoet_mates()
+            self.fobs_on = self.fobs_on.average_bijvoet_mates()
+
+        self.fobs_off = self.fobs_off.map_to_asu()
+        # self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
+        self.fobs_on = self.fobs_on.map_to_asu()
+        # self.fobs_on  = self.resolution_cutoff(self.fobs_on, low_res, high_res)
+
+        # self.fobs_off = self.extract_colums(self.reflections_off, low_res, high_res)
+        # self.fobs_on  = self.extract_colums(self.reflections_on, low_res, high_res)
+        # self.fobs_on = []
+        # for on in self.reflections_on:
+        # f_on = self.extract_colums(on, res)
+        # self.fobs_on.append(f_on)
+        return (self.fobs_off, self.fobs_on)
+
     def open_pdb_or_cif(self):
         self.from_cif_create_pdb_file()
         self.model_in = any_file(self.check_and_delete_hydrogen(), force_type="pdb", raise_sorry_if_errors=True)
@@ -773,6 +806,11 @@ class DataHandler(object):
             print("Fobs,reference and Fobs,triggered scaled using scaleit")
             #self.fobs_on_scaled = scalef_cnslike(self.fobs_off_scaled, self.fobs_on, self.SG, self.rfree, bscale=b_scaling) #run CNS-like scaling
             self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling) #prepare mtz-file and run scaleit
+
+    def get_mtz(self, mtz_off, mtz_on, log):
+        self.mtz_off=mtz_off
+        self.mtz_on=mtz_on
+        self.log=log
 
 class FobsFobs(object):
     """

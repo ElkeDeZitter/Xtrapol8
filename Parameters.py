@@ -391,8 +391,9 @@ class Parameters():
                 print('the unique axis will not be taken into account because the system is not appropriate')
 
             # 3. Checking unit cell correct for spacegroup, if not change according to system
-            if not crystal.symmetry.is_compatible_unit_cell(
-                    symmetry):  # the unit cell is not compatible with the spacegroup
+            adapt_unit_cell_to_system=True
+            if adapt_unit_cell_to_system:
+#            if not crystal.symmetry.is_compatible_unit_cell(symmetry):  # the unit cell is not compatible with the spacegroup ???
                 if system == 'monoclinic' and unique_axis == 'a':
                     if beta != 90:
                         beta = 90.0
@@ -537,6 +538,7 @@ class Parameters():
             return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma, unique_axis)
 
         self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
+
         # get nb of indexed images and number of images to use for JK
         self.n_frames_off = len(self.S_off.frames)  # search number of indexed images (frame is an indexed image)
         self.n_frames_to_keep_off = int(self.n_frames_off * self.fraction)
@@ -554,6 +556,11 @@ class Parameters():
             self.stream_file_name_on = Fextr_utils.get_name(self.stream_file_on)
             self.a_on, a_array_on, astdev_on, self.b_on, b_array_on, bstdev_on, self.c_on, c_array_on, cstdev_on, self.alpha_on, alpha_array_on, alphastdev_on, self.beta_on, beta_array_on, betastdev_on, self.gamma_on, gamma_array_on, gammasdtev_on = Stream(
                 self.stream_file_on).get_cell_stats()
+
+            # Convert unit cell parameters (nm to A)
+            self.a_on = self.a_on * 10
+            self.b_on = self.b_on * 10
+            self.c_on = self.c_on * 10
 
             # test for normal distribution
             print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
@@ -611,6 +618,7 @@ class Parameters():
             self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.unique_axis_on = get_system_and_pointgroup(
                 self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
                 self.unique_axis_on)
+
             # get nb of indexed images and number of images to use for JK
             self.n_frames_on = len(S_on.frames)  # search number of indexed images (frame is an indexed image)
             self.n_frames_to_keep_on = int(self.n_frames_on * self.fraction)
@@ -769,7 +777,7 @@ class Parameters():
             else:
                 self.params.Xtrapol8.occupancies.list_occ = self.occ_lst
 
-    def get_parameters_JK_X8_output(self, DH):
+    def get_parameters_JK_X8_output(self, params):
         '''
         Get the values of the output parameters from the phil file (for JK and/or X8)
         Args:
@@ -781,7 +789,7 @@ class Parameters():
         # get output name, or take prefix of triggered mtz or take dummy name if name is too long.
         if self.params.output.outname == None:
             if self.run_Xtrapol8 and not self.run_JackKnife:
-                self.params.output.outname = Fextr_utils.get_name(DH.mtz_on)
+                self.params.output.outname = Fextr_utils.get_name(params.Xtrapol8.input.triggered_mtz)
             else:
                 self.params.output.outname = self.stream_file_name_on
 

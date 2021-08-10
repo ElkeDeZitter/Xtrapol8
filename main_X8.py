@@ -49,7 +49,7 @@ import Parameters
 from Parameters import Parameters
 
 
-def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, only_Xtrapol8=False):
+def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
 
 #init
     #get output directory for Xtrapol8
@@ -58,61 +58,47 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, onl
     #get mtz files
     mtz_off = outdir_and_mtz_file_off_on[1]
     mtz_on = outdir_and_mtz_file_off_on[2]
+    #get log file
+    logname = outdir_and_mtz_file_off_on[3]
+    log = open(logname, "w")
     #check mtz files
     check_all_files([mtz_off, mtz_on])
     #get reflections
     reflections_off, reflections_on = open_mtz(mtz_off, mtz_on)
-    #get log file
-    logname = outdir_and_mtz_file_off_on[3]
-    log = open(logname, "w")
 
-#function from Fextr.DH
-    def extract_fobs(low_res, high_res):
-        """
-        Extract the actual reflections from the data files and cut at resolution limits (if set)
-        For now Friedel pairs will have to be merged.
-        """
-        DH.fobs_off, DH.fobs_on = Column_extraction(reflections_off,
-                                                        reflections_on,
-                                                        low_res,
-                                                        high_res,
-                                                        log=log).extract_columns()
 
-        if DH.fobs_off.anomalous_flag():
-            print(
-                "I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.",
-                file=log)
-            print(
-                "I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
-            DH.fobs_off = DH.fobs_off.average_bijvoet_mates()
-            DH.fobs_on = DH.fobs_on.average_bijvoet_mates()
+    print(
+        '-----------------------------------------\nDATA PREPARATION\n-----------------------------------------')
+    DH = DataHandler(params.Xtrapol8.input.reference_pdb, mtz_off,
+                     params.Xtrapol8.input.additional_files,
+                     outdir, mtz_on)
 
-        DH.fobs_off = DH.fobs_off.map_to_asu()
-        # self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
-        DH.fobs_on = DH.fobs_on.map_to_asu()
-        # self.fobs_on  = self.resolution_cutoff(self.fobs_on, low_res, high_res)
+    print('CHECKING FILES\n==============================================================')
+    # Check format of inputs files
+    check_all_files([DH.pdb_in])
+    DH.open_pdb_or_cif()
 
-        # self.fobs_off = self.extract_colums(self.reflections_off, low_res, high_res)
-        # self.fobs_on  = self.extract_colums(self.reflections_on, low_res, high_res)
-        # self.fobs_on = []
-        # for on in self.reflections_on:
-        # f_on = self.extract_colums(on, res)
-        # self.fobs_on.append(f_on)
-        return (DH.fobs_off, DH.fobs_on)
+    # Extract space group and unit cell from model pdb file
+    DH.get_UC_and_SG()
+
+    # Check if all cif files are given and extract the three-letter codes
+    print("----Check additional files----")
+    DH.check_additional_files()
+    print('---------------------------')
 
 #Almost original Xtrapol8 script: changed log in FobsFobs and Fextrapolate
     ##################################################################
     # extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")
-    DH.fobs_off, DH.fobs_on = extract_fobs(params.Xtrapol8.input.low_resolution, params.Xtrapol8.input.high_resolution)
+    DH.fobs_off, DH.fobs_on = DH.extract_fobs(reflections_off, reflections_on, params.Xtrapol8.input.low_resolution, params.Xtrapol8.input.high_resolution, log)
     print('---------------------------')
 
 
     # compatibilty test between mtz-files and model
     print('Extracting the unit cell and space group from input files. Check if these are similar for all input files:')
     symm_manager = SymManager(DH.model_in)
-    err_m_off, err_off = symm_manager.check_symm(DH.reflections_off)
-    err_m_on, err_on = symm_manager.check_symm(DH.reflections_on)
+    err_m_off, err_off = symm_manager.check_symm(reflections_off)
+    err_m_on, err_on = symm_manager.check_symm(reflections_on)
 
     if err_off + err_on == 0:
         print('Space group and unit cell compatible', file=log)
@@ -251,9 +237,9 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, onl
     FoFo.calculate_fdiff(kweight_scale=params.Xtrapol8.f_and_maps.kweight_scale)
     FoFo.write_maps(DH.fmodel, DH.rfree, P.outname, qweighting=P.qFoFo_weight, kweighting=P.kFoFo_weight)
 
-    print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type), file=log)
+    print("%s maps generated in mtz,ccp4 and xplor format"%(params.Xtrapol8.f_and_maps.fofo_type), file=log)
     #print("------------------------------------", file=log)
-    print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type))
+    print("%s maps generated in mtz,ccp4 and xplor format"%(params.Xtrapol8.f_and_maps.fofo_type))
     #print("------------------------------------")
 
     ################################################################
@@ -433,7 +419,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, onl
                 Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats=outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_q_ms, P.FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' % (Fextr.maptype, Fextr.occ), log=log)
-                # cc_list.append(plot_F1_F2(DH.fobs_off_scaled,Fextr.fextr_ms, F1_name = "Freference",F2_name = "Fextr"))
+                # cc_list.append(plot_F1_F2(fobs_off_scaled,Fextr.fextr_ms, F1_name = "Freference",F2_name = "Fextr"))
             elif mp == 'qFgenick_map':
                 Fextr.fgenick(qweight=True, kweight=False, outdir_for_negstats=outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_q_ms, P.FoFo_type, outdir)
@@ -612,7 +598,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, onl
     # plot_sigmas(maptype_lst=list(map(lambda x: re.sub(r"\_map$", "", x), final_maptypes)))
     plot_negative_reflections()
 
-    # plot_correlations(params.occupancies.list_occ, cc_list)
+    # plot_correlations(params.Xtrapol8.occupancies.list_occ, cc_list)
 
     print('-----------------------------------------')
     print("CALCULATE (Q/K-WEIGHTED) FEXTRAPOLATED MAPS DONE")
@@ -803,7 +789,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, onl
                 ccp4_list = map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list)
                 model_label = '%s_reciprocal_real_space' % (mp_type)
                 ccp4_map_label = '%s_reciprocal_space' % (mp)
-                # Pymol_movie(params.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list, resids_lst = residlst, model_label='%s_reciprocal_real_space'%(mp_type), ccp4_map_label='%s_reciprocal_space'%(mp)).write_pymol_script()
+                # Pymol_movie(params.Xtrapol8.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list, resids_lst = residlst, model_label='%s_reciprocal_real_space'%(mp_type), ccp4_map_label='%s_reciprocal_space'%(mp)).write_pymol_script()
             else:
                 if mp == 'qFgenick_map':
                     ccp4_list = map(
@@ -871,7 +857,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, DH, P, master_phil, startdir, onl
             script_coot = open_all_in_coot(outdir + "/" + FoFo.mtz_name, pdbs_for_coot, mtzs_for_coot, DH.additional,
                                            occ_dir, mp_type)
 
-        elif (params.Xtrapol8.f_and_maps.fast_and_furious == False and params.refinement.run_refinement == False):
+        elif (params.Xtrapol8.f_and_maps.fast_and_furious == False and params.Xtrapol8.refinement.run_refinement == False):
             # If estimated occupancy if not in list (will be case when using distance analysis or when plotalpha fails), take the closest occupancy from the list
             if occ not in params.Xtrapol8.occupancies.list_occ:
                 occ = min(params.Xtrapol8.occupancies.list_occ, key=lambda x: abs(x - occ))
