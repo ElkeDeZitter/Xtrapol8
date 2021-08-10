@@ -2588,41 +2588,43 @@ def run(args):
     print("ESTIMATE OPTIMAL OCCUPANCY", file=log)
     print('-----------------------------------------', file=log)
 
-    #To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
-    #In both cases, a file with residues to base the calculation on should be provided
-    #   In case of faf, the Z-score based list will automatically be choses
-    #   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
-    if params.f_and_maps.fast_and_furious:
-        print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
-        residlst = residlist_zscore
-    else:
-        print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
-        if params.map_explorer.use_occupancy_from_distance_analysis:
-            print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-        else:
-            print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
+    ##To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
+    ##In both cases, a file with residues to base the calculation on should be provided
+    ##   In case of faf, the Z-score based list will automatically be choses
+    ##   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
+    #if params.f_and_maps.fast_and_furious:
+        #print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
+        #residlst = residlist_zscore
+    #else:
+        #print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
+        #if params.map_explorer.use_occupancy_from_distance_analysis:
+            #print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
+        #else:
+            #print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
             
-        timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
-        rlist, _, _ = select([sys.stdin], [], [], timeout)
-        if rlist:
-            s = sys.stdin.readline()
-            residlst = s.strip("\n")
-        else:
-            residlst = residlist_zscore
+        #timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
+        #rlist, _, _ = select([sys.stdin], [], [], timeout)
+        #if rlist:
+            #s = sys.stdin.readline()
+            #residlst = s.strip("\n")
+        #else:
+            #residlst = residlist_zscore
             
-        if os.path.isfile(residlst.lstrip().rstrip()):
-            residlst = residlst.lstrip().rstrip()
-        elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
-            residlst = startdir+"/"+residlst.lstrip().rstrip()
-        else:
-            residlst = residlist_zscore
-        try:
-            residlst = os.path.abspath(residlst)
-            if os.path.isfile(residlst) == False:
-                raise IOError
-        except IOError:
-            print("File %s not found. All peaks and residues will be used" %(str(residlst)))
-            residlst = None
+        #if os.path.isfile(residlst.lstrip().rstrip()):
+            #residlst = residlst.lstrip().rstrip()
+        #elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
+            #residlst = startdir+"/"+residlst.lstrip().rstrip()
+        #else:
+            #residlst = residlist_zscore
+        #try:
+            #residlst = os.path.abspath(residlst)
+            #if os.path.isfile(residlst) == False:
+                #raise IOError
+        #except IOError:
+            #print("File %s not found. All peaks and residues will be used" %(str(residlst)))
+            #residlst = None
+    #Avoid waiting and use immediately the Z-score list. The standalone version can be used if a specific residue list needs to be used.
+    residlst = residlist_zscore
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst), file=log)
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst))
     
