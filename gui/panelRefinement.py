@@ -313,7 +313,7 @@ class TabRefinement(wx.Panel):
         self.refmac_combine.SetSelection(0)  # Default
         self.refmac_DM = wx.CheckBox(self, wx.ID_ANY, "Density modification")
         self.twinning = wx.CheckBox(self, wx.ID_ANY, "Twinning Refinement")
-        self.REFMAC_map_sharpening = wx.CheckBox(self, wx.ID_ANY, "Map Shaprening")
+        self.REFMAC_map_sharpening = wx.CheckBox(self, wx.ID_ANY, "Map Sharpening")
 
         border = 5
         refmac_others_gridbag.Add(self.refmac_DM, pos=(0, 0), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)

@@ -2513,7 +2513,7 @@ def run(args):
                     append_if_file_exist(qFextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
                     append_if_file_exist(qFextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
                     append_if_file_exist(qFextr_calc_realref_lst, os.path.abspath(pdb_real))
-                if mp == 'kFextr_map':
+                elif mp == 'kFextr_map':
                     append_if_file_exist(kFextr_recref_mtz_lst, os.path.abspath(mtz_out))
                     append_if_file_exist(kFextr_recref_pdb_lst, os.path.abspath(pdb_rec))
                     append_if_file_exist(kFextr_recrealref_lst, os.path.abspath(pdb_rec_real))
@@ -2559,6 +2559,8 @@ def run(args):
             os.rmdir(new_dirpath_q)
         if len(os.listdir(new_dirpath)) == 0:
             os.rmdir(new_dirpath)
+        if len(os.listdir(new_dirpath_k)) == 0:
+            os.rmdir(new_dirpath_k)
 
         #Go back to output directory and generate the plots from the pickle files
         os.chdir(outdir)
