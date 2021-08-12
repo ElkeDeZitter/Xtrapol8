@@ -366,11 +366,11 @@ map_explorer{
 refinement{
     reciprocal_space_phil = None
         .type = path
-        .help = input file with (non-default) parameters for reciprocal space refinement. Replaces the refinement parameters from the Xtrapol8 run. Input files will automatically be filled but additional cif files can be added. Do not specify output parameters to avoid problems in the downstream analysis.
+        .help = input file with (non-default) parameters for reciprocal space refinement. Replaces the refinement parameters from the Xtrapol8 run. Input files (mtz, pdb and additional files) will automatically be filled but extra additional cif files can be added but should be provided with their full path. Do not specify output parameters to avoid problems in the downstream analysis.
         .expert_level = 0
     real_space_phil = None
         .type = path
-        .help = input file with (non-default) parameters for real space refinements. Replaces the refinement parameters from the Xtrapol8 run. Input files will automatically be filled but additional cif files can be added. Do not specify output parameters to avoid problems in the downstream analysis.
+        .help = input file with (non-default) parameters for real space refinements. Replaces the refinement parameters from the Xtrapol8 run. Input files (mtz, pdb and additional files) will automatically be filled but extra additional cif files can be added but should be provided with their full path. Do not specify output parameters to avoid problems in the downstream analysis.
         .expert_level = 0
 }
 """, process_includes=True)
@@ -482,7 +482,7 @@ class Refiner(object):
                   additional = '',
                   reciprocal_phil = '',
                   real_phil = '',
-                  density_modification = False):
+                  density_modification = {}):
         self.pdb_in               = pdb_in
         self.maptype              = maptype.split("_map")[0]
         self.outname              = outname
@@ -538,8 +538,7 @@ class Refiner(object):
         """
         mtz_name = get_name(self.mtz_file)
         try:
-            outprefix = re.sub(r"%s"%(self.maptype), "2m%s-DFc_independent_reciprocal_space"%(
-                self.maptype), mtz_name)
+            outprefix = re.sub(r"%s"%(self.maptype), "2m%s-DFc_independent_reciprocal_space"%(self.maptype), mtz_name)
             if outprefix == mtz_name:
                 raise AttributeError
         except AttributeError:
@@ -607,6 +606,110 @@ class Refiner(object):
         os.system("phenix.density_modification %s %s input_files.map_coeffs_file=%s solvent_content=%.3f denmod.mask_type=histograms  output_files.output_mtz=%s > %s" %(mtz_in, pdb_in, mtz_in, solc, outname, log_file))
         
         return outname
+    
+    def get_F_column_labels(self, mtz):
+        """
+        get the labels of the first array in an mtz file
+        """
+        
+        hkl = any_file(mtz,force_type="hkl", raise_sorry_if_errors=False)
+        
+        try:
+            label = hkl.file_object.as_miller_arrays()[0].info().labels[0]
+        except IndexError:
+            print("Problem with reading mtz file: %s" %(mtz))
+            print("Problem with reading mtz file: %s" %(mtz), file = log)
+            label = 'QFEXTR'
+        
+        return label
+        
+    
+    def write_refmac_for_dm(self, pdb_in):
+        """
+        Write and excecute a bash script to run Refmac in order to get an mtz-file that can be used by dm.
+        """
+
+        additional_lines = ''
+        for cif in self.additional.split():
+            if cif.endswith(".cif"):
+                additional_lines += 'LIB_IN %s ' % (cif)
+
+        mtz_out = "%s_for_dm.mtz" % (get_name(self.mtz_file))
+        pdb_out = "%s_for_dm.pdb" % (get_name(self.mtz_file))
+        log_file = "%s_refmac_for_dm.log" % (get_name(self.mtz_file))
+        
+        F_column_labels = self.get_F_column_labels(self.mtz_file)
+
+        script_out = 'launch_refmac_for_dm.sh'
+        i = open(script_out, 'w')
+        i.write("#!/bin/sh\n\
+refmac5 XYZIN %s HKLIN %s XYZOUT %s HKLOUT %s %s<<eof > %s \n\
+LABIN  FP=%s SIGFP=SIG%s FREE=FreeR_flag\n\
+REFI TYPE REST RESI MLKF BREF ISOT METH CGMAT \n\
+nfree include 1 \n\
+make check NONE \n\
+ncyc 0 \n\
+MAPC SHAR \n\
+NOHARVEST \n\
+END \n\
+eof" % (pdb_in, self.mtz_file, pdb_out, mtz_out, additional_lines, log_file, F_column_labels, F_column_labels))
+
+        i.close()
+        os.system("chmod +x %s" % (script_out))
+        print('Running refmac with zero cycles to prepare files suitable for running dm afterwards, output written to '
+              '%s. Please wait...' % (log_file))
+        os.system("./%s" % (script_out))
+
+        return mtz_out, pdb_out
+
+    def write_density_modification_script(self, mtz_in, pdb_in, mtz_out, log_file):
+        """
+        Write script to perform density modification with dm. In order to have the correct columns, the mtz-file
+        should original from refmac.
+        """
+        solc = self.get_solvent_content(pdb_in)
+        
+        F_column_labels = self.get_F_column_labels(self.mtz_file) #column labels are those inherited from the extrapolated structure factors
+
+        script_out = 'launch_dm.sh'
+        i = open(script_out, 'w')
+        i.write('#!/bin/sh \n\
+\n\
+#dm:\n\
+dm hklin %s hklout %s <<eor > %s \n\
+SOLC %.3f\n\
+MODE SOLV HIST MULTI SAYR\n\
+COMBINE %s\n\
+NCYC %d\n\
+LABI FP=%s SIGFP=SIG%s PHIO=PHIC_ALL FOMO=FOM\n\
+LABO FDM=FDM PHIDM=PHIDM\n\
+eor\n' % (mtz_in, mtz_out, log_file, solc, self.density_modification.combine, self.density_modification.cycles, F_column_labels, F_column_labels))
+
+        ccp4_map_name = re.sub(r".mtz$", ".ccp4", mtz_out)
+
+        i.write('#generate map in ccp4 format\n\
+fft hklin %s mapout %s <<eof > fft.log\n\
+LABI F1=FDM PHI=PHIDM\n\
+eof' % (mtz_out, ccp4_map_name))
+
+        i.close()
+        os.system("chmod +x %s" % (script_out))
+        return script_out
+
+    def ccp4_dm(self, pdb_in):
+        """
+        Use dm to perform density modification. In order to get the correct columns, we first run refmac with 0
+        cycles with the refined model from phenix.refine.
+        """
+        mtz_for_dm, pdb_for_dm = self.write_refmac_for_dm(pdb_in)
+        mtz_out_dm = re.sub(r"for_dm.mtz$", "dm.mtz", mtz_for_dm)
+        if (os.path.isfile(mtz_for_dm) and os.path.isfile(pdb_for_dm)):
+            log_file = re.sub(r".mtz$", ".log", mtz_out_dm)
+            script_dm = self.write_density_modification_script(mtz_for_dm, pdb_for_dm, mtz_out_dm, log_file)
+            print('Running density modification, output written to %s. Please wait...' % (log_file))
+            os.system("./%s" % (script_dm))
+
+        return mtz_out_dm
     
     def phenix_real_space_refinement(self, mtz_in, pdb_in, column_labels):
         """
@@ -691,9 +794,19 @@ class Refiner(object):
             print("    mtz-file not found. Refinement failed.")
         print("----------------")
         
-        if self.density_modification:
+        if self.density_modification.density_modification:
             print("DENSITY MODIFICATION WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            mtz_dm = self.phenix_density_modification(mtz_out_rec, pdb_out_rec)
+            #mtz_dm = self.phenix_density_modification(mtz_out_rec, pdb_out_rec)
+            mtz_dm = self.ccp4_dm(pdb_out_rec)
+            print("Output density modification:", file=log)
+            print("Output density modification:")
+            if os.path.isfile(mtz_dm):
+                print("    mtz-file: %s"%(mtz_dm), file=log)
+                print("    mtz-file: %s" % (mtz_dm))
+            else:
+                print("    mtz-file not found. Density modification failed.", file=log)
+                print("    mtz-file not found. Density modification failed.")
+
             
         self.search_mtz_map_real_space_refinement()
         maplabels = self.get_mtz_map_columns()
@@ -794,30 +907,57 @@ def run(args):
             qFextr_map      = True
         if 'fextr' in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
             Fextr_map       = True
+        if 'kfextr' in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
+            kFextr_map      = True
         if 'qfgenick' in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
             qFgenick_map       = True
+        if 'kfgenick' in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
+            kFgenick_map       = True
         if 'fgenick' in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
             Fgenick_map        = True
         if ('qfextr_calc') in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
             qFextr_calc_map = True
         if ('fextr_calc') in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
             Fextr_calc_map  = True
+        if ('kfextr_calc') in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
+            kFextr_calc_map = True
             
-    #from the remaining selection of maps, only maintain the non-q-weighted
-    if Xtrapol8_params.f_and_maps.no_qweight:
-        qFextr_map = qFgenick_map = qFextr_calc_map = False
-    #from the remaining selection of maps, only maintain the q-weighted
+    #Only run the non-weighted
+    if Xtrapol8_params.f_and_maps.only_no_weight:
+        qFextr_map = qFgenick_map = qFextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
+        Fextr_map  = Fgenick_map  = Fextr_calc_map = True
+    #Only run the k-weighted
+    if Xtrapol8_params.f_and_maps.only_kweight:
+        qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = False
+        kFextr_map = kFgenick_map = kFextr_calc_map = True
+    #Only run the q-weighted
     if Xtrapol8_params.f_and_maps.only_qweight: 
-        Fextr_map = Fgenick_map = Fextr_calc_map = False
-    #if all map types and up being false:
-    if qFextr_map == qFgenick_map == qFextr_calc_map == Fextr_map == Fgenick_map == Fextr_calc_map == False and Xtrapol8_params.f_and_maps.fast_and_furious == False: 
+        Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
+        qFextr_map = qFgenick_map = qFextr_calc_map = True
+    #Run all maps
+    if Xtrapol8_params.f_and_maps.all_maps: #calculate all Fextr map types
+        qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = True
+
+    #if all map types being false:
+    if qFextr_map == qFgenick_map == qFextr_calc_map == Fextr_map == Fgenick_map == Fextr_calc_map == kFextr_map == kFgenick_map == kFextr_calc_map == False and Xtrapol8_params.f_and_maps.fast_and_furious == False: 
         print('The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr', file=log)
         print('The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr')
         qFextr_map = True
+    #if fast_and_furious mode: overwrite all F and map setting to default:
+    if Xtrapol8_params.f_and_maps.fast_and_furious:
+        #change parameters for Xtrapol8_out.phil
+        Xtrapol8_params.f_and_maps.fofo_type = 'qfofo'
+        Xtrapol8_params.f_and_maps.f_extrapolated_and_maps = ['qfextr']
+        Xtrapol8_params.f_and_maps.only_no_weight = Xtrapol8_params.f_and_maps.all_maps = Xtrapol8_params.f_and_maps.only_kweight = Xtrapol8_params.f_and_maps.only_qweight = False
+        #change working parameters
+        qFoFo_weight = qFextr_map = True
+        kFoFo_weight = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
+        Xtrapol8_params.map_explorer.use_occupancy_from_distance_analysis = False
+        Xtrapol8_params.f_and_maps.negative_and_missing='truncate_and_fill'
                 
     #Bring all maptypes to be calculated together in list instead of using loose varaibles:
-    all_maptypes   = ['qFextr_map','Fextr_map', 'qFgenick_map', 'Fgenick_map', 'qFextr_calc_map', 'Fextr_calc_map']
-    all_maps       = [qFextr_map, Fextr_map, qFgenick_map, Fgenick_map, qFextr_calc_map, Fextr_calc_map]
+    all_maptypes   = ['qFextr_map','Fextr_map', 'qFgenick_map', 'Fgenick_map', 'qFextr_calc_map', 'Fextr_calc_map', 'kFextr_map', 'kFgenick_map', 'kFextr_calc_map']
+    all_maps       = [qFextr_map, Fextr_map, qFgenick_map, Fgenick_map, qFextr_calc_map, Fextr_calc_map, kFextr_map, kFgenick_map, kFextr_calc_map]
     maptypes_zip   = zip(all_maptypes, all_maps)
     final_maptypes = [mp[0] for mp in maptypes_zip if mp[1] == True]
 
@@ -876,6 +1016,11 @@ def run(args):
             Fextr_recref_pdb_lst = [DH.X8_pdb_in]
             Fextr_recrealref_lst = [DH.X8_pdb_in]
             Fextr_realref_lst    = [DH.X8_pdb_in]
+        if kFextr_map:
+            kFextr_recref_mtz_lst = []
+            kFextr_recref_pdb_lst = [DH.X8_pdb_in]
+            kFextr_realref_lst    = [DH.X8_pdb_in]
+            kFextr_recrealref_lst = [DH.X8_pdb_in]
         if qFgenick_map:
             qFgenick_recref_mtz_lst = []
             qFgenick_recref_pdb_lst = [DH.X8_pdb_in]
@@ -886,6 +1031,11 @@ def run(args):
             Fgenick_recref_pdb_lst = [DH.X8_pdb_in]
             Fgenick_realref_lst    = [DH.X8_pdb_in]
             Fgenick_recrealref_lst = [DH.X8_pdb_in]
+        if kFgenick_map:
+            kFgenick_recref_mtz_lst = []
+            kFgenick_recref_pdb_lst = [DH.X8_pdb_in]
+            kFgenick_realref_lst    = [DH.X8_pdb_in]
+            kFgenick_recrealref_lst = [DH.X8_pdb_in]
         if qFextr_calc_map:
             qFextr_calc_recref_mtz_lst = []
             qFextr_calc_recref_pdb_lst = [DH.X8_pdb_in]
@@ -896,6 +1046,11 @@ def run(args):
             Fextr_calc_recref_pdb_lst = [DH.X8_pdb_in]
             Fextr_calc_realref_lst    = [DH.X8_pdb_in]
             Fextr_calc_recrealref_lst = [DH.X8_pdb_in]
+        if kFextr_calc_map:
+            kFextr_calc_recref_mtz_lst = []
+            kFextr_calc_recref_pdb_lst = [DH.X8_pdb_in]
+            kFextr_calc_realref_lst    = [DH.X8_pdb_in]
+            kFextr_calc_recrealref_lst = [DH.X8_pdb_in]
 
     print('-----------------------------------------')
     print('DATA PREPARATION DONE')
@@ -921,8 +1076,7 @@ def run(args):
                                                         DH.additional,
                                                         reciprocal_phil = DH.reciprocal_space_phil,
                                                         real_phil = DH.real_space_phil,
-                                                        density_modification =
-                                                               Xtrapol8_params.refinement.phenix_keywords.density_modification.density_modification).run_refinements()
+                                                        density_modification = Xtrapol8_params.refinement.phenix_keywords.density_modification).run_refinements()
             
             print("--------------", file=log)
             #depending on the map-type, append the refinement output to the correct list
@@ -958,6 +1112,21 @@ def run(args):
                     append_if_file_exist(Fextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
                     append_if_file_exist(Fextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
                     append_if_file_exist(Fextr_calc_realref_lst, os.path.abspath(pdb_real))
+                elif maptype == 'kFextr_map':
+                    append_if_file_exist(kFextr_recref_mtz_lst, os.path.abspath(mtz_out))
+                    append_if_file_exist(kFextr_recref_pdb_lst, os.path.abspath(pdb_rec))
+                    append_if_file_exist(kFextr_recrealref_lst, os.path.abspath(pdb_rec_real))
+                    append_if_file_exist(kFextr_realref_lst, os.path.abspath(pdb_real))
+                elif maptype == 'kFgenick_map':
+                    append_if_file_exist(kFgenick_recref_mtz_lst, os.path.abspath(mtz_out))
+                    append_if_file_exist(kFgenick_recref_pdb_lst, os.path.abspath(pdb_rec))
+                    append_if_file_exist(kFgenick_recrealref_lst, os.path.abspath(pdb_rec_real))
+                    append_if_file_exist(kFgenick_realref_lst, os.path.abspath(pdb_real))
+                elif maptype == 'kFextr_calc_map':
+                    append_if_file_exist(kFextr_calc_recref_mtz_lst, os.path.abspath(mtz_out))
+                    append_if_file_exist(kFextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
+                    append_if_file_exist(kFextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
+                    append_if_file_exist(kFextr_calc_realref_lst, os.path.abspath(pdb_real))
             os.chdir(DH.outdir)
 
     print('-----------------------------------------')
@@ -1027,6 +1196,21 @@ def run(args):
                 recref_pdb_lst = Fextr_calc_recref_pdb_lst
                 recrealref_lst = Fextr_calc_recrealref_lst
                 realref_lst    = Fextr_calc_realref_lst
+            elif mp == 'kFextr_map':
+                recref_mtz_lst = kFextr_recref_mtz_lst
+                recref_pdb_lst = kFextr_recref_pdb_lst
+                recrealref_lst = kFextr_recrealref_lst
+                realref_lst    = kFextr_realref_lst
+            elif mp == 'kFgenick_map':
+                recref_mtz_lst = kFgenick_recref_mtz_lst
+                recref_pdb_lst = kFgenick_recref_pdb_lst
+                recrealref_lst = kFgenick_recrealref_lst
+                realref_lst    = kFgenick_realref_lst
+            elif mp == 'kFextr_calc_map':
+                recref_mtz_lst = kFextr_calc_recref_mtz_lst
+                recref_pdb_lst = kFextr_calc_recref_pdb_lst
+                recrealref_lst = kFextr_calc_recrealref_lst
+                realref_lst    = kFextr_calc_realref_lst
 
             #Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             #This assumption is made in order to avoid storing the log-files in even another list
@@ -1068,6 +1252,8 @@ def run(args):
             else:
                 if mp == 'qFgenick_map':
                     ccp4_list = map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list)
+                elif mp == 'kFgenick_map':
+                    ccp4_list = map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list)
                 elif mp == 'Fgenick_map':
                     ccp4_list = map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list)
                 else:
@@ -1103,11 +1289,12 @@ def run(args):
                 mtz_rec = recref_mtz_lst[Xtrapol8_params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
             if Xtrapol8_params.refinement.phenix_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec) #probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
             if Xtrapol8_params.refinement.refmac_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
+                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec) #probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
             mtz_extr = ["%s/%s"%(occ_dir,fle) for fle in os.listdir(occ_dir) if outname in fle and fle.endswith('m%s-DFc.mtz'%(mp_type))][0]
             append_if_file_exist(mtzs_for_coot,os.path.abspath(mtz_extr))
