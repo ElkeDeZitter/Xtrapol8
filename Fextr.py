@@ -2799,7 +2799,8 @@ def run(args):
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
             if params.refinement.phenix_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
             if params.refinement.refmac_keywords.density_modification.density_modification:
