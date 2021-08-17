@@ -901,7 +901,7 @@ def run(args):
     #specify extrapolated structure factors and map types
     qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
     if Xtrapol8_params.f_and_maps.all_maps: #calculate all Fextr map types
-        qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = True
+        qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = True
     else: #calculate only the specified map types
         if 'qfextr' in Xtrapol8_params.f_and_maps.f_extrapolated_and_maps:
             qFextr_map      = True
@@ -1165,6 +1165,8 @@ def run(args):
 
             if mp in ('qFextr_map','qFgenick_map','qFextr_calc_map'):
                 dir_prefix = 'qweight_occupancy'
+            elif mp in ('kFextr_map','kFgenick_map','kFextr_calc_map'):
+                dir_prefix = 'qweight_occupancy'
             else:
                 dir_prefix = 'occupancy'
 
@@ -1217,7 +1219,7 @@ def run(args):
             #Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             #This assumption is made in order to avoid storing the log-files in even another list
             test = map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst)
-            print(test)
+            #print(test)
             plot_Rfactors_per_alpha(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst), mp_type)
             print("", file=log)
             print("")
