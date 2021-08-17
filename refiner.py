@@ -825,7 +825,7 @@ eof' % (mtz_out, ccp4_map_name))
         print("pdb_out_real", pdb_out_real)
         print("----------------")
 
-        if self.density_modification:
+        if self.density_modification.density_modification:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
             pdb_out_rec_real = self.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
             print("Output real space refinement after reciprocal space refinement:", file=log)
@@ -899,7 +899,7 @@ def run(args):
     
     #Extract info on extrapolated structure factor types:
     #specify extrapolated structure factors and map types
-    qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = False
+    qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
     if Xtrapol8_params.f_and_maps.all_maps: #calculate all Fextr map types
         qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = True
     else: #calculate only the specified map types
@@ -1067,6 +1067,8 @@ def run(args):
         for maptype in final_maptypes:
             if maptype in ('qFextr_map','qFgenick_map','qFextr_calc_map'):
                 os.chdir("qweight_occupancy_%.3f" %(occ))
+            elif maptype in ('kFextr_map','kFgenick_map','kFextr_calc_map'):
+                os.chdir("kweight_occupancy_%.3f" %(occ))
             else:
                 os.chdir("occupancy_%.3f" %(occ))
             mtz_out, pdb_rec, pdb_real, pdb_rec_real = Refiner(DH.refine_pdb_in,
