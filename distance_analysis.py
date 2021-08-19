@@ -333,7 +333,7 @@ class Distance_analysis(object):
         #self.alldistances = np.asarray(alldistances)
         #self.alldifferences = np.asarray(alldifferences)
         
-        assert len(self.info) == self.alldistances.shape[1] == self.alldistances.shape[2] == self.alldifferences.shape[1] == self.alldifferences.shape[2]
+        assert self.info.shape[0] == self.alldistances.shape[1] == self.alldistances.shape[2] == self.alldifferences.shape[1] == self.alldifferences.shape[2]
         
         print("max sampled distance: %s" %(np.max(alldistances)), file=self.log)
         print("properties of differences (max, mean, median): %s /// %s /// %s " %(np.max(alldifferences), np.mean(alldifferences), np.median(alldifferences)), file=self.log)
@@ -368,7 +368,7 @@ class Distance_analysis(object):
         del self.alldistances
         
         toplot_matrix = np.where(toplot_matrix >=1, 1, 0)
-        assert len(self.info) == toplot_matrix.shape[0] == toplot_matrix.shape[1]
+        assert self.info.shape[0] == toplot_matrix.shape[0] == toplot_matrix.shape[1]
         
         plt.close()
         fig, ax = plt.subplots(1,1, figsize=(10, 5))
@@ -444,9 +444,9 @@ class Distance_analysis(object):
         #only loop over all distances to plot if less than 40
         if np.where(np.any(toplot_matrix==1, axis =1))[0].shape[0] < 40:
             print("Less than 40 atoms involved in distance calculation. Let's plot all distances:", file=self.log)
-            print("     Distance                                       R2   chi2   occupancy", file=self.log)
+            print("     Distance                                  R2   chi2   occupancy", file=self.log)
             print("Less than 40 atoms involved in distance calculation. Let's plot all distances:")
-            print("     Distance                                       R2   chi2   occupancy")
+            print("     Distance                                  R2   chi2   occupancy")
 
             for n in np.where(np.any(toplot_matrix==1, axis =1))[0].astype(int):
             #n = int(n)
