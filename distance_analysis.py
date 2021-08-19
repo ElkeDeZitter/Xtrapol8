@@ -101,8 +101,9 @@ class Distance_analysis(object):
         print("Distance analysis based on %d residues" %(self.residlst.shape[0]), file=self.log)
         print("Distance analysis based on %d residues" %(self.residlst.shape[0]))
         #print("self.residlst",self.residlst)
-        self.initialize_dicts(self.pdblst[0])
-        
+        self.initialize_dicts(self.pdblst[0]) #Not used anymore?
+        self.check_common_atoms()
+                
         
     def get_residlist(self):
         if self.resids_lst != None:
@@ -136,6 +137,35 @@ class Distance_analysis(object):
                     if line not in residlst_all:
                         residlst_all.append(line)
         self.residlst = np.array(residlst_all)
+        
+    def check_common_atoms(self):
+        """
+        Get list with the array atom info in order to make sure that we only compare those . Genereally, this should be performed only between the reference (first pdb from the list) and second pdb file as the others should contain the same atoms as the second one, unless use_waters was wrongly set to True. Hence, check all of them
+        """
+        
+        if len(self.pdblst) > 1:
+            #Check the common atoms between the first the 2 PDB-files of the list:
+            #get info of first pdb
+            _, info_0 = self.get_coord_from_parser_selected(self.pdblst[0])
+            #join the info to get a 1d array
+            info_0_ar = np.array([",".join(i) for i in info_0])
+            #get info of second pdb
+            _, info_1 = self.get_coord_from_parser_selected(self.pdblst[1])
+            #join the info to get a 1d array
+            info_1_ar = np.array([",".join(i) for i in info_1])
+            #get the common info
+            comm = np.intersect1d(info_0_ar, info_1_ar,return_indices=False)
+            
+            #Check common atoms between the common info and the info of the other pdb files
+            for pdb in self.pdblst[2:]:
+                #get the info
+                _, info = self.get_coord_from_parser_selected(pdb)
+                #join the info to get a 1d array
+                info_ar = np.array([",".join(i) for i in info])
+                #get the common info
+                comm = np.intersect1d(comm, info_ar, return_indices=False)
+                
+        self.common_info = comm
 
     def initialize_dicts(self, pdb_file):
         """
@@ -178,10 +208,32 @@ class Distance_analysis(object):
                                     #print a.name
                                     coord.append(list(a.xyz))
                                     i = a.fetch_labels()
-                                    info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name, i.i_seq))
+                                    #info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name, i.i_seq))
+                                    info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name))
                          
         coord = np.asarray(coord)
+        info  = np.asarray(info)
  
+        return coord, info
+    
+    def select_common_coords(self, coord, info):
+        """
+        Compare the info with the common atom info and only retain the coordinates of the common atoms
+        """
+        #join the info to get a 1d array
+        info_ar = np.array([",".join(i) for i in info])
+        #get the the indices of the common atoms
+        _,_,indices_retain = np.intersect1d(self.common_info, info_ar, return_indices=True)
+        
+        if indices_retain.shape[0] < info.shape[0]:
+            print("Trimming atom selection to those common between all pdb files")
+        
+        #select the coordinates and info from the common atoms
+        coord = coord[indices_retain]
+        info  = info[indices_retain]
+        
+        assert info.shape[0] == coord.shape[0]
+        
         return coord, info
     
     def get_d(self, p1, p2, axis=0):
@@ -243,7 +295,9 @@ class Distance_analysis(object):
             #Extract coordinates from residues in the residue list
             print("Extracting coordinates from %s" %(pdb))
             print("Extracting coordinates from %s" %(pdb), file=self.log)
-            coord, info = self.get_coord_from_parser_selected(pdb) 
+            coord, info = self.get_coord_from_parser_selected(pdb)
+            #only use coord and info from the common atoms
+            coord, info = self.select_common_coords(coord, info)
             #Calculate the distance matric
             print("calculating distances")
             distances = np.array(self.get_dist_matrix(coord))
