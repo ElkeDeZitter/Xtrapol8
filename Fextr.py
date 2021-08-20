@@ -1,18 +1,7 @@
 """
 Main script to run Xtrapol8
 
-authors and contact information
 -------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
-Please start your mail with [X8]
-
-licence
--------
-Some free licence
-Xtrapol8 requires a Phenix and CCP4 installation with proper licence.
 
 usage
 -------
@@ -25,9 +14,9 @@ Parameters can be added using an input file or via command line
 example using input file (preferable)
 -------
 1) Change the nano Xtrapol8.phil using your favourite editor, e.g.
->>> nano trapol8.phil
+>>> nano Xtrapol8.phil
 2) Run Xtrapol8
->>> phenix.python <wherever>/Fextr.py trapol8.phil
+>>> phenix.python <wherever>/Fextr.py Xtrapol8.phil
 
 example using command line only
 -------
@@ -40,6 +29,22 @@ example using input file and command line
 >>> nano trapol8.phil
 2) Xtrapol8 with additional arguments. The order of arguments determines how paramters will be overwriten:
 >>> phenix.python <wherever>/Fextr.py trapol8.phil refinement.phenix_keywords.refine.cycles=3
+
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 

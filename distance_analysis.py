@@ -1,12 +1,4 @@
 """
-authors and contact information
--------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolas Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
-
--------
 Script to calculate the occupancy based on the real space refined models of a reference model in Extrapolated map
 coefficients calculated with different occupancy (alpha).
 
@@ -24,6 +16,24 @@ What do you need?
         responsibility of your computer crashes)
     - Outsuffix to be added to the output figure
     - Log-file. If not provided, then output will written to a predifined file
+    
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
 """
 
 from __future__ import division, print_function

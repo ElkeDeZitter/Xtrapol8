@@ -1,3 +1,67 @@
+"""
+Script to perform the last steps of Xtrapol8 independently:
+- refinement (using phenix.refine and phenix.real_space_refine -- Refmac and Coot are not implemented yet)
+- occupapancy determination using the distance_analysis method
+
+This can be very usefull if refinement with the input model as such does makes sense, e.g.
+- if large conformation changes take place that cannot be fitted by the automatic real space refinement
+- if bond are broken or formed
+- if addiational molecules needs to be added, e.g. in case of ligand binding
+- if you want to add specific refinement parameters that are not covered in Xtrapol8 (yet -> please contact us if you want new parameters being added in Xtrapol8)
+
+This script requires that Xtrapol8 has been completely run and files not renamed.
+
+What do you need?
+- The Xtrapol8 output phil file which can be found in the Xtrapol8 output folder and is called Xtrapol8_out.phil
+- independent input files for phenix.refine and phenix.real_space_refine (the refinement parameters in Xtrapol8_out.phil will be ignored)
+- a model to start the refinements with
+- a list with the residues on the occupancy estimation will be based (optional)
+
+usage
+-----
+Run without any argument to see all options and explanation:
+>>> phenix.python <wherever>/refiner.py
+Parameters can be added using an input file or via command line
+
+example using input file (preferable)
+-------
+1) Change the nano refiner.phil using your favourite editor, e.g.
+>>> nano refiner.phil
+2) Run refiner
+>>> phenix.python <wherever>/refiner.py refiner.phil
+
+example using command line only
+-------
+1) Run refiner with all your arguments
+>>> phenix.python <wherever>/refiner.py input.model_pdb=hoera_manually_changed.pdb input.Xtrapol8_out=fancy_party/Xtrapol8_out.phil map_explorer.residue_list=fancy_party/residlist_Zscore2.00.txt refinement.reciprocal_space_phil=reciprocal.phil refinement.real_space_phil=real.phil
+
+example using input file and command line
+-------
+1) Change the nano refiner.phil using your favourite editor, e.g.
+>>> nano refiner.phil
+2) refiner with additional arguments. The order of arguments determines how paramters will be overwriten:
+>>> phenix.python <wherever>/refiner.py refiner.phil map_explorer.do_distance_analysis=False
+
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
+"""
+
+
 from __future__ import print_function
 import os, re, sys
 import glob

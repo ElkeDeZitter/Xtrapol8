@@ -1,12 +1,4 @@
 """
-authors and contact information
--------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolas Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
-
--------
 Script to calculate the occupancy based on the Fourier difference map (FoFo) and extrapolated difference maps (mFextr-DFcalc).
 This is automatically run in Xtrapol8 routine but can be run on a standalone basis using this script.
 
@@ -30,6 +22,23 @@ $ phenix.python difference_analysis.py
 To run with a specific set of arguments:
 $ phenix.python difference_analysis.py -f my_fofo.map -m my_model.pdb -x occ1/mfextr-Dfcalc_with_occ0.1.map,occ2/mfextr-Dfcalc_with_occ0.2.map -o 0.1,0.2
 
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
 """
 
 from __future__ import print_function

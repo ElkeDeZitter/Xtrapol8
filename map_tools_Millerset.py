@@ -1,13 +1,34 @@
 """
+Adapted mmtbx.map_tools in order to calculate Fo-Fo difference maps with fom and centric/acentric correction. fobs_in is supposed to be the Miller set containing the Fo-Fo data and needs to be pre-calculated (and q-weighted). The reference fmodel, from which fom will be taken and centric/acentric correction is supposed to have the same reflections (and order), a check is done but no solution if this is not the case. No special cases.
+
+-------
+
 authors and contact information
 -------
 Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
 Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
 Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
 
 -------
-adapted mmtbx.map_tools in order to calculate Fo-Fo difference maps with fom and centric/acentric correction. fobs_in is supposed to be the Miller set containing the Fo-Fo data and needs to be pre-calculated (and q-weighted). The reference fmodel, from which fom will be taken and centric/acentric correction is supposed to have the same reflections (and order), a check is done but no solution if this is not the case. No special cases.
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
+
+Additional license information
+-------
+cctbx Copyright (c) 2006 - 2018, The Regents of the University of
+California, through Lawrence Berkeley National Laboratory (subject to
+receipt of any required approvals from the U.S. Dept. of Energy).  All
+rights reserved.
+
+see https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt
+
+-------
 """
 
 from __future__ import absolute_import, division, print_function
