@@ -740,6 +740,10 @@ class Parameters():
                 self.kFoFo_weight = self.qFgenick_map = self.qFextr_calc_map = self.Fextr_map = self.Fgenick_map = self.Fextr_calc_map = self.kFextr_map = self.kFgenick_map = self.kFextr_calc_map = False
                 self.params.Xtrapol8.map_explorer.use_occupancy_from_distance_analysis = False
                 self.params.Xtrapol8.f_and_maps.negative_and_missing = 'truncate_and_fill'
+            #If JK is run, calm and curious method will be used
+            if self.run_JackKnife:
+                self.params.Xtrapol8.f_and_maps.fast_and_furious = False
+                print_in_T_and_log('Jack Knife can not be run with Fast and Furious. Calm and Curious will be run with the few parameters of Fast and Furious.')
 
             # Bring all maptypes to be calculated together in list instead of using loose variables:
             self.all_maptypes = ['qFextr_map', 'Fextr_map', 'qFgenick_map', 'Fgenick_map', 'qFextr_calc_map',
