@@ -835,8 +835,8 @@ eof' % (mtz_out, ccp4_map_name))
         
     def run_refinements(self):
 
-        print(self.maptype)
-        print(self.maptype, file=log)
+        print("---Refinement %s with occupancy %.3f---" %(self.maptype, self.occ))
+        print("---Refinement %s with occupancy %.3f---" %(self.maptype, self.occ), file=log)
         self.search_mtz_file_reciprocal_space_refinement()
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(self.mtz_file, self.pdb_in))
         mtz_out_rec, pdb_out_rec = self.phenix_reciprocal_space_refinement()
