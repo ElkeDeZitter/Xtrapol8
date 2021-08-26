@@ -26,6 +26,7 @@ from mmtbx.scaling.matthews import p_vm_calculator
 import scipy.stats
 from cctbx import crystal
 import multiprocessing
+import time
 
 from Stream_EDZ import Stream
 import Fextr_utils
@@ -156,6 +157,7 @@ class Parameters():
                 print_in_T_and_log('%s : p= %s , statistic= %s' %(variable_tested, p, statistic))
                 if p >= 0.05:
                     print_in_T_and_log("Peaks not normal distributed (p-value for normality test = %.3f). The %s value might not be correct. The process will continue but the unit cell might be wrong." % (p, variable_tested))
+                    time.sleep(15)  # time delay of 15s
             except ValueError:
                 print_in_T_and_log("Test for normality could not be performed. Probably not enough peaks. Jack Knife will not be run because there might not be enough images.")
                 sys.exit()
