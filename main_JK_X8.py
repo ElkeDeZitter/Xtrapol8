@@ -149,12 +149,12 @@ JackKnife{
         stream_file_off = None
             .type = path
             .help = File with images to process for the off state or only state in stream format
+            .expert_level = 0            
+        use_UC_and_SG_from_pdb = False
+            .type = bool
+            .help = use the unit cell and space group from pdb file given
             .expert_level = 0
         unit_cell{
-            use_UC_and_SG_from_pdb = False
-                .type = bool
-                .help = use the unit cell and space group from pdb file given
-                .expert_level = 0
             a = None
                 .type = float
                 .help = lattice a axis length (A)
@@ -193,6 +193,10 @@ JackKnife{
         stream_file_on = None
             .type = path
             .help = File with images to process for the on state in stream format
+            .expert_level = 0            
+        use_UC_and_SG_from_pdb = False
+            .type = bool
+            .help = use the unit cell and space group from reference pdb file given
             .expert_level = 0
         unit_cell{
             a = None

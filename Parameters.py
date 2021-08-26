@@ -148,6 +148,11 @@ class Parameters():
         self.stream_file_name_off = Fextr_utils.get_name(self.stream_file_off)
         self.a_off, a_array_off, astdev_off, self.b_off, b_array_off, bstdev_off, self.c_off, c_array_off, cstdev_off, self.alpha_off, alpha_array_off, alphastdev_off, self.beta_off, beta_array_off, betastdev_off, self.gamma_off, gamma_array_off, gammasdtev_off = Stream(self.stream_file_off).get_cell_stats()
 
+        # Convert unit cell parameters (nm to A)
+        self.a_on = self.a_on * 10
+        self.b_on = self.b_on * 10
+        self.c_on = self.c_on * 10
+
         # test for normal distribution
         print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
 
@@ -172,7 +177,7 @@ class Parameters():
         # getting unit cell parameters
         print_in_T_and_log('---Getting unit cell parameters---')
 
-        if self.params.JackKnife.Off_state.unit_cell.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #get pdb unit cell parameters ??? if not pdb but cif
+        if self.params.JackKnife.Off_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #get pdb unit cell parameters ??? if not pdb but cif
             # check file
             Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
             #get unit cell parameters from pdb file
@@ -556,8 +561,7 @@ class Parameters():
             print_in_T_and_log("---Reading stream file of the triggered state---")
             S_on = Stream(self.stream_file_on)
             self.stream_file_name_on = Fextr_utils.get_name(self.stream_file_on)
-            self.a_on, a_array_on, astdev_on, self.b_on, b_array_on, bstdev_on, self.c_on, c_array_on, cstdev_on, self.alpha_on, alpha_array_on, alphastdev_on, self.beta_on, beta_array_on, betastdev_on, self.gamma_on, gamma_array_on, gammasdtev_on = Stream(
-                self.stream_file_on).get_cell_stats()
+            self.a_on, a_array_on, astdev_on, self.b_on, b_array_on, bstdev_on, self.c_on, c_array_on, cstdev_on, self.alpha_on, alpha_array_on, alphastdev_on, self.beta_on, beta_array_on, betastdev_on, self.gamma_on, gamma_array_on, gammasdtev_on = Stream(self.stream_file_on).get_cell_stats()
 
             # Convert unit cell parameters (nm to A)
             self.a_on = self.a_on * 10
@@ -576,41 +580,58 @@ class Parameters():
 
             # getting unit cell parameters
             print_in_T_and_log('---Getting unit cell parameters---')
-            if self.params.JackKnife.On_state.unit_cell.a != None:
-                self.a_on = self.params.JackKnife.On_state.unit_cell.a
-            else:
-                print('Since a was not given, the average a will be taken')
-            if self.params.JackKnife.On_state.unit_cell.b != None:
-                self.b_on = self.params.JackKnife.On_state.unit_cell.b
-            else:
-                print('Since b was not given, the average b will be taken')
-            if self.params.JackKnife.On_state.unit_cell.c != None:
-                self.c_on = self.params.JackKnife.On_state.unit_cell.c
-            else:
-                print('Since c was not given, the average c will be taken')
-            if self.params.JackKnife.On_state.unit_cell.alpha != None:
-                self.alpha_on = self.params.JackKnife.On_state.unit_cell.alpha
-            else:
-                print('Since alpha was not given, the average alpha will be taken')
-            if self.params.JackKnife.On_state.unit_cell.beta != None:
-                self.beta_on = self.params.JackKnife.On_state.unit_cell.beta
-            else:
-                print('Since beta was not given, the average beta will be taken')
-            if self.params.JackKnife.On_state.unit_cell.gamma != None:
-                self.gamma_on = self.params.JackKnife.On_state.unit_cell.gamma
-            else:
-                print('Since gamma was not given, the average gamma will be taken')
 
-            # get symmetry parameters
-            spacegroup_on = self.params.JackKnife.On_state.spacegroup
-            if spacegroup_on == None:
-                print('Please give the space group for JackKnife')
-                sys.exit()
-            else:
+            if self.params.JackKnife.On_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8:  # get pdb unit cell parameters from off state pdb
+                # check file
+                Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
+                # get unit cell parameters from pdb file
+                model_in = any_file(self.params.Xtrapol8.input.reference_pdb, force_type="pdb",
+                                    raise_sorry_if_errors=True)
+                unitcell = model_in.crystal_symmetry().unit_cell()
+                self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on = unitcell.parameters()
+                spacegroup_on = str(model_in.crystal_symmetry().space_group_info())
                 self.spacegroup_on = ''
                 for i in spacegroup_on:
                     if i != ' ':
                         self.spacegroup_on += i
+
+            else:  # get input unit cell parameters if given
+
+                if self.params.JackKnife.On_state.unit_cell.a != None:
+                    self.a_on = self.params.JackKnife.On_state.unit_cell.a
+                else:
+                    print('Since a was not given, the average a will be taken')
+                if self.params.JackKnife.On_state.unit_cell.b != None:
+                    self.b_on = self.params.JackKnife.On_state.unit_cell.b
+                else:
+                    print('Since b was not given, the average b will be taken')
+                if self.params.JackKnife.On_state.unit_cell.c != None:
+                    self.c_on = self.params.JackKnife.On_state.unit_cell.c
+                else:
+                    print('Since c was not given, the average c will be taken')
+                if self.params.JackKnife.On_state.unit_cell.alpha != None:
+                    self.alpha_on = self.params.JackKnife.On_state.unit_cell.alpha
+                else:
+                    print('Since alpha was not given, the average alpha will be taken')
+                if self.params.JackKnife.On_state.unit_cell.beta != None:
+                    self.beta_on = self.params.JackKnife.On_state.unit_cell.beta
+                else:
+                    print('Since beta was not given, the average beta will be taken')
+                if self.params.JackKnife.On_state.unit_cell.gamma != None:
+                    self.gamma_on = self.params.JackKnife.On_state.unit_cell.gamma
+                else:
+                    print('Since gamma was not given, the average gamma will be taken')
+
+                # get symmetry parameters
+                spacegroup_on = self.params.JackKnife.On_state.spacegroup
+                if spacegroup_on == None:
+                    print('Please give the space group for JackKnife')
+                    sys.exit()
+                else:
+                    self.spacegroup_on = ''
+                    for i in spacegroup_on:
+                        if i != ' ':
+                            self.spacegroup_on += i
 
             self.unique_axis_on = self.params.JackKnife.On_state.unique_axis
             if self.unique_axis_on == None or self.unique_axis_on == 'default':
