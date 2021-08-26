@@ -1,5 +1,5 @@
 options{
-    programs = run_JackKnife *run_Xtrapol8
+    programs = *run_JackKnife *run_Xtrapol8
             .type = choice(multi=True)
             .help = Program to run
             .expert_level = 0
@@ -10,7 +10,7 @@ options{
     }
 JackKnife{
     input{
-        repeats = 2
+        repeats = 4
             .type = int
             .help = Number of times JackKnife will be repeated
             .expert_level = 0
@@ -33,32 +33,32 @@ JackKnife{
                 .type = bool
                 .help = use the unit cell and space group from pdb file given
                 .expert_level = 0
-            a = 95.63
+            a = None
                 .type = float
                 .help = lattice a axis length (A)
                 .expert_level = 0
-            b = 30.00
+            b =None
                 .type = float
                 .help = lattice b axis length (A)
                 .expert_level = 0
-            c = 55.10
+            c =None
                 .type = float
                 .help = lattice c axis length (A)
                 .expert_level = 0
-            alpha = 90.00
+            alpha =None
                 .type = float
                 .help = lattice alpha angle (degree)
                 .expert_level = 0
-            beta = 135.59
+            beta =None
                 .type = float
                 .help = lattice beta angle (degree)
                 .expert_level = 0
-            gamma = 90.00
+            gamma =None
                 .type = float
                 .help = lattice gamma angle (degree)
                 .expert_level = 0
             }
-            spacegroup = C121
+            spacegroup =None
                 .type = str
                 .help = space group of the processed crystal
                 .expert_level = 0
@@ -113,7 +113,7 @@ JackKnife{
             .help = Method for intensity merging
             .expert_level = 0
         process_hkl{
-            other_process_hkl = --max-adu=17000 --scale
+            other_process_hkl = --max-adu=30000 --scale --no-polarisation
                 .type = str
                 .help = other inputs for the process_hlk merging of images. For more infromation go to https://www.desy.de/~twhite/crystfel/manual.html (written like inputs for Crystfel, example: --min-snr=1)
                 .expert_level = 0
@@ -134,11 +134,11 @@ JackKnife{
     }
 Xtrapol8{
     input{
-        reference_mtz = /mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_0/JackKnife_Xtrapol8_outname_not_defined/JK_WT_all_rings_nocen_19675crystals_reference/WT_all_rings_nocen_19675crystals_total/WT_all_rings_nocen_19675crystals.mtz
+        reference_mtz = /mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_0/D76N_ALL_rings_nocen_JackKnife_Xtrapol8_20/JK_WT_all_rings_nocen_19675crystals_reference/WT_all_rings_nocen_19675crystals_total/WT_all_rings_nocen_19675crystals.mtz
             .type = path
             .help = Reference data in mtz or mmcif format (merged).
             .expert_level = 0
-        triggered_mtz = /mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_0/JackKnife_Xtrapol8_outname_not_defined/JK_D76N_ALL_rings_nocen_triggered/D76N_ALL_rings_nocen_total/D76N_ALL_rings_nocen.mtz
+        triggered_mtz = /mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_0/D76N_ALL_rings_nocen_JackKnife_Xtrapol8_20/JK_D76N_ALL_rings_nocen_triggered/D76N_ALL_rings_nocen_total/D76N_ALL_rings_nocen.mtz
             .type = path
             .help = Triggered data in mtz or mmcif format (merged).
             .expert_level = 0
@@ -165,7 +165,7 @@ Xtrapol8{
             .type = float(value_min=0, value_max=1)
             .help = Lowest occupancy to test (fractional)
             .expert_level = 0
-        high_occ = 0.5
+        high_occ = 0.9
             .type = float(value_min=0, value_max=1)
             .help = Highest occupancy to test (fractional)
             .expert_level = 0
@@ -193,7 +193,7 @@ Xtrapol8{
             .type = float(value_min=0, value_max=1)
             .help = scale factor for structure factor difference in k-weigting scheme (for calculation of kfofo)
             .expert_level = 3
-        f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
+        f_extrapolated_and_maps = *qfextr *fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
             .type = choice(multi=True)
             .help = Extrapolated structure factors and map types: qFextr, kFextr, Fextr: (q/k-weighted)-Fextr structure factors and maps by Coquelle method (Fextr= alpha*(Fobs,triggered-Fobs,reference)+Fobs,triggered, map 2mFextr|-D|Fcalc|, phi_model). qFgenick, kFgenick, Fgenick: (q/k-weighted)-Fextr structure factors and maps by Genick method (|Fextr|= alpha*(|Fobs,triggered|-|Fobs,reference|)+|Fobs,triggered|, map: m|Fextr|, phi_model). qFextr_calc, kFextr_calc, Fextr_calc: (q-weighted)-Fextr structure factors and maps by Fcalc method (|Fextr|= alpha*(|Fobs,triggered|-|Fobs,reference|)+|Fcalc|, map" 2m|Fextr|-D|Fcalc|, phi_model).
             .expert_level = 0
@@ -284,7 +284,7 @@ Xtrapol8{
                 .expert_level = 1
                 }
             main{
-                cycles = 3
+                cycles = 1
                 .type = int
                 .help = Number of refinement macro cycles for reciprocal space refinement
                 .expert_level = 0
@@ -322,7 +322,7 @@ Xtrapol8{
                 .expert_level = 1
                 }
             real_space_refine{
-                cycles = 5
+                cycles = 1
                 .type = int
                 .help = Number of refinement cycles for real space refinement
                 .expert_level = 0
@@ -438,7 +438,7 @@ Xtrapol8{
             .type = bool
             .help = Stop Xtrapol8 after generation of Fourier Difference map
             .expert_level = 0
-        open_coot = True
+        open_coot = False
             .type = bool
             .help = Automatically open COOT at the end.
             .expert_level = 0
