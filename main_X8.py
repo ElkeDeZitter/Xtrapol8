@@ -58,6 +58,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
     #get mtz files
     mtz_off = outdir_and_mtz_file_off_on[1]
     mtz_on = outdir_and_mtz_file_off_on[2]
+    total = outdir_and_mtz_file_off_on[4]
     #get log file
     logname = outdir_and_mtz_file_off_on[3]
     log = open(logname, "w")
@@ -254,6 +255,13 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
     residlist_zscore = Map_explorer_analysis(peakintegration_file=map_expl_out_FoFo, log=log).residlist_top(
         Z=params.Xtrapol8.map_explorer.z_score)
 
+    # Paula ecriture des fichiers FoFo
+    JK_files_table = np.array(['occupancy', 'map_type', 'Refinement', 'map', 'model', 'labels', 'total', 'residlist'])
+    FoFolist = [1, FoFo.maptype, None, str(outdir + '/' + FoFo.mtz_name), None,
+                (FoFo.labels['map_coefs_diff'] + ',PHI' + FoFo.labels['map_coefs_diff']), total, str(outdir + '/' + residlist_zscore)]
+    JK_files_table = np.vstack((JK_files_table, FoFolist))
+    # Paula residue list du FoFo pour rmsd
+
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
           %(map_expl_out_FoFo, residlist_zscore), file=log)
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
@@ -404,10 +412,13 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         for mp in P.final_maptypes:
             if mp in ('qFextr_map', 'qFgenick_map', 'qFextr_calc_map'):
                 os.chdir(new_dirpath_q)
+                newdir = new_dirpath_q
             elif mp in ('kFextr_map', 'kFgenick_map', 'kFextr_calc_map'):
                 os.chdir(new_dirpath_k)
+                newdir = new_dirpath_k
             else:
                 os.chdir(new_dirpath)
+                newdir = new_dirpath
 
             # Depending on maptype, do following steps:
             # 1) calculate the structure factors, write out to mtz file, handle negative reflections and generate associated plots or write to pickle file for later usuage
@@ -428,7 +439,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                 Fextr.fextr_calc(qweight=True, kweight=False, outdir_for_negstats=outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_q_ms, P.FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' % (Fextr.maptype, Fextr.occ), log=log)
-            if mp == 'kFextr_map':
+            elif mp == 'kFextr_map':
                 Fextr.fextr(qweight=False, kweight=True, outdir_for_negstats=outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_k_ms, P.FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' % (Fextr.maptype, Fextr.occ), log=log)
@@ -454,6 +465,10 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                 compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' % (Fextr.maptype, Fextr.occ), log=log)
             else:
                 print("%s not recognised as extrapolated map type" % (mp))
+
+            #Paula
+            twoFextrFclist= np.array([occ, mp, None, str(newdir + '/' + Fextr.mtz_name), None, str(Fextr.labels['map_coefs_map'] + ',PHI' + Fextr.labels['map_coefs_map'] + ' ' + Fextr.labels['map_coefs_diff'] + ',PHI' + Fextr.labels['map_coefs_diff']), total, None])
+            JK_files_table=np.vstack((JK_files_table, twoFextrFclist))
 
             # Use xplor map of type mFo-DFc to find and integrate the peaks, annotate the peaks to residues
 
@@ -492,7 +507,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                 print("\n************Refinements************")
                 print("\n************Refinements************", file=log)
                 if params.Xtrapol8.refinement.use_refmac_instead_of_phenix:
-                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(pdb_in=DH.pdb_in,
+                    mtz_out, pdb_rec, pdb_real, pdb_rec_real, refinement_rec, refinement_real, refinement_rec_real = Fextr.refmac_coot_refinements(pdb_in=DH.pdb_in,
                                                                                              additional=DH.additional,
                                                                                              ligands_list=DH.extract_ligand_codes(),
                                                                                              F_column_labels=
@@ -508,8 +523,9 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                                                                                                                    Fextr.FM.labels[
                                                                                                                        'map_coefs_diff']),
                                                                                              keywords=params.Xtrapol8.refinement.refmac_keywords)
+                    refinement_labels = '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT'
                 else:
-                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(pdb_in=DH.pdb_in,
+                    mtz_out, pdb_rec, pdb_real, pdb_rec_real, refinement_rec, refinement_real, refinement_rec_real = Fextr.phenix_phenix_refinements(pdb_in=DH.pdb_in,
                                                                                                additional=DH.additional,
                                                                                                F_column_labels=
                                                                                                Fextr.FM.labels['data'],
@@ -519,6 +535,15 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                                                                                                    Fextr.FM.labels[
                                                                                                        'map_coefs_map']),
                                                                                                keywords=params.Xtrapol8.refinement.phenix_keywords)
+                    refinement_labels = '2FOFCWT,PH2FOFCWT'
+                #Paula
+                twoFextrFclist_refined = np.array([occ, mp, refinement_rec, str(newdir + '/' + mtz_out), str(newdir + '/' +pdb_rec), refinement_labels, total, None])
+                JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
+                twoFextrFclist_refined = np.array([occ, mp, refinement_real, None, str(newdir + '/' +pdb_real), None, total, None])
+                JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
+                twoFextrFclist_refined = np.array([occ, mp, refinement_rec_real, None, str(newdir + '/' +pdb_rec_real), None, total, None])
+                JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
+
                 print("--------------", file=log)
                 # depending on the map-type, append the refinement output to the correct list
                 # this is ugly, TODO: make an object to store the results in a clean and transparant way
@@ -581,6 +606,8 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         # remove empty directories to avoid any confusion. secure because os.rmdir can only remove empty directories.
         if len(os.listdir(new_dirpath_q)) == 0:
             os.rmdir(new_dirpath_q)
+        if len(os.listdir(new_dirpath_k)) == 0:
+            os.rmdir(new_dirpath_k)
         if len(os.listdir(new_dirpath)) == 0:
             os.rmdir(new_dirpath)
 
@@ -937,7 +964,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         Fextr.name_out = "%s_occ%.3f" % (P.outname, occ)
 
         if params.Xtrapol8.refinement.use_refmac_instead_of_phenix:
-            mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(mtz_F=qFext_mtz_F,
+            mtz_out, pdb_rec, pdb_real, pdb_rec_real, refinement_rec, refinement_real, refinement_rec_real = Fextr.refmac_coot_refinements(mtz_F=qFext_mtz_F,
                                                                                      mtz_map=qFext_mtz_map,
                                                                                      pdb_in=DH.pdb_in,
                                                                                      additional=DH.additional,
@@ -955,8 +982,9 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                                                                                                            Fextr.FM.labels[
                                                                                                                'map_coefs_diff']),
                                                                                      keywords=params.Xtrapol8.refinement.refmac_keywords)
+            refinement_labels='2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT'
         else:
-            mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(mtz_F=qFext_mtz_F,
+            mtz_out, pdb_rec, pdb_real, pdb_rec_real, refinement_rec, refinement_real, refinement_rec_real = Fextr.phenix_phenix_refinements(mtz_F=qFext_mtz_F,
                                                                                        mtz_map=qFext_mtz_map,
                                                                                        pdb_in=DH.pdb_in,
                                                                                        additional=DH.additional,
@@ -967,6 +995,20 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                                                                                            Fextr.FM.labels[
                                                                                                'map_coefs_map']),
                                                                                        keywords=params.Xtrapol8.refinement.phenix_keywords)
+            refinement_labels='2FOFCWT,PH2FOFCWT'
+        # Paula
+        twoFextrFclist_refined = np.array(
+            [occ, mp, refinement_rec, str(newdir + '/' + mtz_out), str(newdir + '/' + pdb_rec), refinement_labels,
+             total, None])
+        JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
+        twoFextrFclist_refined = np.array(
+            [occ, mp, refinement_real, None, str(newdir + '/' + pdb_real),
+             None, total, None])
+        JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
+        twoFextrFclist_refined = np.array(
+            [occ, mp, refinement_rec_real, None, str(newdir + '/' + pdb_rec_real),
+             None, total, None])
+        JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
 
         print("---> Results in %s_%.3f" % (dir_prefix, occ))
         print("---> Results in %s_%.3f" % (dir_prefix, occ), file=log)
@@ -1073,3 +1115,4 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         os.system("coot --script %s" % (script_coot))
 
     ################################################################
+    return(JK_files_table)

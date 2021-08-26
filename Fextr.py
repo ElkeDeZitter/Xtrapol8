@@ -89,6 +89,7 @@ from mmtbx import utils
 from cctbx import sgtbx
 from iotbx import pdb
 from mmtbx.scaling.matthews import p_vm_calculator
+from scipy import append
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -897,16 +898,20 @@ class FobsFobs(object):
         Write FoFo maps
         """
         if qweighting:
-            maptype = 'qFoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+            self.maptype = 'qFoFo'
+            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, self.maptype, outname, fmodel).write_FoFo_output()
+            FM=Filesandmaps(self.fdif_q_ms, rfree, self.maptype, outname, fmodel)
         elif kweighting:
-            maptype = 'kFoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+            self.maptype = 'kFoFo'
+            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, self.maptype, outname, fmodel).write_FoFo_output()
+            FM=Filesandmaps(self.fdif_k_ms, rfree, self.maptype, outname, fmodel)
         else:
-            maptype = 'FoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
-        
-       
+            self.maptype = 'FoFo'
+            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, self.maptype, outname, fmodel).write_FoFo_output()
+            FM=Filesandmaps(self.fdif_c_ms, rfree, self.maptype, outname, fmodel)
+
+        self.labels = FM.labels
+
 class Fextrapolate(object):
     """
     Class for the calculation, analysis and usage of extrapolated structure factors.
@@ -1219,6 +1224,7 @@ class Fextrapolate(object):
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
                   
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
+        self.labels=self.FM.labels
 
     def fgenick(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
         """"
@@ -1259,7 +1265,8 @@ class Fextrapolate(object):
             self.FM = Filesandmaps(self.fgenick_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
         fm = self.FM.write_Fgenick_output()
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
-        
+        self.labels=self.FM.labels
+
     def fextr_calc(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
         """"
         Calculation of (q-weighted) Fextr_calc. Should be called in case extrapolated Fs of type "qFextr_calc" or "Fextr_calc"
@@ -1333,7 +1340,8 @@ class Fextrapolate(object):
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
 
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
-                
+        self.labels=self.FM.labels
+
     def get_updated_fmodel_fobs_off(self, miller_array):
         """
         Update the Fmodel that is associated with the off-state reflections and model in order to have the same reflections as the extrapolated structure factors.
@@ -1377,7 +1385,7 @@ class Fextrapolate(object):
         3) real space refinement with results reciprocal space refinement (mtz_out and pd_out = output of step 1)
         !!! take care: different definition of column labels as compared to refmac_coot_refinements!!! here: values and phases for 2FoFc kind of map only
         """
-        
+
         if mtz_F == None:
             mtz_F = self.F_name
         if mtz_map == None:
@@ -1405,6 +1413,7 @@ class Fextrapolate(object):
         
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
         mtz_out_rec, pdb_out_rec = ref.phenix_reciprocal_space_refinement()
+        refinement_rec = False
         print("Output reciprocal space refinement:", file=self.log)
         print("----------------")
         print("Output reciprocal space refinement:")
@@ -1418,6 +1427,7 @@ class Fextrapolate(object):
         if os.path.isfile(mtz_out_rec):
             print("    mtz-file: %s"%(mtz_out_rec), file=self.log)
             print("    mtz-file: %s"%(mtz_out_rec))
+            refinement_rec='reciprocal'
         else:
             print("    mtz-file not found. Refinement failed.", file=self.log)
             print("    mtz-file not found. Refinement failed.")
@@ -1438,12 +1448,14 @@ class Fextrapolate(object):
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
         pdb_out_real = ref.phenix_real_space_refinement(mtz_map, pdb_in, column_labels)
+        refinement_real = False
         print("Output real space refinement:", file=self.log)
         print("----------------")
         print("Output real space refinement:")
         if os.path.isfile(pdb_out_real):
             print("    pdb-file: %s"%(pdb_out_real), file=self.log)
             print("    pdb-file: %s"%(pdb_out_real))
+            refinement_real = 'real'
         else:
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
@@ -1453,12 +1465,14 @@ class Fextrapolate(object):
         if (keywords.density_modification.density_modification and os.path.isfile(mtz_dm)):
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
             pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
+            refinement_rec_real = False
             print("Output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
                 print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
+                refinement_rec_real = 'reciprocal + real'
             else:
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=self.log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
@@ -1467,19 +1481,21 @@ class Fextrapolate(object):
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
             pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
+            refinement_rec_real=False
             print("Output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
                 print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
+                refinement_rec_real = 'reciprocal + real'
             else:
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=self.log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
                 pdb_out_rec_real = pdb_out_rec
             print("----------------")
                
-        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
+        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real, refinement_rec, refinement_real, refinement_rec_real
     
     def refmac_coot_refinements(self,
                                 mtz_F=None,
@@ -1535,6 +1551,7 @@ class Fextrapolate(object):
         #print("Refinements:")
             
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
+        refinement_rec=False
         if keywords.density_modification.density_modification:
             mtz_out_rec, pdb_out_rec, mtz_dm = ref.refmac_reciprocal_space_refinement()
         else:
@@ -1545,6 +1562,7 @@ class Fextrapolate(object):
         if os.path.isfile(pdb_out_rec):
             print("    pdb-file: %s"%(pdb_out_rec), file=self.log)
             print("    pdb-file: %s"%(pdb_out_rec))
+            refinement_rec='reciprocal'
         else:
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
@@ -1552,6 +1570,7 @@ class Fextrapolate(object):
         if os.path.isfile(mtz_out_rec):
             print("    mtz-file: %s"%(mtz_out_rec), file=self.log)
             print("    mtz-file: %s"%(mtz_out_rec))
+            refinement_rec='reciprocal'
         elif mtz_out_rec == mtz_F:
             print("    mtz-file not found. Refinement failed.", file=self.log)
             print("    mtz-file not found. Refinement failed.")
@@ -1573,6 +1592,7 @@ class Fextrapolate(object):
         print("----------------")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
+        refinement_real=False
         pdb_out_real = ref.coot_real_space_refinement(pdb_in, mtz_map, map_column_labels)
         print("output real space refinement:", file=self.log)
         print("----------------")
@@ -1580,6 +1600,7 @@ class Fextrapolate(object):
         if os.path.isfile(pdb_out_real):
             print("    pdb-file: %s"%(pdb_out_real), file=self.log)
             print("    pdb-file: %s"%(pdb_out_real))
+            refinement_real='real'
         else:
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
@@ -1588,6 +1609,7 @@ class Fextrapolate(object):
 
         if keywords.density_modification.density_modification:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
+            refinement_rec_real = False
             pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_dm, 'PHIDM, FOMDM, FOFCWT, PHFOFCWT' )
             print("output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
@@ -1595,6 +1617,7 @@ class Fextrapolate(object):
             if os.path.isfile(pdb_out_rec_real):
                 print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
+                refinement_rec_real = 'reciprocal + real'
             else:
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
@@ -1602,6 +1625,7 @@ class Fextrapolate(object):
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
+            refinement_rec_real=False
             pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
             print("output real space refinement after reciprocal space refinement:", file=self.log)
             print("----------------")
@@ -1609,13 +1633,14 @@ class Fextrapolate(object):
             if os.path.isfile(pdb_out_rec_real):
                 print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
+                refinement_rec_real='reciprocal + real'
             else:
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
                 pdb_out_rec_real = pdb_out_rec     
             print("----------------")
             
-        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
+        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real, refinement_rec, refinement_real, refinement_rec_real
 
                
 class Filesandmaps(object):
@@ -1643,7 +1668,7 @@ class Filesandmaps(object):
             symmetry_flags    = maptbx.use_space_group_symmetry,
             resolution_factor = 0.25)
         
-        if self.maptype.lower() == 'qfofo':
+        if self.maptype.lower() == 'qfofo': #Paula labels before refinement
             self.labels = {'data':"QFDIFF", 'map_coefs_diff': "QFOFOWT"}
         elif self.maptype.lower() == 'kfofo':
             self.labels = {'data':"KFDIFF", 'map_coefs_diff': "KFOFOWT"}
@@ -1983,6 +2008,8 @@ def run(args):
         params.occupancies.list_occ = None
     else:
         params.occupancies.list_occ = occ_lst
+
+    #Paula occupancy list
     ################################################################
     
     #Add all arguments to log-file
@@ -2199,6 +2226,10 @@ def run(args):
     FoFo = FobsFobs(DH.fobs_on_scaled, DH.fobs_off_scaled)
     FoFo.calculate_fdiff(kweight_scale = params.f_and_maps.kweight_scale)
     FoFo.write_maps(DH.fmodel, DH.rfree, outname, qweighting=qFoFo_weight, kweighting=kFoFo_weight)
+
+    #Paula ecriture des fichiers FoFo
+    JK_files_table = np.array([None, FobsFobs.maptype, FobsFobs.mtz_name, FobsFobs.labels['map_coefs_diff']])
+
     print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type), file=log)
     #print("------------------------------------", file=log)
     print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type))
@@ -2213,6 +2244,9 @@ def run(args):
         params.map_explorer.radius = dmin
     map_expl_out_FoFo = map_explorer(FoFo.xplor_name, DH.pdb_in, params.map_explorer.radius, params.map_explorer.threshold, params.map_explorer.peak)
     residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=log).residlist_top(Z=params.map_explorer.z_score)
+
+    #Paula residue list du FoFo pour rmsd
+
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
           %(map_expl_out_FoFo, residlist_zscore), file=log)
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
@@ -2371,7 +2405,6 @@ def run(args):
                 os.chdir(new_dirpath_k)
             else:
                 os.chdir(new_dirpath)
-            
             #Depending on maptype, do following steps:
             #1) calculate the structure factors, write out to mtz file, handle negative reflections and generate associated plots or write to pickle file for later usuage
             #   calculate map coefficients and write to mtz, xplor and ccp4 files (latter only for mFo-DFc type)
@@ -2379,7 +2412,7 @@ def run(args):
             #3) compute signal to noise and plot
             #As same steps are repeated, but with a sifferent Fextr-function, I should think of a more clever way to reduce the redundancy here (and in following if clauses)
             if mp == 'qFextr_map':
-                Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats = outdir)
+                Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats = outdir) #Paula calcul Fextr + fichiers mtz 2FextrFc
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
                 #cc_list.append(plot_F1_F2(DH.fobs_off_scaled,Fextr.fextr_ms, F1_name = "Freference",F2_name = "Fextr"))
@@ -2417,7 +2450,10 @@ def run(args):
                 compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
             else:
                 print("%s not recognised as extrapolated map type"%(mp))
-                        
+
+            #Paula
+            append(JK_files_table, [occ, mp, Fextr.mtz_name , Filesandmaps.labels['map_coefs_diff'], Filesandmaps.labels['data'], Filesandmaps.labels], axis=0)
+
             #Use xplor map of type mFo-DFc to find and integrate the peaks, annotate the peaks to residues
             
             print("\n************Map explorer************", file=log)
@@ -2454,7 +2490,7 @@ def run(args):
                 print("\n************Refinements************")
                 print("\n************Refinements************", file=log)
                 if params.refinement.use_refmac_instead_of_phenix:
-                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(pdb_in = DH.pdb_in,
+                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(pdb_in = DH.pdb_in, #Paula colonne refmac ou phenix
                                                                additional        = DH.additional,
                                                                ligands_list      = DH.extract_ligand_codes(),
                                                                F_column_labels   = Fextr.FM.labels['data'],
@@ -2626,12 +2662,12 @@ def run(args):
         else:
             dir_prefix = 'occupancy' 
             
-        if mp == 'qFextr_map':
-            recref_mtz_lst = qFextr_recref_mtz_lst
-            recref_pdb_lst = qFextr_recref_pdb_lst
-            recrealref_lst = qFextr_recrealref_lst
-            realref_lst    = qFextr_realref_lst
-            map_expl_lst   = qFextr_map_expl_fles
+        if mp == 'qFextr_map': #Paula liste de fichiers
+            recref_mtz_lst = qFextr_recref_mtz_lst #mtz du reciprocal space
+            recref_pdb_lst = qFextr_recref_pdb_lst #pdb
+            recrealref_lst = qFextr_recrealref_lst #pdb
+            realref_lst    = qFextr_realref_lst #pdb
+            map_expl_lst   = qFextr_map_expl_fles #map explorer
         elif mp == 'qFgenick_map':
             recref_mtz_lst = qFgenick_recref_mtz_lst
             recref_pdb_lst = qFgenick_recref_pdb_lst
@@ -2644,7 +2680,7 @@ def run(args):
             recrealref_lst = qFextr_calc_recrealref_lst
             realref_lst    = qFextr_calc_realref_lst   
             map_expl_lst   = qFextr_calc_map_expl_fles
-        if mp == 'kFextr_map':
+        elif mp == 'kFextr_map':
             recref_mtz_lst = kFextr_recref_mtz_lst
             recref_pdb_lst = kFextr_recref_pdb_lst
             recrealref_lst = kFextr_recrealref_lst

@@ -170,7 +170,7 @@ class Parameters():
         # getting unit cell parameters
         print_in_T_and_log('---Getting unit cell parameters---')
 
-        if self.params.JackKnife.Off_state.unit_cell.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #get pdb unit cell parameters ??? if the file directory is wrong, fle not checked or if not pdb but cif
+        if self.params.JackKnife.Off_state.unit_cell.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #get pdb unit cell parameters ??? if not pdb but cif
             # check file
             Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
             #get unit cell parameters from pdb file
