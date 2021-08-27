@@ -363,6 +363,12 @@ class Difference_distance_analysis(object):
             
                 
         fig.tight_layout()
-        plt.savefig('%s/ddm_%s_vs_%s.pdf'%(self.outdir, self.pdb1_name,self.pdb2_name), dpi=300, transparent=True)
-        plt.savefig('%s/ddm_%s_vs_%s.png'%(self.outdir, self.pdb1_name,self.pdb2_name), dpi=300, transparent=True)
+        outname = '%s/ddm_%s_vs_%s'%(self.outdir, self.pdb1_name,self.pdb2_name)
+        outname_pdf = '%s.pdf'%(outname)
+        plt.savefig(outname_pdf, dpi=300, transparent=True)
+        outname_png = '%s.png'%(outname)
+        plt.savefig(outname_png, dpi=300, transparent=True)
         plt.close()
+        
+        #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though
+        return outname_png

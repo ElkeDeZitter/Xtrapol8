@@ -251,6 +251,8 @@ class TabMainImg(ScrolledPanel):
         self.mainSizer.Add(wx.StaticLine(self, wx.ID_ANY))
         self.mainSizer.AddSpacer(60)
         self.FitInside()
+        self.Refresh()
+        
 
     def addChoices(self, selection):
         self.FextrSelection = wx.Choice(self, wx.ID_ANY, choices=selection)
@@ -261,6 +263,8 @@ class TabMainImg(ScrolledPanel):
         self.mainSizer.AddSpacer(30)
         self.mainSizer.Add(self.ImgSizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         self.FitInside()
+        self.Refresh()
+        
         index = self.parent.GetSelection()
         pub.sendMessage("updateFextr", evt=None)
 
@@ -280,7 +284,8 @@ class TabMainImg(ScrolledPanel):
                                       wx.BitmapFromImage(img))
         self.ImgSizer.Add(self.newimg, proportion=0,  flag=wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, border=20)
         self.FitInside()
-
+        self.Refresh()
+        
     def Clear(self, evt):
         while not self.ImgSizer.IsEmpty():
             window = self.ImgSizer.GetItem(0).GetWindow()
@@ -306,6 +311,7 @@ class TabOccResults(ScrolledPanel):
         self.best_occ = {}
         self.ddm = {}
         self.coot_scripts = {}
+        pub.subscribe(self.onBestOcc,"Best occ")
         self.setupUI()
 
         self.setupBindings()
@@ -366,6 +372,14 @@ class TabOccResults(ScrolledPanel):
         self.mainSizer.Add(self.ImgSizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
         self.mainSizer.Layout()
         
+    
+    
+    
+    def onBestOcc(self, occ_overview):
+        print("received best occupancies")
+        print(occ_overview)
+    
+    
     def setupBindings(self):
         self.Bind(wx.EVT_CHOICE, self.onSelection, self.OccChoice)
         self.Bind(wx.EVT_CHOICE, self.onSelection, self.FextrChoice)
@@ -413,7 +427,7 @@ class TabOccResults(ScrolledPanel):
             else:
                 if self.coot_button.IsShown():
                     self.occNfextrSizer.Hide(self.coot_button)
-                    
+        self.Layout()
         evt.Skip()
 
     def onCoot(self, evt):
@@ -452,6 +466,7 @@ class TabOccResults(ScrolledPanel):
         fextr = self.FextrChoice.GetStringSelection()
         self.occNfextrSizer.Show(self.best_occ_Static)
         self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[fextr])
+        #self.occNfextrSizer.Show(self.coot_button)
 
     def get_best_occupancy(self, paths, fextr):
         for path in paths:

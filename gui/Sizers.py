@@ -12,9 +12,9 @@ class DefaultHorizontalSizer(wx.BoxSizer):
 
         if multiline:
             self.StaticTxt = wx.StaticText(parent, wx.ID_ANY, label, size=(150, 60))
-            self.TextCtrl =  wx.TextCtrl(parent, wx.ID_ANY, "",style = wx.TE_READONLY | wx.TE_MULTILINE,size=(width_TextCtrl,60))
+            self.TextCtrl =  wx.TextCtrl(parent, wx.ID_ANY, "",style = wx.TE_MULTILINE,size=(width_TextCtrl,60))
         else:
-            self.TextCtrl = wx.TextCtrl(parent, wx.ID_ANY, "", style=wx.TE_READONLY,size=(width_TextCtrl,height))
+            self.TextCtrl = wx.TextCtrl(parent, wx.ID_ANY, "", size=(width_TextCtrl,height))
             self.StaticTxt = wx.StaticText(parent, wx.ID_ANY, label, size=(150, -1))
 
         self.Btn =  wx.Button(parent, wx.ID_ANY, label_button)
