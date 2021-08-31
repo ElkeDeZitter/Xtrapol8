@@ -8,7 +8,7 @@ from datetime import datetime
 from iotbx.file_reader import any_file
 import time
 
-#log_main =open('/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/2021-08-03_08h29_Xtrapol8.log', "w")
+log_main =open('/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/2021-08-03_08h29_Xtrapol8.log', "w")
 
 #class global
 def print_file_content(fle_in_dir, fle_out_dir):
@@ -97,24 +97,24 @@ def run_in_terminal (cmd, existing_files=False, wait=True, log=None, Crystfel_pr
     print_terminal_and_log(cmd) #print the command in the terminal and log file
 
     if wait == True:
-        #??? How to improve code and not do command twice? important for check and compare hkl
         p = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # launch the command
         P = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait() #launch the command and wait until finished
 
         if Crystfel_program==True: #special case of the crystfel programs to get the output in the terminal
             _, cmd_output = p.communicate() #get the output of the terminal
 
-    #        p.wait() #wait until the command finished ???
+    #        p.wait() #wait until the command finished ??? TODO: Improve the code for running a command in the terminal with subprocess.Popen
+             #???How to improve code and not do command twice?
         else:
             cmd_output, _=p.communicate() #get the output of the terminal
 
         i=0
         while P != 0: #the code will not continue while the command isn't finished
-            time.sleep(10)  # time delay of 10s
+            time.sleep(10)  # time delay of 10s TODO: Choose a correct time delay or make it a parameter in the function, or change 'if i==100'
             #to avoid unended run
             i+=1
             if i==100:
-                print_terminal_and_log("this is not working or you are running heavy stuff on a slow machine")
+                print_terminal_and_log("this is not working or you are running heavy stuff on a slow machine. Did you check your inputs? Unit Cell? Space Group? Unique_Axis? Other_Statistics?")
                 sys.exit()
                 break
 
@@ -128,17 +128,17 @@ def run_in_terminal (cmd, existing_files=False, wait=True, log=None, Crystfel_pr
         if Crystfel_program==True:
             _, cmd_output = P.communicate() #get the output of the terminal
         else:
-            cmd_output, _ = P.communicate()
+            cmd_output, _ = P.communicate() #get the output of the terminal
 
     if existing_files != False:
         i=0
         for file in existing_files:
-             while not os.path.isfile(file): #the code will not continue while the file doesn't exist
-                time.sleep(10) #time delay of 10s
+             while not os.path.isfile(file) == True: #the code will not continue while the file doesn't exist
+                time.sleep(10) #time delay of 10s TODO: Choose a correct time delay or make it a parameter in the function
                 #to avoid unended run
                 i += 1
                 if i == 100:
-                    print_terminal_and_log("this is not working or you are running heavy stuff on a slow machine")
+                    print_terminal_and_log("this is not working or you are running heavy stuff on a slow machine. Did you check your inputs? Unit Cell? Space Group? Unique_Axis? Other_Statistics?")
                     sys.exit()
                     break
              output_outdir=os.getcwd()
@@ -146,7 +146,7 @@ def run_in_terminal (cmd, existing_files=False, wait=True, log=None, Crystfel_pr
 
              cmd_done = True  # the command has been executed
 
- #   print_terminal_and_log(cmd_output, log=log)  # print the output of the terminal in terminal and log file
+#    print_terminal_and_log(cmd_output, log=log)  # print the output of the terminal in terminal and log file
 
     return (cmd_done, cmd_output)
 
@@ -182,25 +182,6 @@ def create_log(outdir, global_log=False):
     print("Xtrapol8 -- version 0.9.5 -- run date: %s" % (now))
     return (logname, log)
 
-# def move_log (logname, outdir, newoutdir):
-#     '''
-#     Move log file to new output directory
-#     Args:
-#         logname:
-#             str
-#             log file name
-#         outdir:
-#             path
-#             current directory of the log file
-#         newoutdir:
-#             path
-#             new directory where to move the log file
-#     Returns:
-#
-#     '''
-#     if os.path.isfile(logname): #if the log file exists
-#         shutil.move(logname, logname.replace(outdir, newoutdir))
-
 def print_terminal_and_log(x, log=log_main):
     '''
     Print x in the log file and the terminal
@@ -213,18 +194,3 @@ def print_terminal_and_log(x, log=log_main):
     print(x, file = log)
     print(x)
 
-
-#Class get params
-#From Fextr DH
-# def get_UC_and_SG(self):
-#     """
-#     Extract unit cell and space group from the reference data set
-#     """
-#     SG = re.search(r"(.+?)\(No",self.fobs_off.space_group_info().symbol_and_number()).group(1)
-#     #What is fobs_off???
-#     UC = self.fobs_off.unit_cell()
-#     return UC, SG
-#
-#     model_in = any_file("DATA/darkmodel.pdb", force_type="pdb", raise_sorry_if_errors=True)
-#     test = model_in.crystal_symmetry().unit_cell()
-#     a, b, c, alf, bet, gam = test.parameters()

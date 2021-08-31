@@ -28,6 +28,8 @@ from functools import partial
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid.axislines import Subplot
 import matplotlib.ticker as mtick
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -52,6 +54,7 @@ import main_JK
 
 import Fextr
 import JK_utils
+from JK_utils import print_terminal_and_log
 import os
 import numpy as np
 from numpy import array
@@ -62,9 +65,9 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
 #0. Use waters for comparison?
     use_waters = not ordered_solvent #if ordered solvent, the water waters is the models will not be used in comparison
     if use_waters:
-        print('The water molecules will not be used in the comparison between models')
+        print_terminal_and_log('The water molecules will not be used in the comparison between models')
     else:
-        print('The water molecules will be used in the comparison between models')
+        print_terminal_and_log('The water molecules will be used in the comparison between models')
 
     tab_stack=np.stack(tab_list, axis=2) #stack all the table of files and data
 
@@ -72,11 +75,12 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
     #print JK results in a new log file
     JK_results_file = outdir + '/JK_results.log'
     JK_results_file_open = open(JK_results_file, 'w')
+    print_terminal_and_log('The JK results can be found in %s'%(JK_results_file))
 
 #2. Extract files from the X8 tables and get CC and RMSD
     #Get parameters and list of parameters
-    for i in range (6,len(tab_stack[:,0,0])): #get the number of lines
-        print('--- %s : Getting file names and variables ---' %(i))
+    for i in range (1,len(tab_stack[:,0,0])): #get the number of lines
+        print_terminal_and_log('--- %s : Getting file names and variables ---' %(i))
         occ = float(tab_stack[i,0,0])#occupancy
         maptype = tab_stack[i,1,0]#map type
         refinement = tab_stack[i,2,0]#variable for refinement:(None or False or real or rec or real+rec)
@@ -101,19 +105,19 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
 
         if tab_total[i][2] != False:  # if the refinement is not incomplete (None or real or rec or real+rec)
 #        if os.path.isfile(total_map) and os.path.isfile(total_model):  # if the total map and model to compare exist
-            print('--- %s : Getting CC and RMSD ---' % (i))
+            print_terminal_and_log('--- %s : Getting CC and RMSD ---' % (i))
 
-            print('\nTable %s: occ=%s maptype=%s refinement=%s total_map=%s total_model=%s \n------------------------------------------------------------------------------------ ' % (
-                    i, occ, maptype, refinement, total_map , total_model))
-            print('{0:<6s} {1:>7s} {2:>7s} {3:>10s} {4:>7s}'.format('JK_number',
+            print_terminal_and_log('\nTable %s: occ=%s maptype=%s refinement=%s total_map=%s total_model=%s \n------------------------------------------------------------------------------------ ' % (
+                    i, occ, maptype, refinement, total_map , total_model), file=JK_results_file_open)
+            print_terminal_and_log('{0:<9s} {1:>27s} {2:>30s} {3:>31s} {4:>15s}'.format('JK_number',
                                                                     'total_RMSD_totalmodel-model',
                                                                     'residues_RMSD_totalmodel-model',
                                                                     'number_of_atoms_in_residue_list',
-                                                                    'cc_totalmap-map'))
+                                                                    'cc_totalmap-map'), file=JK_results_file_open)
             for j in range (0, len(tab_stack[0,0,:])): #get the number of JK
                 #get parameters
                 other_residlist_zscore = totalresidlist_zscore #the residue list used will be the one of the total, alternative=tab_stack[1,7,j] #residue list of the JK
-                print('The list of residues of the total file will be used to calculate the RMSD of the atoms of the residue list')
+                print_terminal_and_log('The list of residues of the total file will be used to calculate the RMSD of the atoms of the residue list')
                 other_map = tab_stack[i,3,j] #map file
                 other_model = tab_stack[i,4,j] #model file
                 refinement_j = tab_stack[i,2,j] #variable for refinement:(None or False or real or rec or real+rec)
@@ -144,9 +148,9 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
                             print('cc=', cc)
                             list_of_maps.append(other_map)
                         else:
-                            print('The map for occ=%s, maptype=%s, JK=%s does not exist, the total RMSD can not be calculated' % (occ, maptype, JK_nb))
+                            print_terminal_and_log('The map for occ=%s, maptype=%s, JK=%s does not exist, the total RMSD can not be calculated' % (occ, maptype, JK_nb))
                     else:
-                        print('The total map for occ=%s, maptype=%s does not exist, the total RMSD can not be calculated' % (occ, maptype))
+                        print_terminal_and_log('The total map for occ=%s, maptype=%s does not exist, the total RMSD can not be calculated' % (occ, maptype))
 
                 #Get RMSD
                     if os.path.isfile(total_model):
@@ -172,22 +176,22 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
                                 print('rmsd residues=', rmsd_residues)
 
                             else:
-                                print('The residue list file %s does not exist, the RMSD can not be calculated for the residues' % (other_residlist_zscore))
+                                print_terminal_and_log('The residue list file %s does not exist, the RMSD can not be calculated for the residues' % (other_residlist_zscore))
                         else:
-                            print('The model for occ=%s, maptype=%s, JK=%s does not exist, the total RMSD can not be calculated' % (occ, maptype, JK_nb))
+                            print_terminal_and_log('The model for occ=%s, maptype=%s, JK=%s does not exist, the total RMSD can not be calculated' % (occ, maptype, JK_nb))
                     else:
-                        print('The total model for occ=%s, maptype=%s does not exist, the total RMSD can not be calculated' % (occ, maptype))
+                        print_terminal_and_log('The total model for occ=%s, maptype=%s does not exist, the total RMSD can not be calculated' % (occ, maptype))
 
                 #Print RESULTS
 
 
-                    print('{0:^6s} {1:> 1.5f} {2:> 1.5f} {3:> 10000f} {4:> 1.5f}'.format(str(JK_nb),
+                    print_terminal_and_log('{0:<9s} {1:> 20.4f} {2:> 23.4f} {3:> 31d} {4:> 8.4f}'.format(str(JK_nb),
                                                                                          rmsd_total_fitted,
                                                                                          rmsd_residues,
                                                                                          nb_residlst,
-                                                                                         float(cc)))
+                                                                                         float(cc)), file=JK_results_file_open)
                 else:
-                    print('The refinements did not work for occ=%s, maptype=%s, JK=%s. The file can not be used to calculate the CC, RMSD and the average map'%(occ, maptype, JK_nb))
+                    print_terminal_and_log('The refinements did not work for occ=%s, maptype=%s, JK=%s. The file can not be used to calculate the CC, RMSD and the average map'%(occ, maptype, JK_nb))
 
         # elif os.path.isfile(total_map): #if the total map to compare exists
         #     print('--- %s : Getting CC only, there is no total model ---' % (i))
@@ -280,53 +284,55 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
         #             else:
         #                 print('The model for occ=%s, maptype=%s, JK=%s does not exist, the total RMSD can not be calculated' % (occ, maptype, JK_nb))
         else:
-            print('The refinement did not succeed for occ=%s, maptype=%s'%(occ, maptype))
+            print_terminal_and_log('The refinement did not succeed for occ=%s, maptype=%s'%(occ, maptype))
             #print('The total map and model do not exist for occ=%s, maptype=%s'%(occ, maptype))
 
     #Get total-average CC
         if len(list_of_maps)<2 : #Check if there are enough maps to do the average
-            print('There are less than 2 maps coming from Jack Knife for occ=%s, %s; the average of the maps can not be done'%(occ, maptype))
+            print_terminal_and_log('There are less than 2 maps coming from Jack Knife for occ=%s, %s; the average of the maps can not be done'%(occ, maptype))
         else:
             # get the average map from list of maps
             avg_map = average_maps(list_of_maps, 'occ%s_%s_%srefine' % (occ, maptype, refinement), labels) #Elke: Average map that can be used for real space refinement and simulated annealing
-            print('the average map of %s is %s' % (list_of_maps, avg_map))  # , file=JK_results_open)
+            print_terminal_and_log('the average map of %s is %s' % (list_of_maps, avg_map))  # , file=JK_results_open)
             # get correlation coefficient between the map with all images and the average map
             cc_total = float(get_cc_mtz_mtz(avg_map, total_map, outdir))
             print('cc total-avg=', cc_total)
 
     #Get mean and standard deviation on RMSD
-        mean_rmsd_total_fitted_list = np.mean(rmsd_total_fitted_list)  # mean deviation of the global rmsd between total model and other models
-        std_rmsd_total_fitted_list = np.std(rmsd_total_fitted_list)  # standard deviation of the global rmsd between total model and other models
-        mean_rmsd_residues_list = np.mean(rmsd_residues_list) # mean deviation of the residue rmsd between total model and other models
-        std_rmsd_residues_list = np.std(rmsd_residues_list) # standard deviation of the residue rmsd between total model and other models
+        mean_rmsd_total_fitted_list = np.mean(list(rmsd_total_fitted_list))  # mean deviation of the global rmsd between total model and other models
+        std_rmsd_total_fitted_list = np.std(list(rmsd_total_fitted_list))  # standard deviation of the global rmsd between total model and other models
+        mean_rmsd_residues_list = np.mean(list(rmsd_residues_list)) # mean deviation of the residue rmsd between total model and other models
+        std_rmsd_residues_list = np.std(list(rmsd_residues_list)) # standard deviation of the residue rmsd between total model and other models
 
-        print('{0:^6s} {1:>7s} {2:>7s} {3:>10s} {4:>7s}'.format(' ',
+        print_terminal_and_log('{0:^9s} {1:^27s} {2:^30s} {3:^31s} {4:^15s}'.format(' ',
                                                                      'mean',
                                                                      'mean',
                                                                      ' ',
-                                                                     'total'))
-        print('{0:^6s} {1:>1.5f} {2:>1.5f} {3:>10s} {4:>1.5f}'.format(str(JK_nb),
+                                                                     'total'), file=JK_results_file_open)
+        print_terminal_and_log('{0:<9s} {1:> 20.4f} {2:> 23.4f} {3:^31s} {4:>8.4f}'.format(str(JK_nb),
                                                                            mean_rmsd_total_fitted_list,
                                                                            mean_rmsd_residues_list,
                                                                            ' ',
-                                                                           float(cc_total)))
+                                                                           float(cc_total)), file=JK_results_file_open)
 #        print('mean rmsd global, mean rmsd residues, cc total', mean_rmsd_total_fitted_list, mean_rmsd_residues_list, cc_total)
-        print('{0:^6s} {1:>7s} {2:>7s} {3:>10s} {4:>7s}'.format(' ',
+        print_terminal_and_log('{0:^9s} {1:^27s} {2:^30s} {3:^31s} {4:^15s}'.format(' ',
                                                                      'StandDev:',
                                                                      'StandDev:',
                                                                      ' ',
-                                                                     ' '))
-        print('{0:^6s} {1:>1.5f} {2:>1.5f} {3:>10s} {4:>7s}'.format(str(JK_nb),
+                                                                     ' '), file=JK_results_file_open)
+        print_terminal_and_log('{0:<9s} {1:> 20.4f} {2:> 23.4f} {3:^31s} {4:^15s}'.format(str(JK_nb),
                                                                            std_rmsd_total_fitted_list,
                                                                            std_rmsd_residues_list,
                                                                            ' ',
-                                                                           ' '))
-        print(total_model)
-        print(list_of_models)
+                                                                           ' '), file=JK_results_file_open)
+
         if os.path.isfile(total_model) and len(list_of_models)>0:
-            calculate_XYZ_difference(total_model, list_of_models, use_waters, i)
+            calculate_XYZ_difference(total_model, list_of_models, use_waters, i, occ, maptype, refinement)
+            print_terminal_and_log(
+                'see the plot : %s: occ=%s, maptype=%s, refinement=%s - Differences of mean coordinates of residues between the JK models and the total model' % (
+                i, occ, maptype, refinement), file=JK_results_file_open)
         else:
-            print('No models no plot')
+            print_terminal_and_log('No models no plot')
 
 
 def average_maps(list_of_maps, mapoutname, labels):
@@ -530,8 +536,6 @@ def select_common_coords(coord_total, info_total, coord_other, info_other):
 
     return coord_total_common, info_total_common, coord_other_common, info_other_common, nb_residlst
 
-#??? list atomes manquants a indiquer
-
 def calculate_rmsd(coord_total_common, coord_other_common, axis=1):
     """
     Calculate the rmsd of two sets of atoms from the coordinates of the atoms
@@ -621,16 +625,23 @@ def calculate_mean_point_of_residue(coord_list_residue):
 
     return(coord_mean_point)
 
-def cartesian_to_spherical(xyz):
-    ptsnew = np.hstack((xyz, np.zeros(xyz.shape)))
-    xy = xyz[:,0]**2 + xyz[:,1]**2
-    r = np.sqrt(xy + xyz[:,2]**2)
-    theta = np.arctan2(np.sqrt(xy), xyz[:,2]) # for elevation angle defined from Z-axis down
-    #theta = np.arctan2(xyz[:,2], np.sqrt(xy)) # for elevation angle defined from XY-plane up
-    phi = np.arctan2(xyz[:,1], xyz[:,0])
+def cartesian_to_spherical(x, y, z):
+    """
+    Calculate the spherical coordinates from the cartesian coordinates
+    Args:
+        x, y, z: 3 lists of the cartesian coordinates
+
+    Returns:
+        r, theta, phi : 3 lists of the spherical coordinates
+    """
+    xy = x**2 + y**2
+    r = np.sqrt(xy + z**2)
+    theta = np.arctan2(np.sqrt(xy), z)
+    phi = np.arctan2(y, x)
+
     return r, theta, phi
 
-def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i):
+def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i, occ, maptype, refinement):
 
 #1. get the information from the total pdb file
     #get coordinates and info of all atoms of the total pdb file
@@ -673,7 +684,7 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i):
 
         return(list_chainid_begeningresid_endresid)
 
-    # get the list of [chain_id, i_beginning_resid, i_end_resid] from the total pdb file
+    #get the list of [chain_id, i_beginning_resid, i_end_resid] from the total pdb file
     list_chainid_begeningresid_endresid = get_list_chainid_residue_begining_end_indice(info_all_total)
     list_chainid_begeningresid_endresid = np.array(list_chainid_begeningresid_endresid)
     print(list_chainid_begeningresid_endresid)
@@ -710,7 +721,7 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i):
 
 #Create plot
     plt.close()
-    fig, axs = plt.subplots(4, nb_chains, figsize=(10, 6))
+    fig, axs = plt.subplots(3, nb_chains, figsize=(10, 6))
 
 #3. for each JK pdb file, get the list [chain_id, resid_nb, coord_mean_point_of_resid]
     for pdb_file in pdb_file_list: #for each pdb file
@@ -742,46 +753,40 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i):
             atom_distances = calculate_difference_between_atoms(mean_coord_total, mean_coord)
             X_distances, Y_distances, Z_distances = calculate_difference_per_coord(mean_coord_total, mean_coord)
 
-            print(X_distances)
+            r_distances, theta_distances, phi_distances = cartesian_to_spherical(X_distances, Y_distances, Z_distances)
 
 #Ploting
+            #plotting distances between mean point of residues of JK model and total model
+            axs[0, col].scatter(AA_axis, r_distances, color='magenta', marker='.', label='JK')
+            axs[1, col].scatter(AA_axis, theta_distances, color='magenta', marker='.', label='JK')
+            axs[2, col].scatter(AA_axis, phi_distances, color='magenta', marker='.', label='JK')
 
-            axs[0, col].scatter(AA_axis, atom_distances, color='blue', marker='.', label='JK')
-            axs[0, col].axhline(0, color='grey', linewidth=0.8)
-            axs[1, col].scatter(AA_axis, X_distances, color='magenta', marker='.', label='JK')
-            axs[1, col].axhline(0, color='grey', linewidth=0.8)
-            axs[2, col].scatter(AA_axis, Y_distances, color='magenta', marker='.', label='JK')
-            axs[2, col].axhline(0, color='grey', linewidth=0.8)
-            axs[3, col].scatter(AA_axis, Z_distances, color='magenta', marker='.', label='JK')
-            axs[3, col].axhline(0, color='grey', linewidth=0.8)
+#Plot
 
-            title = 'Chain' + str(chain_id)
+            for row in range(0,3):
+                #putting x ticks every factor 10 and adding minor ticks at every factor 5
+                axs[row, col].xaxis.set_major_locator(MultipleLocator(10))
+                axs[row, col].xaxis.set_minor_locator(MultipleLocator(5))
+                #adding line at y = 0, corresponding to the model
+                axs[row, col].axhline(0, color='grey', linewidth=0.8)
+                #adding legend
+                #axs[row, col].legend()
 
-            axs[0, col].tick_params(axis='x', which='major')
+            #adding y labels
+            axs[0, col].set_ylabel('r (A)')
+            axs[1, col].set_ylabel('theta (radian)')
+            axs[2, col].set_ylabel('phi (radian)')
 
-# Plot
-
-            axs[0, col].xaxis.set_major_formatter(mtick.PercentFormatter(5.0))
-
-            minRes=0
-            maxRes=100
-            X_axes_ticks=range(minRes, maxRes, 10)
-            axs[0, col].legend()
-            axs[0, col].set_ylabel('Mean distance between the JK model and the total model')
-            axs[0, col].set_xticks(X_axes_ticks, minor=False)
-            axs[1, col].legend()
-            axs[2, col].legend()
-            axs[3, col].legend()
-
-            axs[3, col].set_xlabel('Residues')
+            #adding x label and chain
+            axs[2, col].set_xlabel('Residues')
             axs[0, col].set_title('Chain %s' % chain_id, fontsize='medium', fontweight="bold")
             col+=1
 
-    fig.suptitle('%s JK differences of distances between atoms'%(i))
+    fig.suptitle('%s: occ=%s, maptype=%s, refinement=%s - Differences of mean coordinates of residues between the JK models and the total model'%(i, occ, maptype, refinement))
 
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.65, top=0.95)
-    plt.savefig('%s_plot.pdf' %(i), dpi=300, transparent=False)
-    plt.savefig('%s_plot.png' % (i), dpi=300)
+    plt.savefig('%s_JK_Difference_plot.pdf' %(i), dpi=300, transparent=False)
+    plt.savefig('%s_JK_Difference_plot.png' % (i), dpi=300)
 
     plt.show()
     plt.close()

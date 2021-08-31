@@ -117,7 +117,17 @@ import JK_utils
 from JK_utils import print_terminal_and_log as print_in_T_and_log
 import Parameters as Para
 from Parameters import Parameters
-import JK_Average_map_1 as JK_results
+import JK_results
+
+#QUESTIONS???
+
+#TODO: Check if the input arguments for Crystfel are not overwritten if for example an other hkl file is given in 'other_stats_compare_hkl'
+#TODO: If UC anad SG are different for reference and triggered, what happens?
+#TODO: create graphs for the normal distribution of the UC parameters if the means are taken
+#TODO: Improve outputs printed in log files and terminal
+#TODO: Add the parameters changed from the phil to the output phil
+#TODO: Be carefull with the unique axis given, if it is wrong, f2mtz will not work!
+
 
 master_phil = iotbx.phil.parse("""
 options{
@@ -665,7 +675,7 @@ def run(args):
         if P.JK_one_stream_file:
             print_in_T_and_log('JACK KNIFE ONLY\n==============================================================')
         # run only JackKnife and get list of [directory where to find mtz file, mtz file complete directory] for the only stream file (off file)
-            if P.fraction == 1: #faire tourner une fois???
+            if P.fraction == 1: #if fraction wanted is 1, no total needed (same thing) #TODO: if the fraction =1, JK is ran as many times as 'repeats', change that into 1? If so, go to main_JK>Run_JK and change 'P.repeats'=1
                 main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, total=False)
             else:
                 main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, total=True)
@@ -726,7 +736,7 @@ def run(args):
                 print(mtzoutdirs_dir_off_on)
 
             # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total']
-                if P.fraction != 1:
+                if P.fraction != 1: #if fraction==1, no total created
                     # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8, mtz_off, mtz_on, newlog, 'total']
                     outdirJKX8_total = mtzoutdirs_on_total[0] + '/Xtrapol8'  # take output directory from the mtz_on file to put results of Xtrapol8
                     os.mkdir(outdirJKX8_total)
@@ -738,12 +748,12 @@ def run(args):
                     print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
                                 mtz_off_total, mtz_on_total, newlogname), file=log)
                     # add files to list
-                    mtzoutdirs_dir_off_on_total=[outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total']
+                    mtzoutdirs_dir_off_on_total = [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total']
 
             #Run Xtrapol8
                 print_in_T_and_log('################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
 
-                # #Loop to run Xtrapol8 one by one
+                # #Loop to run Xtrapol8 one by one for debugging
                 # tab_list=[]
                 # for outdir_and_mtz_file_off_on in mtzoutdirs_dir_off_on:
                 #     # init
@@ -778,7 +788,6 @@ def run(args):
                 #     tab_listi=main_X8.run_X8([outdir1, mtz_off, mtz_on, newlogname, total], params, P, master_phil, P.startdir)
                 #     tab_list.append(tab_listi)
 
-
                 pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
                 tab_list = pool_process.map(partial(main_X8.run_X8, params=params, P=P, master_phil=master_phil, startdir=P.startdir), mtzoutdirs_dir_off_on)  # process the Xtrapol8 with mtz files iterable with pool in mtzoutdirs_dir_off_on
                 print(tab_list)
@@ -788,11 +797,13 @@ def run(args):
                     print(tab_total)
 
                 if P.fraction != 1:
-                    #compare the files from JK and total and get the results (CC, RMSD)
-                    JK_results_outdir = outdir + '/JK_average_and_comparison_results'
+                    #compare the files from JK and total and get the results (CC, RMSD, Plot of differences between models)
+                    JK_results_outdir = outdir + '/JK_average_and_comparison_results' #name of new output directory
                     print(JK_results_outdir)
-                    os.mkdir(JK_results_outdir)
-                    JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir, params.Xtrapol8.refinement.phenix_keywords.main.ordered_solvent)
+                    os.mkdir(JK_results_outdir) #create new output directory
+                    JK_utils.print_terminal_and_log(
+                        'CALCULATING JK RESULTS\n==============================================================')
+                    JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir, params.Xtrapol8.refinement.phenix_keywords.main.ordered_solvent) #calculate all the results and rint them in a table and create plot
 
     ################################################################
 

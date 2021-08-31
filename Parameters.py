@@ -98,8 +98,6 @@ class Parameters():
         if self.processors > multiprocessing.cpu_count():
             self.processors = multiprocessing.cpu_count()
 
-
-
     def get_parameters_JK(self):
         '''
         Get the values of all the parameters from the phil file for JackKnife and deduced from them with simple calculs
@@ -149,9 +147,9 @@ class Parameters():
         self.a_off, a_array_off, astdev_off, self.b_off, b_array_off, bstdev_off, self.c_off, c_array_off, cstdev_off, self.alpha_off, alpha_array_off, alphastdev_off, self.beta_off, beta_array_off, betastdev_off, self.gamma_off, gamma_array_off, gammasdtev_off = Stream(self.stream_file_off).get_cell_stats()
 
         # Convert unit cell parameters (nm to A)
-        self.a_on = self.a_on * 10
-        self.b_on = self.b_on * 10
-        self.c_on = self.c_on * 10
+        self.a_on = self.a_off * 10
+        self.b_on = self.b_off * 10
+        self.c_on = self.c_off * 10
 
         # test for normal distribution
         print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
@@ -177,7 +175,7 @@ class Parameters():
         # getting unit cell parameters
         print_in_T_and_log('---Getting unit cell parameters---')
 
-        if self.params.JackKnife.Off_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #get pdb unit cell parameters ??? if not pdb but cif
+        if self.params.JackKnife.Off_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #TODO: get pdb unit cell parameters if not pdb file but cif
             # check file
             Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
             #get unit cell parameters from pdb file
@@ -228,7 +226,7 @@ class Parameters():
                     if i != ' ':
                         self.spacegroup_off += i
 
-        self.unique_axis_off = self.params.JackKnife.Off_state.unique_axis #??? comment recuperer unique axis du pdb?
+        self.unique_axis_off = self.params.JackKnife.Off_state.unique_axis #TODO: get unique axis from the pdb file
         if self.unique_axis_off == None or self.unique_axis_off == 'default':
             self.unique_axis_off = None
 
@@ -385,7 +383,6 @@ class Parameters():
                 if 221 <= nb_spacegroup <= 230:
                     pointgroup = 'm-3m'
 
-            #get the default unique axis corresponding to the system ??? correct?
             if unique_axis==None:
                 if system=='monoclinic':
                     unique_axis='b'
@@ -400,7 +397,7 @@ class Parameters():
             # 3. Checking unit cell correct for spacegroup, if not change according to system
             adapt_unit_cell_to_system=True
             if adapt_unit_cell_to_system:
-#            if not crystal.symmetry.is_compatible_unit_cell(symmetry):  # the unit cell is not compatible with the spacegroup ???
+#            if not crystal.symmetry.is_compatible_unit_cell(symmetry):  # the unit cell is not compatible with the spacegroup, this doesn't work every time, resembling angles not identified
                 if system == 'monoclinic' and unique_axis == 'a':
                     if beta != 90:
                         beta = 90.0
@@ -474,7 +471,7 @@ class Parameters():
                         if c != b:
                             mean_bc = (b + c) / 2
                             print(
-                                'a anb b were changed from b=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                'b anb c were changed from b=%s, c=%s to b=%s, c=%s since the system is trigonal or hexagonal' % (
                                     b, c, mean_bc, mean_bc))
                             b = mean_bc
                             c = mean_bc
@@ -482,7 +479,7 @@ class Parameters():
                         if a != c:
                             mean_ac = (a + c) / 2
                             print(
-                                'a anb b were changed from a=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                'a anb c were changed from a=%s, c=%s to a=%s, c=%s since the system is trigonal or hexagonal' % (
                                     a, c, mean_ac, mean_ac))
                             a = mean_ac
                             c = mean_ac
@@ -675,7 +672,7 @@ class Parameters():
         if self.other_stats_compare_hkl == None:
             self.other_stats_compare_hkl = ''
 
-    #getting low and high resolution if specified only if run_Xtrapol8 too #??? add to check_hkl too?
+    #getting low and high resolution if specified only if run_Xtrapol8 too #TODO: add high and low resolution to check_hkl too
         self.lowres = self.highres = None
         if self.run_Xtrapol8:
             if self.params.Xtrapol8.input.low_resolution != None:
@@ -686,13 +683,6 @@ class Parameters():
                 self.highres = self.params.Common_X8.high_resolution
                 if not '--rmax' in self.other_stats_compare_hkl and not '--highres' in self.other_stats_compare_hkl:
                     self.other_stats_compare_hkl += ' --highres ' + str(self.highres) #high resolution added to the other_stats_compare_hkl
-
-#        return (
-#            self.repeats, self.stream_file, self.stream_file_name, self.fraction, self.percentage, self.n_frames_to_keep, self.pointgroup,
-#            self.other_process_hkl,
-#            self.other_partialator, self.other_stats_compare_hkl, self.a, self.b, self.c, self.alpha, self.beta, self.gamma, self.system, self.unique_axis,
-#            self.dir_cryst_prog,
-#            self.method_process_hkl, self.method_partialator, self.spacegroup)
 
     def get_parameters_X8(self):
             # specify extrapolated structure factors and map types

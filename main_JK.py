@@ -11,20 +11,6 @@ import JK_image_merging_and_create_mtz_file
 import JK_utils
 from JK_utils import print_terminal_and_log
 import Fextr_utils
-#QUESTIONS???
-
-# TODO:
-### verif si argument d'entree pas overwritten  si ajoute dans other pour fonction crystfel
-### dans JK_utils run_in_terminal ameliorer subprocess.Popen (voir si fichiers crees 2 fois)
-### check if programms executable OK
-### check symmetry unit cell (+gauss) OK
-#get unit cell from pdb if also X8 and choose what to get in case they are different
-### get pointgroup, system... from spacegroup OK
-### muliple process: get right order in log file -> multiple log OK
-### adapt for light and dark state OK
-### if spacegroup written with spaces, get rid of them OK
-#ajout processor OK
-#ajout high and low resolution OK
 
 def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, stream_file, outdir, state=None, total=False):
     '''
@@ -218,9 +204,8 @@ def image_merging_and_create_mtz_file(dir_streamfile, pointgroup, other_process_
     JK_utils.print_terminal_and_log('The figures of merit are regrouped in the file : %s' % (statistics_file_name), log=log)
 
     #3. Create mtz files
-    mtzoutfile = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).create_mtz(spacegroup, a, b, c, alpha, beta, gamma, hkl_file)
-    JK_utils.print_terminal_and_log('mtz file %s created in %s' % (mtzoutfile, outdirfiles), log=log)
-    mtzoutdir = outdirfiles + '/' + mtzoutfile #get full directory of mtz file
+    mtzoutdir = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).create_mtz(spacegroup, a, b, c, alpha, beta, gamma, hkl_file)#create mtz and get full directory of mtz file
+    JK_utils.print_terminal_and_log('mtz file %s created in %s' % (mtzoutdir, outdirfiles), log=log)
 
     return [outdirfiles, mtzoutdir, total] #returning directory of mtz file and total or number of JK
 
@@ -279,11 +264,18 @@ def run_JK(P, outdir,  stream_file, stream_file_name, n_frames_to_keep, system, 
     #for each section of images (new stream file): merging images, getting figure of merit and creating mtz file - simultaniously
     pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
     mtzoutdirs = pool_process.map(partial(image_merging_and_create_mtz_file, pointgroup=pointgroup, other_process_hkl=P.other_process_hkl, other_partialator=P.other_partialator, cell=cell, other_stats_compare_hkl=P.other_stats_compare_hkl, a=a, b=b, c=c, alpha=alpha, beta=beta, gamma=gamma, dir_cryst_prog=P.dir_cryst_prog,  spacegroup=spacegroup, method_process_hkl=P.method_process_hkl, method_partialator=P.method_partialator), table_dir_streamfile) # process the function image_merging_and_create_mtz_file with dir_streamfile iterable with pool in table_dir_streamfile
+
+    #Loop to test without multiprocessing
+    # mtzoutdirs=[]
+    # for lst in table_dir_streamfile:
+    #     mtzoutdir=image_merging_and_create_mtz_file(lst, pointgroup = pointgroup, other_process_hkl = P.other_process_hkl, other_partialator = P.other_partialator, cell = cell, other_stats_compare_hkl = P.other_stats_compare_hkl, a = a, b = b, c = c, alpha = alpha, beta = beta, gamma = gamma, dir_cryst_prog = P.dir_cryst_prog, spacegroup = spacegroup, method_process_hkl = P.method_process_hkl, method_partialator = P.method_partialator)
+    #     mtzoutdirs.append(mtzoutdir)
+
     if total:
         mtzoutdirs_total = image_merging_and_create_mtz_file(table_dir_streamfile_total, pointgroup, P.other_process_hkl, P.other_partialator, cell,
                                           P.other_stats_compare_hkl, a, b, c, alpha, beta, gamma, P.dir_cryst_prog, spacegroup,
                                           P.method_process_hkl, P.method_partialator) #run function image_merging_and_create_mtz_file for the total stream file (all images)
-    else: mtzoutdirs_total=None
+    else: mtzoutdirs_total = None
 
     return (mtzoutdirs, mtzoutdirs_total) #list of [directory where to find mtz file, mtz file complete directory, nb_JK], [directory where to find total mtz file, total mtz file complete directory, 'total']...
 

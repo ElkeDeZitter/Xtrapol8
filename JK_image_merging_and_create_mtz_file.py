@@ -1,6 +1,7 @@
 from __future__ import division, print_function
 import os
 import sys
+import subprocess
 
 import JK_utils
 from Fextr_utils import get_name
@@ -246,8 +247,9 @@ class Image_merging_and_create_mtz_file(object):
         JK_utils.print_terminal_and_log('>>>CREATE MTZ for %s<<<\n------------------------------------------' % (hkl_file_name), log=self.log)
 
         # get file names with format
-        mtzoutfile = self.output_file_name + '.mtz'
-        tmphkl = self.output_file_name + '.temp.hkl'
+        dir = os.getcwd()
+        mtzoutfile = dir + '/' + self.output_file_name + '.mtz'
+        tmphkl = dir + '/' + self.output_file_name + '.temp.hkl'
 
         # create tmphkl file = hkl file without the lines from 'End of reflections' until end
         hkl_file_open = open(hkl_file, 'r')
