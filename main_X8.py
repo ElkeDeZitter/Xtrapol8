@@ -87,7 +87,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
     DH.check_additional_files()
     print('---------------------------')
 
-#Almost original Xtrapol8 script: changed log in FobsFobs and Fextrapolate
+#Almost original Xtrapol8 script: changed log in FobsFobs and Fextrapolate, params -> params.Xtrapol8, table to return for JK
     ##################################################################
     # extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")

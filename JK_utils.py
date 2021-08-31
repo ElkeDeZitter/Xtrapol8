@@ -201,7 +201,7 @@ def create_log(outdir, global_log=False):
 #     if os.path.isfile(logname): #if the log file exists
 #         shutil.move(logname, logname.replace(outdir, newoutdir))
 
-def print_terminal_and_log(x, log=None):
+def print_terminal_and_log(x, log=log_main):
     '''
     Print x in the log file and the terminal
     Args:
@@ -210,12 +210,8 @@ def print_terminal_and_log(x, log=None):
             element to print
     Returns:
     '''
-    if log!=None:
-        print(x, file=log)
-        print(x)
-    else:
-        print(x, file=log_main)
-        print(x)
+    print(x, file = log)
+    print(x)
 
 
 #Class get params

@@ -628,6 +628,7 @@ def run(args):
     JK_utils.print_terminal_and_log('GETTING PARAMETERS\n==============================================================')
     #get all input parameters from phil and stream file
 
+    #Order of getting parameters is IMPORTANT!!
     if P.run_Xtrapol8:
          P.get_parameters_X8()
 
@@ -664,7 +665,7 @@ def run(args):
         if P.JK_one_stream_file:
             print_in_T_and_log('JACK KNIFE ONLY\n==============================================================')
         # run only JackKnife and get list of [directory where to find mtz file, mtz file complete directory] for the only stream file (off file)
-            if P.fraction == 1:
+            if P.fraction == 1: #faire tourner une fois???
                 main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, total=False)
             else:
                 main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, total=True)
@@ -787,11 +788,11 @@ def run(args):
                     print(tab_total)
 
                 if P.fraction != 1:
-                    #compare the files from JK and total and get the results
+                    #compare the files from JK and total and get the results (CC, RMSD)
                     JK_results_outdir = outdir + '/JK_average_and_comparison_results'
                     print(JK_results_outdir)
                     os.mkdir(JK_results_outdir)
-                    JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir)
+                    JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir, params.Xtrapol8.refinement.phenix_keywords.main.ordered_solvent)
 
     ################################################################
 

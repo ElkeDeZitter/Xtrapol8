@@ -190,7 +190,7 @@ def image_merging_and_create_mtz_file(dir_streamfile, pointgroup, other_process_
 
     Returns:
         outdirfiles:
-            directory where to fid the mtz file
+            directory where to find the mtz file
         mtzoutdir:
             mtz file full directory
         total:
@@ -285,5 +285,5 @@ def run_JK(P, outdir,  stream_file, stream_file_name, n_frames_to_keep, system, 
                                           P.method_process_hkl, P.method_partialator) #run function image_merging_and_create_mtz_file for the total stream file (all images)
     else: mtzoutdirs_total=None
 
-    return (mtzoutdirs, mtzoutdirs_total) #list of [directory where to find mtz file, mtz file complete directory, nb_JK], [directory where to find total mtz file, total mtz file complete directory, 'total']
+    return (mtzoutdirs, mtzoutdirs_total) #list of [directory where to find mtz file, mtz file complete directory, nb_JK], [directory where to find total mtz file, total mtz file complete directory, 'total']...
 
