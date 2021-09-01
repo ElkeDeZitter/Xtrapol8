@@ -125,9 +125,9 @@ import JK_results
 #TODO: If UC anad SG are different for reference and triggered, what happens?
 #TODO: create graphs for the normal distribution of the UC parameters if the means are taken
 #TODO: Improve outputs printed in log files and terminal
-#TODO: Add the parameters changed from the phil to the output phil
+#TODO: Add the parameters changed from the phil to the output phil: done in Parameters, needs to be checked, commented as 'return in output phil'
 #TODO: Be carefull with the unique axis given, if it is wrong, f2mtz will not work!
-
+#TODO: Add possibility for many triggered mtz files or stream files
 
 master_phil = iotbx.phil.parse("""
 options{
