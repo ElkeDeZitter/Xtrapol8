@@ -74,6 +74,13 @@ class Parameters():
         self.params = params
 
     def get_parameters_JK_X8(self):
+        '''
+        Get parameters from the phil file common to JK and X8
+        Returns:
+            self.run_JackKnife: bool, if True do JK
+            self.run_Xtrapol8: bool, if True do X8
+            self.JK_one_stream_file: bool, if Ture, only JK has to be run
+        '''
 
         print_in_T_and_log('>>>Getting input parameters from phil file<<<')
 
@@ -542,6 +549,15 @@ class Parameters():
             return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma, unique_axis)
 
         self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
+        # return in output phil:
+        self.params.JackKnife.Off_state.spacegroup = self.spacegroup_off
+        self.params.JackKnife.Off_state.unique_axis = self.unique_axis_off
+        self.params.JackKnife.Off_state.unit_cell.a = self.a_off
+        self.params.JackKnife.Off_state.unit_cell.b = self.b_off
+        self.params.JackKnife.Off_state.unit_cell.c = self.c_off
+        self.params.JackKnife.Off_state.unit_cell.alpha = self.alpha_off
+        self.params.JackKnife.Off_state.unit_cell.beta = self.beta_off
+        self.params.JackKnife.Off_state.unit_cell.gamma = self.gamma_off
 
         # get nb of indexed images and number of images to use for JK
         self.n_frames_off = len(self.S_off.frames)  # search number of indexed images (frame is an indexed image)
@@ -638,6 +654,15 @@ class Parameters():
             self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.unique_axis_on = get_system_and_pointgroup(
                 self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
                 self.unique_axis_on)
+            # return in output phil:
+            self.params.JackKnife.On_state.spacegroup=self.spacegroup_on
+            self.params.JackKnife.On_state.unique_axis=self.unique_axis_on
+            self.params.JackKnife.On_state.unit_cell.a = self.a_on
+            self.params.JackKnife.On_state.unit_cell.b = self.b_on
+            self.params.JackKnife.On_state.unit_cell.c = self.c_on
+            self.params.JackKnife.On_state.unit_cell.alpha = self.alpha_on
+            self.params.JackKnife.On_state.unit_cell.beta = self.beta_on
+            self.params.JackKnife.On_state.unit_cell.gamma=self.gamma_on
 
             # get nb of indexed images and number of images to use for JK
             self.n_frames_on = len(S_on.frames)  # search number of indexed images (frame is an indexed image)
@@ -663,6 +688,7 @@ class Parameters():
             self.method_process_hkl = True
             self.other_process_hkl = None
             self.other_partialator = None
+            self.params.JackKnife.Scaling_and_merging.algorithm=['process_hkl'] #return in output phil
 
         if self.other_process_hkl==None: self.other_process_hkl=''
         if self.other_partialator==None: self.other_partialator=''
@@ -675,14 +701,16 @@ class Parameters():
     #getting low and high resolution if specified only if run_Xtrapol8 too #TODO: add high and low resolution to check_hkl too
         self.lowres = self.highres = None
         if self.run_Xtrapol8:
-            if self.params.Xtrapol8.input.low_resolution != None:
+            if self.params.Xtrapol8.input.low_resolution != None: #if low_res given
                 self.lowres = self.params.Common_X8.low_resolution
-                if not '--rmin' in self.other_stats_compare_hkl and not '--lowres' in self.other_stats_compare_hkl:
+                if not '--rmin' in self.other_stats_compare_hkl and not '--lowres' in self.other_stats_compare_hkl:#if there is not an other low resolution given in other_stats_compare_hkl
                     self.other_stats_compare_hkl += ' --lowres ' + str(self.lowres) #low resolution added to the other_stats_compare_hkl
-            if self.params.Xtrapol8.input.high_resolution != None:
+                    self.params.JackKnife.Statistics.other_stats_compare_hkl=self.other_stats_compare_hkl#return in output phil
+            if self.params.Xtrapol8.input.high_resolution != None: #if high_res given
                 self.highres = self.params.Common_X8.high_resolution
-                if not '--rmax' in self.other_stats_compare_hkl and not '--highres' in self.other_stats_compare_hkl:
+                if not '--rmax' in self.other_stats_compare_hkl and not '--highres' in self.other_stats_compare_hkl: #if there is not an other high resolution given in other_stats_compare_hkl
                     self.other_stats_compare_hkl += ' --highres ' + str(self.highres) #high resolution added to the other_stats_compare_hkl
+                    self.params.JackKnife.Statistics.other_stats_compare_hkl = self.other_stats_compare_hkl #return in output phil
 
     def get_parameters_X8(self):
             # specify extrapolated structure factors and map types
@@ -802,13 +830,14 @@ class Parameters():
         Returns:
             outname, output
         '''
+        #TODO: Manage outnames in case of many triggered mtz or stream files
 
         # get output name, or take prefix of triggered mtz or take dummy name if name is too long.
         if self.params.output.outname == None:
             if self.run_Xtrapol8 and not self.run_JackKnife:
-                self.params.output.outname = Fextr_utils.get_name(params.Xtrapol8.input.triggered_mtz)
+                self.params.output.outname = Fextr_utils.get_name(params.Xtrapol8.input.triggered_mtz) #if X8 only is run: outname=name of the triggered mtz file
             else:
-                self.params.output.outname = self.stream_file_name_on
+                self.params.output.outname = self.stream_file_name_on #if run_JackKnife: outname=name of the triggered stream file
 
         if len(self.params.output.outname) > 50:
             self.outname = 'triggered'
