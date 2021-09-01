@@ -155,8 +155,8 @@ JackKnife{
             .help = path where the CrystFEL programs like process_hkl are found (example: /usr/local/bin)
             .expert_level = 0
         }
-    Off_state{
-        stream_file_off = None
+    Reference_state{
+        reference_stream_file = None
             .type = path
             .help = File with images to process for the off state or only state in stream format
             .expert_level = 0            
@@ -199,8 +199,8 @@ JackKnife{
                 .help = symmetry axis
                 .expert_level = 0
         }
-    On_state{
-        stream_file_on = None
+    Triggered_state{
+        triggered_stream_file = None
             .type = path
             .help = File with images to process for the on state in stream format
             .expert_level = 0            
@@ -790,12 +790,13 @@ def run(args):
 
                 pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
                 tab_list = pool_process.map(partial(main_X8.run_X8, params=params, P=P, master_phil=master_phil, startdir=P.startdir), mtzoutdirs_dir_off_on)  # process the Xtrapol8 with mtz files iterable with pool in mtzoutdirs_dir_off_on
-                print(tab_list)
+
 
                 if P.fraction != 1:
                     tab_total = main_X8.run_X8(mtzoutdirs_dir_off_on_total, params, P, master_phil, P.startdir)  # run Xtrapol8 for the total files
+                    tab_total=np.array(tab_total)
                     print(tab_total)
-
+                print(tab_list)
                 if P.fraction != 1:
                     #compare the files from JK and total and get the results (CC, RMSD, Plot of differences between models)
                     JK_results_outdir = outdir + '/JK_average_and_comparison_results' #name of new output directory

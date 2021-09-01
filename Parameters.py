@@ -97,7 +97,7 @@ class Parameters():
             sys.exit()
 
         self.JK_one_stream_file = False
-        if self.params.JackKnife.Off_state.stream_file_off!=None and self.params.JackKnife.On_state.stream_file_on==None and self.run_JackKnife and (not self.run_Xtrapol8):
+        if self.params.JackKnife.Reference_state.reference_stream_file!=None and self.params.JackKnife.Triggered_state.triggered_stream_file==None and self.run_JackKnife and (not self.run_Xtrapol8):
             self.JK_one_stream_file = True
 
         #getting number of processors to use
@@ -140,7 +140,7 @@ class Parameters():
             self.dir_cryst_prog = ''
 
     # getting Off state parameters
-        self.stream_file_off = self.params.JackKnife.Off_state.stream_file_off
+        self.stream_file_off = self.params.JackKnife.Reference_state.reference_stream_file
         if self.run_JackKnife and self.stream_file_off == None:
             print('JackKnife can not be run with no stream file.')
             sys.exit()
@@ -182,7 +182,7 @@ class Parameters():
         # getting unit cell parameters
         print_in_T_and_log('---Getting unit cell parameters---')
 
-        if self.params.JackKnife.Off_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #TODO: get pdb unit cell parameters if not pdb file but cif
+        if self.params.JackKnife.Reference_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #TODO: get pdb unit cell parameters if not pdb file but cif
             # check file
             Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
             #get unit cell parameters from pdb file
@@ -197,33 +197,33 @@ class Parameters():
 
         else: #get input unit cell parameters if given
 
-            if self.params.JackKnife.Off_state.unit_cell.a != None:
-                self.a_off = self.params.JackKnife.Off_state.unit_cell.a
+            if self.params.JackKnife.Reference_state.unit_cell.a != None:
+                self.a_off = self.params.JackKnife.Reference_state.unit_cell.a
             else:
                 print('Since a was not given, the average a will be taken')
-            if self.params.JackKnife.Off_state.unit_cell.b != None:
-                self.b_off = self.params.JackKnife.Off_state.unit_cell.b
+            if self.params.JackKnife.Reference_state.unit_cell.b != None:
+                self.b_off = self.params.JackKnife.Reference_state.unit_cell.b
             else:
                 print('Since b was not given, the average b will be taken')
-            if self.params.JackKnife.Off_state.unit_cell.c != None:
-                self.c_off = self.params.JackKnife.Off_state.unit_cell.c
+            if self.params.JackKnife.Reference_state.unit_cell.c != None:
+                self.c_off = self.params.JackKnife.Reference_state.unit_cell.c
             else:
                 print('Since c was not given, the average c will be taken')
-            if self.params.JackKnife.Off_state.unit_cell.alpha != None:
-                self.alpha_off = self.params.JackKnife.Off_state.unit_cell.alpha
+            if self.params.JackKnife.Reference_state.unit_cell.alpha != None:
+                self.alpha_off = self.params.JackKnife.Reference_state.unit_cell.alpha
             else:
                 print('Since alpha was not given, the average alpha will be taken')
-            if self.params.JackKnife.Off_state.unit_cell.beta != None:
-                self.beta_off = self.params.JackKnife.Off_state.unit_cell.beta
+            if self.params.JackKnife.Reference_state.unit_cell.beta != None:
+                self.beta_off = self.params.JackKnife.Reference_state.unit_cell.beta
             else:
                 print('Since beta was not given, the average beta will be taken')
-            if self.params.JackKnife.Off_state.unit_cell.gamma != None:
-                self.gamma_off = self.params.JackKnife.Off_state.unit_cell.gamma
+            if self.params.JackKnife.Reference_state.unit_cell.gamma != None:
+                self.gamma_off = self.params.JackKnife.Reference_state.unit_cell.gamma
             else:
                 print('Since gamma was not given, the average gamma will be taken')
 
             # get symmetry parameters
-            spacegroup_off = self.params.JackKnife.Off_state.spacegroup
+            spacegroup_off = self.params.JackKnife.Reference_state.spacegroup
             if spacegroup_off == None:
                 print('Please give the space group for JackKnife')
                 sys.exit()
@@ -233,7 +233,7 @@ class Parameters():
                     if i != ' ':
                         self.spacegroup_off += i
 
-        self.unique_axis_off = self.params.JackKnife.Off_state.unique_axis #TODO: get unique axis from the pdb file
+        self.unique_axis_off = self.params.JackKnife.Reference_state.unique_axis #TODO: get unique axis from the pdb file
         if self.unique_axis_off == None or self.unique_axis_off == 'default':
             self.unique_axis_off = None
 
@@ -550,14 +550,14 @@ class Parameters():
 
         self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
         # return in output phil:
-        self.params.JackKnife.Off_state.spacegroup = self.spacegroup_off
-        self.params.JackKnife.Off_state.unique_axis = self.unique_axis_off
-        self.params.JackKnife.Off_state.unit_cell.a = self.a_off
-        self.params.JackKnife.Off_state.unit_cell.b = self.b_off
-        self.params.JackKnife.Off_state.unit_cell.c = self.c_off
-        self.params.JackKnife.Off_state.unit_cell.alpha = self.alpha_off
-        self.params.JackKnife.Off_state.unit_cell.beta = self.beta_off
-        self.params.JackKnife.Off_state.unit_cell.gamma = self.gamma_off
+        self.params.JackKnife.Reference_state.spacegroup = self.spacegroup_off
+        self.params.JackKnife.Reference_state.unique_axis = self.unique_axis_off
+        self.params.JackKnife.Reference_state.unit_cell.a = self.a_off
+        self.params.JackKnife.Reference_state.unit_cell.b = self.b_off
+        self.params.JackKnife.Reference_state.unit_cell.c = self.c_off
+        self.params.JackKnife.Reference_state.unit_cell.alpha = self.alpha_off
+        self.params.JackKnife.Reference_state.unit_cell.beta = self.beta_off
+        self.params.JackKnife.Reference_state.unit_cell.gamma = self.gamma_off
 
         # get nb of indexed images and number of images to use for JK
         self.n_frames_off = len(self.S_off.frames)  # search number of indexed images (frame is an indexed image)
@@ -565,7 +565,7 @@ class Parameters():
 
     # getting On state parameters
         if not self.JK_one_stream_file:
-            self.stream_file_on = self.params.JackKnife.On_state.stream_file_on
+            self.stream_file_on = self.params.JackKnife.Triggered_state.triggered_stream_file
 
             # check file
             Fextr_utils.check_all_files([self.stream_file_on])
@@ -594,7 +594,7 @@ class Parameters():
             # getting unit cell parameters
             print_in_T_and_log('---Getting unit cell parameters---')
 
-            if self.params.JackKnife.On_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8:  # get pdb unit cell parameters from off state pdb
+            if self.params.JackKnife.Triggered_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8:  # get pdb unit cell parameters from off state pdb
                 # check file
                 Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
                 # get unit cell parameters from pdb file
@@ -610,33 +610,33 @@ class Parameters():
 
             else:  # get input unit cell parameters if given
 
-                if self.params.JackKnife.On_state.unit_cell.a != None:
-                    self.a_on = self.params.JackKnife.On_state.unit_cell.a
+                if self.params.JackKnife.Triggered_state.unit_cell.a != None:
+                    self.a_on = self.params.JackKnife.Triggered_state.unit_cell.a
                 else:
                     print('Since a was not given, the average a will be taken')
-                if self.params.JackKnife.On_state.unit_cell.b != None:
-                    self.b_on = self.params.JackKnife.On_state.unit_cell.b
+                if self.params.JackKnife.Triggered_state.unit_cell.b != None:
+                    self.b_on = self.params.JackKnife.Triggered_state.unit_cell.b
                 else:
                     print('Since b was not given, the average b will be taken')
-                if self.params.JackKnife.On_state.unit_cell.c != None:
-                    self.c_on = self.params.JackKnife.On_state.unit_cell.c
+                if self.params.JackKnife.Triggered_state.unit_cell.c != None:
+                    self.c_on = self.params.JackKnife.Triggered_state.unit_cell.c
                 else:
                     print('Since c was not given, the average c will be taken')
-                if self.params.JackKnife.On_state.unit_cell.alpha != None:
-                    self.alpha_on = self.params.JackKnife.On_state.unit_cell.alpha
+                if self.params.JackKnife.Triggered_state.unit_cell.alpha != None:
+                    self.alpha_on = self.params.JackKnife.Triggered_state.unit_cell.alpha
                 else:
                     print('Since alpha was not given, the average alpha will be taken')
-                if self.params.JackKnife.On_state.unit_cell.beta != None:
-                    self.beta_on = self.params.JackKnife.On_state.unit_cell.beta
+                if self.params.JackKnife.Triggered_state.unit_cell.beta != None:
+                    self.beta_on = self.params.JackKnife.Triggered_state.unit_cell.beta
                 else:
                     print('Since beta was not given, the average beta will be taken')
-                if self.params.JackKnife.On_state.unit_cell.gamma != None:
-                    self.gamma_on = self.params.JackKnife.On_state.unit_cell.gamma
+                if self.params.JackKnife.Triggered_state.unit_cell.gamma != None:
+                    self.gamma_on = self.params.JackKnife.Triggered_state.unit_cell.gamma
                 else:
                     print('Since gamma was not given, the average gamma will be taken')
 
                 # get symmetry parameters
-                spacegroup_on = self.params.JackKnife.On_state.spacegroup
+                spacegroup_on = self.params.JackKnife.Triggered_state.spacegroup
                 if spacegroup_on == None:
                     print('Please give the space group for JackKnife')
                     sys.exit()
@@ -646,7 +646,7 @@ class Parameters():
                         if i != ' ':
                             self.spacegroup_on += i
 
-            self.unique_axis_on = self.params.JackKnife.On_state.unique_axis
+            self.unique_axis_on = self.params.JackKnife.Triggered_state.unique_axis
             if self.unique_axis_on == None or self.unique_axis_on == 'default':
                 self.unique_axis_on = None
 
@@ -655,14 +655,14 @@ class Parameters():
                 self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
                 self.unique_axis_on)
             # return in output phil:
-            self.params.JackKnife.On_state.spacegroup=self.spacegroup_on
-            self.params.JackKnife.On_state.unique_axis=self.unique_axis_on
-            self.params.JackKnife.On_state.unit_cell.a = self.a_on
-            self.params.JackKnife.On_state.unit_cell.b = self.b_on
-            self.params.JackKnife.On_state.unit_cell.c = self.c_on
-            self.params.JackKnife.On_state.unit_cell.alpha = self.alpha_on
-            self.params.JackKnife.On_state.unit_cell.beta = self.beta_on
-            self.params.JackKnife.On_state.unit_cell.gamma=self.gamma_on
+            self.params.JackKnife.Triggered_state.spacegroup=self.spacegroup_on
+            self.params.JackKnife.Triggered_state.unique_axis=self.unique_axis_on
+            self.params.JackKnife.Triggered_state.unit_cell.a = self.a_on
+            self.params.JackKnife.Triggered_state.unit_cell.b = self.b_on
+            self.params.JackKnife.Triggered_state.unit_cell.c = self.c_on
+            self.params.JackKnife.Triggered_state.unit_cell.alpha = self.alpha_on
+            self.params.JackKnife.Triggered_state.unit_cell.beta = self.beta_on
+            self.params.JackKnife.Triggered_state.unit_cell.gamma=self.gamma_on
 
             # get nb of indexed images and number of images to use for JK
             self.n_frames_on = len(S_on.frames)  # search number of indexed images (frame is an indexed image)
