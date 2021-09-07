@@ -928,19 +928,18 @@ class Parameters():
         else:
             self.outdir = os.getcwd()
 
-        if self.run_JackKnife and not self.run_Xtrapol8:
-            outdir_0 = self.outdir + '/' + self.outname
-            if self.run_JackKnife:
-                outdir_0 = outdir_0 + '_JackKnife'
-            if self.run_Xtrapol8:
-                outdir_0 = outdir_0 + '_Xtrapol8'
+        outdir_0 = self.outdir + '/' + self.outname
+        if self.run_JackKnife:
+            outdir_0 = outdir_0 + '_JackKnife'
+        if self.run_Xtrapol8:
+            outdir_0 = outdir_0 + '_Xtrapol8'
 
-            outdir_i=outdir_0
-            i = 1
-            while os.path.isdir(outdir_i):
-                outdir_i = outdir_0 + '_' + str(i)
-                i += 1
-            self.outdir=outdir_i
+        outdir_i=outdir_0
+        i = 1
+        while os.path.isdir(outdir_i):
+            outdir_i = outdir_0 + '_' + str(i)
+            i += 1
+        self.outdir=outdir_i
 
         if not os.path.isdir(self.outdir):
             os.mkdir(self.outdir)
