@@ -63,7 +63,7 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
     os.chdir(outdir) #change directory to the output directory of the JK_results
 
 #0. Use waters for comparison?
-    use_waters = not ordered_solvent #if ordered solvent, the water waters is the models will not be used in comparison
+    use_waters = not ordered_solvent #if ordered solvent, the water in the models will not be used in comparison #TODO: check if this line is correct or if it has to be the opposit
     if use_waters:
         print_terminal_and_log('The water molecules will not be used in the comparison between models')
     else:
@@ -83,7 +83,7 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
         print_terminal_and_log('--- %s : Getting file names and variables ---' %(i))
         occ = float(tab_stack[i,0,0])#occupancy
         maptype = tab_stack[i,1,0]#map type
-        refinement = tab_stack[i,2,0]#variable for refinement:(None or False or real or rec or real+rec)
+        refinement = tab_total[i][2]#variable for refinement:(None or False or real or rec or real+rec) of the total
         labels = tab_stack[i,5,0]#labels of the mtz file to get the average of
 
         #get total files
@@ -101,6 +101,7 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
         list_of_models = [] #list of existing models (without False refinement) filled if total_model exists
         rmsd_total_fitted_list = [] #list of global RMSD (without False refinement) filled if total_model exists
         rmsd_residues_list = [] #list of residue RMSD (without False refinement) filled if total_model exists
+        # assign variable with impossible value
         cc_total=-1
 
         if tab_total[i][2] != False:  # if the refinement is not incomplete (None or real or rec or real+rec)
@@ -108,12 +109,12 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
             print_terminal_and_log('--- %s : Getting CC and RMSD ---' % (i))
 
             print_terminal_and_log('\nTable %s: occ=%s maptype=%s refinement=%s total_map=%s total_model=%s \n------------------------------------------------------------------------------------ ' % (
-                    i, occ, maptype, refinement, total_map , total_model), file=JK_results_file_open)
-            print_terminal_and_log('{0:<9s} {1:>27s} {2:>30s} {3:>31s} {4:>15s}'.format('JK_number',
+                    i, occ, maptype, refinement, total_map , total_model), log=JK_results_file_open)
+            print_terminal_and_log('{0:<9s} {1:<27s} {2:<30s} {3:<31s} {4:<15s}'.format('JK_number',
                                                                     'total_RMSD_totalmodel-model',
                                                                     'residues_RMSD_totalmodel-model',
                                                                     'number_of_atoms_in_residue_list',
-                                                                    'cc_totalmap-map'), file=JK_results_file_open)
+                                                                    'cc_totalmap-map'), log=JK_results_file_open)
             for j in range (0, len(tab_stack[0,0,:])): #get the number of JK
                 #get parameters
                 other_residlist_zscore = totalresidlist_zscore #the residue list used will be the one of the total, alternative=tab_stack[1,7,j] #residue list of the JK
@@ -143,10 +144,9 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
                 #Get CC
                     if os.path.isfile(total_map):
                         if  os.path.isfile(other_map):
-                            # get correlation coefficient between the map with all images and the other map
-                            cc = float(get_cc_mtz_mtz(other_map, total_map, outdir))
-                            print('cc=', cc)
                             list_of_maps.append(other_map)
+                            # get correlation coefficient between the map with all images and the other map
+                            cc = float(get_cc_mtz_mtz(other_map, total_map, outdir)) #getting CC between the two maps
                         else:
                             print_terminal_and_log('The map for occ=%s, maptype=%s, JK=%s does not exist, the total RMSD can not be calculated' % (occ, maptype, JK_nb))
                     else:
@@ -158,10 +158,28 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
                             list_of_models.append(other_model)
                             # get the total rmsd between the total model and the JK model
                             rmsd_total_fitted, other_pdb_fitted = superpose_pdbs(total_model, other_model)  # get rmsd between other_pdb and total_pdb after other_pdb is fitted to total_pdb and get the fitted other pdb
-                            print('rmsd total=', rmsd_total_fitted)
                             rmsd_total_fitted_list.append(rmsd_total_fitted)
 
-                            if os.path.isfile(other_residlist_zscore) and os.path.isfile(totalresidlist_zscore):
+                            print('rmsd with superpose pdb', rmsd_total_fitted)
+
+
+                            #TODO: check if the rmsd calculations are correct
+                            residlist_all_total = get_residlist_from_all_atoms(total_model,
+                                                                               use_waters=use_waters)
+                            coord_all_total, _ = get_coord_from_parser_selected(total_model,
+                                                                                residlist_all_total)
+                            coord_all_total = np.array(coord_all_total)
+                            residlist_all = get_residlist_from_all_atoms(other_pdb_fitted,
+                                                                         use_waters=use_waters)
+                            coord_all, _ = get_coord_from_parser_selected(other_pdb_fitted,
+                                                                          residlist_all)
+                            coord_all = np.array(coord_all_total)
+                            rmsd_total_fitted = calculate_rmsd(coord_all_total, coord_all)
+                            print('rmsd with calcul', rmsd_total_fitted)
+
+
+
+                            if os.path.isfile(other_residlist_zscore) and os.path.isfile(totalresidlist_zscore): #if the residue list files exist
                                 # get rmsd of the residue list between the total model and the JK model
                                 total_residlst = get_residlist(totalresidlist_zscore, use_waters = use_waters)  # get unique residue list from the total_residue_list file
                                 coord_total_pdb_residlst, info_total_pdb_residlst = get_coord_from_parser_selected(total_model, total_residlst)  # get coordinates of atoms of residlst from total_pdb
@@ -183,13 +201,11 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
                         print_terminal_and_log('The total model for occ=%s, maptype=%s does not exist, the total RMSD can not be calculated' % (occ, maptype))
 
                 #Print RESULTS
-
-
-                    print_terminal_and_log('{0:<9s} {1:> 20.4f} {2:> 23.4f} {3:> 31d} {4:> 8.4f}'.format(str(JK_nb),
+                    print_terminal_and_log('{0:<9s} {1:> 27.4f} {2:> 30.4f} {3:> 31d} {4:> 8.4f}'.format(str(JK_nb),
                                                                                          rmsd_total_fitted,
                                                                                          rmsd_residues,
                                                                                          nb_residlst,
-                                                                                         float(cc)), file=JK_results_file_open)
+                                                                                         float(cc)), log=JK_results_file_open)
                 else:
                     print_terminal_and_log('The refinements did not work for occ=%s, maptype=%s, JK=%s. The file can not be used to calculate the CC, RMSD and the average map'%(occ, maptype, JK_nb))
 
@@ -292,7 +308,7 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
             print_terminal_and_log('There are less than 2 maps coming from Jack Knife for occ=%s, %s; the average of the maps can not be done'%(occ, maptype))
         else:
             # get the average map from list of maps
-            avg_map = average_maps(list_of_maps, 'occ%s_%s_%srefine' % (occ, maptype, refinement), labels) #Elke: Average map that can be used for real space refinement and simulated annealing
+            avg_map = average_maps(list_of_maps, 'occ%s_%s_%srefine' % (occ, maptype, refinement), labels) #TODO: Average map that can be used for real space refinement and simulated annealing
             print_terminal_and_log('the average map of %s is %s' % (list_of_maps, avg_map))  # , file=JK_results_open)
             # get correlation coefficient between the map with all images and the average map
             cc_total = float(get_cc_mtz_mtz(avg_map, total_map, outdir))
@@ -304,33 +320,33 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
         mean_rmsd_residues_list = np.mean(list(rmsd_residues_list)) # mean deviation of the residue rmsd between total model and other models
         std_rmsd_residues_list = np.std(list(rmsd_residues_list)) # standard deviation of the residue rmsd between total model and other models
 
+    # Print RESULTS
         print_terminal_and_log('{0:^9s} {1:^27s} {2:^30s} {3:^31s} {4:^15s}'.format(' ',
                                                                      'mean',
                                                                      'mean',
                                                                      ' ',
-                                                                     'total'), file=JK_results_file_open)
-        print_terminal_and_log('{0:<9s} {1:> 20.4f} {2:> 23.4f} {3:^31s} {4:>8.4f}'.format(str(JK_nb),
+                                                                     'cc_total-averagemap'), log=JK_results_file_open)
+        print_terminal_and_log('{0:<9s} {1:^ 27.4f} {2:^ 30.4f} {3:^31s} {4:^8.4f}'.format(str(JK_nb),
                                                                            mean_rmsd_total_fitted_list,
                                                                            mean_rmsd_residues_list,
                                                                            ' ',
-                                                                           float(cc_total)), file=JK_results_file_open)
-#        print('mean rmsd global, mean rmsd residues, cc total', mean_rmsd_total_fitted_list, mean_rmsd_residues_list, cc_total)
+                                                                           float(cc_total)), log=JK_results_file_open)
         print_terminal_and_log('{0:^9s} {1:^27s} {2:^30s} {3:^31s} {4:^15s}'.format(' ',
                                                                      'StandDev:',
                                                                      'StandDev:',
                                                                      ' ',
-                                                                     ' '), file=JK_results_file_open)
-        print_terminal_and_log('{0:<9s} {1:> 20.4f} {2:> 23.4f} {3:^31s} {4:^15s}'.format(str(JK_nb),
+                                                                     ' '), log=JK_results_file_open)
+        print_terminal_and_log('{0:<9s} {1:^ 27.4f} {2:^ 30.4f} {3:^31s} {4:^15s}'.format(str(JK_nb),
                                                                            std_rmsd_total_fitted_list,
                                                                            std_rmsd_residues_list,
                                                                            ' ',
-                                                                           ' '), file=JK_results_file_open)
+                                                                           ' '), log=JK_results_file_open)
 
         if os.path.isfile(total_model) and len(list_of_models)>0:
             calculate_XYZ_difference(total_model, list_of_models, use_waters, i, occ, maptype, refinement)
             print_terminal_and_log(
                 'see the plot : %s: occ=%s, maptype=%s, refinement=%s - Differences of mean coordinates of residues between the JK models and the total model' % (
-                i, occ, maptype, refinement), file=JK_results_file_open)
+                i, occ, maptype, refinement), log=JK_results_file_open)
         else:
             print_terminal_and_log('No models no plot')
 
@@ -536,7 +552,7 @@ def select_common_coords(coord_total, info_total, coord_other, info_other):
 
     return coord_total_common, info_total_common, coord_other_common, info_other_common, nb_residlst
 
-def calculate_rmsd(coord_total_common, coord_other_common, axis=1):
+def calculate_rmsd(coord_total_common, coord_other_common):
     """
     Calculate the rmsd of two sets of atoms from the coordinates of the atoms
     Args:
@@ -552,14 +568,9 @@ def calculate_rmsd(coord_total_common, coord_other_common, axis=1):
 
     """
     a= np.array(coord_total_common)
-    print(a[0:3])
     b= np.array(coord_other_common)
-    print(b[0:3])
 
-    sq_distances_list = np.sum((a - b) ** 2, axis=axis)
-    rmsd = float(np.sqrt(np.sum(sq_distances_list))/len(sq_distances_list))
-    print(sq_distances_list[0:3])
-    print(rmsd)
+    rmsd = np.sqrt(np.average(np.sum((a - b) ** 2, axis=1)))
 
     return (rmsd)
 
@@ -662,7 +673,6 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i, occ, 
 
         print(info_all_total)
 
-        i_chain_id = 0
         i_resid_nb = 0
         i_begining_resid = 0
         for i in range(1, len(info_all_total[:, 1])): #for each line of the list of coord
@@ -719,16 +729,17 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i, occ, 
     list_chainid_residnb_meanresidcoord_total = np.array(list_chainid_residnb_meanresidcoord_total)
     print(list_chainid_residnb_meanresidcoord_total)
 
-#Create plot
+#Create initial plot
     plt.close()
-    fig, axs = plt.subplots(3, nb_chains, figsize=(10, 6))
+    fig, axs = plt.subplots(4, nb_chains, figsize=(nb_chains*12, 3*5), squeeze=False)
+#    figatm, axsatm = plt.subplots(3, nb_chains, figsize=(3*7, nb_chains*7), squeeze=False)
 
 #3. for each JK pdb file, get the list [chain_id, resid_nb, coord_mean_point_of_resid]
     for pdb_file in pdb_file_list: #for each pdb file
         # get coordinates of all atoms of the pdb file
         residlist_all = get_residlist_from_all_atoms(pdb_file, use_waters=use_waters)
-        coord_all, _ = get_coord_from_parser_selected(pdb_file, residlist_all)
-
+        coord_all, info_all = get_coord_from_parser_selected(pdb_file, residlist_all)
+        coord_all=np.array(coord_all)
         list_chainid_residnb_meanresidcoord = get_list_chainid_residnb_meanresidcoord(coord_all, info_all_total, list_chainid_begeningresid_endresid) #get the list of [chain_id, resid_nb, coord_mean_point_of_resid] for the pdb file
         list_chainid_residnb_meanresidcoord = np.array(list_chainid_residnb_meanresidcoord)
 
@@ -750,38 +761,56 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i, occ, 
                     mean_coord.append(list_chainid_residnb_meanresidcoord[indice,2]) #add coordinates of the mean residue to the list of mean coordinates for each residue
 
             #calculating the differences between JK model and total model
-            atom_distances = calculate_difference_between_atoms(mean_coord_total, mean_coord)
+#            meanresidue_distances = calculate_difference_between_atoms(mean_coord_total, mean_coord) #getting the distances between the mean of the residues of the two models (=r_distances)
             X_distances, Y_distances, Z_distances = calculate_difference_per_coord(mean_coord_total, mean_coord)
-
             r_distances, theta_distances, phi_distances = cartesian_to_spherical(X_distances, Y_distances, Z_distances)
+            rxthetaxphi_distances= r_distances*theta_distances*phi_distances
 
-#Ploting
+            #Alternative: calculating the differences between JK model and total model for each atom
+#            atom_distances = calculate_difference_between_atoms(coord_all, coord_all_total)
+#            X_distances_atom, Y_distances_atom, Z_distances_atom = calculate_difference_per_coord(coord_all, coord_all_total)
+#            r_distances_atom, theta_distances_atom, phi_distances_atom = cartesian_to_spherical(X_distances_atom, Y_distances_atom, Z_distances_atom)
+
+
+#5. Ploting #TODO: Also plotting the B factors somehow
             #plotting distances between mean point of residues of JK model and total model
-            axs[0, col].scatter(AA_axis, r_distances, color='magenta', marker='.', label='JK')
-            axs[1, col].scatter(AA_axis, theta_distances, color='magenta', marker='.', label='JK')
-            axs[2, col].scatter(AA_axis, phi_distances, color='magenta', marker='.', label='JK')
+            ax1= axs[0, col].scatter(AA_axis, r_distances, marker='.', label='JK', markersize=2)
+            axs[1, col].scatter(AA_axis, theta_distances, marker='.', label='JK', markersize=2)
+            axs[2, col].scatter(AA_axis, phi_distances, marker='.', label='JK', markersize=2)
+            axs[3, col].scatter(AA_axis, rxthetaxphi_distances, marker='.', label='JK', markersize=2)
 
-#Plot
+        # Alternative: Ploting differences between every atoms for each residue
+            # plotting distances between mean point of residues of JK model and total model
+            #            axs[0, col].scatter(info_all[:,1], r_distances_atom, marker='.', label='JK')
+            #            axs[1, col].scatter(info_all[:,1], theta_distances_atom, marker='.', label='JK')
+            #            axs[2, col].scatter(info_all[:,1], phi_distances_atom,  marker='.', label='JK')
 
-            for row in range(0,3):
+        # trying to plot the atoms gradually per color: did not work
+#            no_points = len(r_distances)
+#            axs[0, col].set_color_cycle([ax1(1. * i / (no_points - 1)) for i in range(0,no_points - 1)])
+
+            #additions to plot for every plot
+            for row in range(0,4):
                 #putting x ticks every factor 10 and adding minor ticks at every factor 5
                 axs[row, col].xaxis.set_major_locator(MultipleLocator(10))
                 axs[row, col].xaxis.set_minor_locator(MultipleLocator(5))
                 #adding line at y = 0, corresponding to the model
                 axs[row, col].axhline(0, color='grey', linewidth=0.8)
                 #adding legend
-                #axs[row, col].legend()
+                axs[row, col].legend()
 
             #adding y labels
             axs[0, col].set_ylabel('r (A)')
             axs[1, col].set_ylabel('theta (radian)')
             axs[2, col].set_ylabel('phi (radian)')
+            axs[3, col].set_ylabel('r * theta * phi (A*radian2)')
 
             #adding x label and chain
-            axs[2, col].set_xlabel('Residues')
+            axs[3, col].set_xlabel('Residues')
             axs[0, col].set_title('Chain %s' % chain_id, fontsize='medium', fontweight="bold")
             col+=1
 
+    #global title of the plot
     fig.suptitle('%s: occ=%s, maptype=%s, refinement=%s - Differences of mean coordinates of residues between the JK models and the total model'%(i, occ, maptype, refinement))
 
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.65, top=0.95)
@@ -790,3 +819,248 @@ def calculate_XYZ_difference(pdb_file_total, pdb_file_list, use_waters, i, occ, 
 
     plt.show()
     plt.close()
+
+
+#for test
+# tab_list=[array([['occupancy', 'map_type', 'Refinement', 'map', 'model', 'labels',
+#         'total', 'residlist'],
+#        [1, 'qFoFo', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/Cyt1A_mqFoFo.mtz',
+#         None, 'QFOFOWT,PHIQFOFOWT', 0,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/residlist_Zscore2.00.txt'],
+#        [0.1, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 0,
+#         None],
+#        [0.1, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 0, None],
+#        [0.1, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 0, None],
+#        [0.1, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 0, None],
+#        [0.30000000000000004, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 0,
+#         None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 0, None],
+#        [0.30000000000000004, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 0, None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 0, None],
+#        [0.5, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 0,
+#         None],
+#        [0.5, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 0, None],
+#        [0.5, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.500//mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/data_X8/data/6t14_modifiedChainID.pdb',
+#         None, 0, None],
+#        [0.5, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_0/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         None, 0, None]], dtype=object), array([['occupancy', 'map_type', 'Refinement', 'map', 'model', 'labels',
+#         'total', 'residlist'],
+#        [1, 'qFoFo', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/Cyt1A_mqFoFo.mtz',
+#         None, 'QFOFOWT,PHIQFOFOWT', 1,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/residlist_Zscore2.00.txt'],
+#        [0.1, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 1,
+#         None],
+#        [0.1, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 1, None],
+#        [0.1, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 1, None],
+#        [0.1, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 1, None],
+#        [0.30000000000000004, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 1,
+#         None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 1, None],
+#        [0.30000000000000004, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.300//mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/data_X8/data/6t14_modifiedChainID.pdb',
+#         None, 1, None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 1, None],
+#        [0.5, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 1,
+#         None],
+#        [0.5, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 1, None],
+#        [0.5, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 1, None],
+#        [0.5, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_1/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         None, 1, None]], dtype=object), array([['occupancy', 'map_type', 'Refinement', 'map', 'model', 'labels',
+#         'total', 'residlist'],
+#        [1, 'qFoFo', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/Cyt1A_mqFoFo.mtz',
+#         None, 'QFOFOWT,PHIQFOFOWT', 2,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/residlist_Zscore2.00.txt'],
+#        [0.1, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 2,
+#         None],
+#        [0.1, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 2, None],
+#        [0.1, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 2, None],
+#        [0.1, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 2, None],
+#        [0.30000000000000004, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 2,
+#         None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 2, None],
+#        [0.30000000000000004, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.300//mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/data_X8/data/6t14_modifiedChainID.pdb',
+#         None, 2, None],
+#        [0.30000000000000004, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         None, 2, None],
+#        [0.5, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 2,
+#         None],
+#        [0.5, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 2, None],
+#        [0.5, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 2, None],
+#        [0.5, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_2/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         None, 2, None]], dtype=object), array([['occupancy', 'map_type', 'Refinement', 'map', 'model', 'labels',
+#         'total', 'residlist'],
+#        [1, 'qFoFo', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/Cyt1A_mqFoFo.mtz',
+#         None, 'QFOFOWT,PHIQFOFOWT', 3,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/residlist_Zscore2.00.txt'],
+#        [0.1, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 3,
+#         None],
+#        [0.1, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 3, None],
+#        [0.1, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 3, None],
+#        [0.1, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 3, None],
+#        [0.30000000000000004, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 3,
+#         None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 3, None],
+#        [0.30000000000000004, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.300//mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/data_X8/data/6t14_modifiedChainID.pdb',
+#         None, 3, None],
+#        [0.30000000000000004, 'qFextr_map', 'reciprocal + real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#         None, 3, None],
+#        [0.5, 'qFextr_map', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc.mtz',
+#         None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 3,
+#         None],
+#        [0.5, 'qFextr_map', 'reciprocal',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.mtz',
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         '2FOFCWT,PH2FOFCWT', 3, None],
+#        [0.5, 'qFextr_map', 'real', None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#         None, 3, None],
+#        [0.5, 'qFextr_map', False, None,
+#         '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_JK_90percent_3/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#         None, 3, None]], dtype=object)]
+#
+# tab_total=[['occupancy', 'map_type', 'Refinement', 'map', 'model', 'labels', 'total',
+#   'residlist'],
+#  [1, 'qFoFo', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/Cyt1A_mqFoFo.mtz',
+#   None, 'QFOFOWT,PHIQFOFOWT', 'total',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/residlist_Zscore2.00.txt'],
+#  [0.1, 'qFextr_map', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc.mtz',
+#   None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 'total', None],
+#  [0.1, 'qFextr_map', 'reciprocal',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.mtz',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001.pdb',
+#   '2FOFCWT,PH2FOFCWT', 'total', None],
+#  [0.1, 'qFextr_map', 'real', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#   None, 'total', None],
+#  [0.1, 'qFextr_map', 'reciprocal + real', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.100/Cyt1A_occ0.100_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#   None, 'total', None],
+#  [0.30000000000000004, 'qFextr_map', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc.mtz',
+#   None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 'total', None],
+#  [0.30000000000000004, 'qFextr_map', 'reciprocal',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.mtz',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001.pdb',
+#   '2FOFCWT,PH2FOFCWT', 'total', None],
+#  [0.30000000000000004, 'qFextr_map', 'real', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000.pdb',
+#   None, 'total', None],
+#  [0.30000000000000004, 'qFextr_map', 'reciprocal + real', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.300/Cyt1A_occ0.300_2mqFextr-DFc_reciprocal_space_001_real_space_refined_000.pdb',
+#   None, 'total', None],
+#  [0.5, 'qFextr_map', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc.mtz',
+#   None, '2QFEXTRFCWT,PHI2QFEXTRFCWT QFEXTRFCWT,PHIQFEXTRFCWT', 'total', None],
+#  [0.5, 'qFextr_map', 'reciprocal',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.mtz',
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#   '2FOFCWT,PH2FOFCWT', 'total', None],
+#  [0.5, 'qFextr_map', 'real', None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_mqFextr-DFc_real_space_refined_000_testJK.pdb',
+#   None, 'total', None],
+#  [0.5, 'qFextr_map', False, None,
+#   '/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/Xtrapol8/qweight_occupancy_0.500/Cyt1A_occ0.500_2mqFextr-DFc_reciprocal_space_001.pdb',
+#   None, 'total', None]]
+#
+#
+# outdir='/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/Xtrapol8_test_1_Cyt1A/Cyt1A_JackKnife_Xtrapol8_15/JK_average_and_comparison_results'
+#
+# ordered_solvent=True
+#
+# get_JK_results(tab_total, tab_list, outdir, ordered_solvent)
