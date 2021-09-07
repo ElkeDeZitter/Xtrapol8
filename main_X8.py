@@ -49,19 +49,21 @@ import Parameters
 from Parameters import Parameters
 
 
-def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
+def run_X8(outdir_and_mtz_file_off_on_outname, params, P, master_phil, startdir):
 
 #init
     #get output directory for Xtrapol8
-    outdir = outdir_and_mtz_file_off_on[0]
+    outdir = outdir_and_mtz_file_off_on_outname[0]
     os.chdir(outdir)
     #get mtz files
-    mtz_off = outdir_and_mtz_file_off_on[1]
-    mtz_on = outdir_and_mtz_file_off_on[2]
-    total = outdir_and_mtz_file_off_on[4]
+    mtz_off = outdir_and_mtz_file_off_on_outname[1]
+    mtz_on = outdir_and_mtz_file_off_on_outname[2]
+    total = outdir_and_mtz_file_off_on_outname[4]
     #get log file
-    logname = outdir_and_mtz_file_off_on[3]
+    logname = outdir_and_mtz_file_off_on_outname[3]
     log = open(logname, "w")
+    #get outname
+    outname = outdir_and_mtz_file_off_on_outname[5]
     #check mtz files
     check_all_files([mtz_off, mtz_on])
     #get reflections
@@ -236,7 +238,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
     # calculate Fo-Fo and write map coefficients to mtz, ccp4 and xplor file
     FoFo = FobsFobs(log, DH.fobs_on_scaled, DH.fobs_off_scaled)
     FoFo.calculate_fdiff(kweight_scale=params.Xtrapol8.f_and_maps.kweight_scale)
-    FoFo.write_maps(DH.fmodel, DH.rfree, P.outname, qweighting=P.qFoFo_weight, kweighting=P.kFoFo_weight)
+    FoFo.write_maps(DH.fmodel, DH.rfree, outname, qweighting=P.qFoFo_weight, kweighting=P.kFoFo_weight)
 
     print("%s maps generated in mtz,ccp4 and xplor format"%(params.Xtrapol8.f_and_maps.fofo_type), file=log)
     #print("------------------------------------", file=log)
@@ -294,12 +296,12 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         print(
             '-----------------------------------------\nDONE! FOURIER DIFFERENCE MAP CALCULATED AND ANALYSIS PERFORMED.\n-----------------------------------------', file=log)
         # change names to real output name in case the dummy name was used
-        if P.outname == 'triggered':
+        if outname == 'triggered':
             # print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.Xtrapol8.output.outname), file=log)
-            print("Replacing the dummpy outname ('%s') with true outname('%s')" % (P.outname, params.output.outname))
-            tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if P.outname in fle]
-            _ = [os.rename(fle, fle.replace(P.outname, params.output.outname)) for fle in tr]
-            FoFo.mtz_name = FoFo.mtz_name.replace(P.outname, params.output.outname)
+            print("Replacing the dummpy outname ('%s') with true outname('%s')" % (outname, params.output.outname))
+            tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if outname in fle]
+            _ = [os.rename(fle, fle.replace(outname, params.output.outname)) for fle in tr]
+            FoFo.mtz_name = FoFo.mtz_name.replace(outname, params.output.outname)
 
         script_coot = open_all_in_coot("%s/%s" % (outdir, FoFo.mtz_name), [DH.pdb_in], [], DH.additional, outdir,
                                        P.FoFo_type)
@@ -402,7 +404,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                              DH.fmodel,
                              DH.rfree,
                              occ,
-                             name_out=P.outname,
+                             name_out=outname,
                              neg_refl_handle=params.Xtrapol8.f_and_maps.negative_and_missing)
 
         # Results stored in folder depending on occupancy and whether q-weighting is applied.
@@ -466,7 +468,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
             else:
                 print("%s not recognised as extrapolated map type" % (mp))
 
-            #Paula
+            #Addind lines with information to the table for JK_results
             twoFextrFclist= np.array([occ, mp, None, str(newdir + '/' + Fextr.mtz_name), None, str(Fextr.labels['map_coefs_map'] + ',PHI' + Fextr.labels['map_coefs_map'] + ' ' + Fextr.labels['map_coefs_diff'] + ',PHI' + Fextr.labels['map_coefs_diff']), total, None])
             JK_files_table=np.vstack((JK_files_table, twoFextrFclist))
 
@@ -536,7 +538,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                                                                                                        'map_coefs_map']),
                                                                                                keywords=params.Xtrapol8.refinement.phenix_keywords)
                     refinement_labels = '2FOFCWT,PH2FOFCWT'
-                #Paula
+                #Addind lines with information to the table for JK_results
                 twoFextrFclist_refined = np.array([occ, mp, refinement_rec, str(newdir + '/' + mtz_out), str(newdir + '/' +pdb_rec), refinement_labels, total, None])
                 JK_files_table = np.vstack((JK_files_table, twoFextrFclist_refined))
                 twoFextrFclist_refined = np.array([occ, mp, refinement_real, None, str(newdir + '/' +pdb_real), None, total, None])
@@ -807,7 +809,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
             pymol_pdb_list = pdb_list[:]
             pymol_pdb_list.remove(DH.pdb_in)
             pymol_mtz_list = recref_mtz_lst[:]
-            if P.outname == 'triggered':  # if dummy name applied, the files still contain the dummy name
+            if outname == 'triggered':  # if dummy name applied, the files still contain the dummy name
                 pymol_mtz_list = map(lambda fle: re.sub(r"triggered", params.output.outname, fle), pymol_mtz_list)
                 pymol_pdb_list = map(lambda fle: re.sub(r"triggered", params.output.outname, fle), pymol_pdb_list)
             # Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
@@ -871,7 +873,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                 mtz_dm = re.sub(".mtz$", "_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
             mtz_extr = ["%s/%s" % (occ_dir, fle) for fle in os.listdir(occ_dir) if
-                        P.outname in fle and fle.endswith('m%s-DFc.mtz' % (mp_type))][0]
+                        outname in fle and fle.endswith('m%s-DFc.mtz' % (mp_type))][0]
             append_if_file_exist(mtzs_for_coot, os.path.abspath(mtz_extr))
 
             pdbs_for_coot = [DH.pdb_in,
@@ -892,7 +894,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
             occ_dir = "%s/%s_%.3f" % (outdir, dir_prefix, occ)
             mtzs_for_coot = []
             mtz_extr = ["%s/%s" % (occ_dir, fle) for fle in os.listdir(occ_dir) if
-                        P.outname in fle and fle.endswith('m%s-DFc.mtz' % (mp_type))][0]
+                        outname in fle and fle.endswith('m%s-DFc.mtz' % (mp_type))][0]
             append_if_file_exist(mtzs_for_coot, os.path.abspath(mtz_extr))
             pdbs_for_coot = [DH.pdb_in]
             script_coot = open_all_in_coot(outdir + "/" + FoFo.mtz_name, pdbs_for_coot, mtzs_for_coot, DH.additional,
@@ -961,7 +963,7 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         print("Extrapolated map coefficients for real space refinement: %s\n" % (qFext_mtz_map))
         print("Extrapolated map coefficients for real space refinement: %s\n" % (qFext_mtz_map),file=log)
 
-        Fextr.name_out = "%s_occ%.3f" % (P.outname, occ)
+        Fextr.name_out = "%s_occ%.3f" % (outname, occ)
 
         if params.Xtrapol8.refinement.use_refmac_instead_of_phenix:
             mtz_out, pdb_rec, pdb_real, pdb_rec_real, refinement_rec, refinement_real, refinement_rec_real = Fextr.refmac_coot_refinements(mtz_F=qFext_mtz_F,
@@ -1047,13 +1049,13 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
         os.chdir(outdir)
 
     # change names to real output name in case the dummy name was used
-    if P.outname == 'triggered':
+    if outname == 'triggered':
         print('---------------------------', file=log)
         # print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname), file=log)
-        print("Replacing the dummpy outname ('%s') with true outname('%s')" % (P.outname, params.output.outname))
-        tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if P.outname in fle]
-        _ = [os.rename(fle, fle.replace(P.outname, params.output.outname)) for fle in tr]
-        FoFo.mtz_name = FoFo.mtz_name.replace(P.outname, params.output.outname)
+        print("Replacing the dummpy outname ('%s') with true outname('%s')" % (outname, params.output.outname))
+        tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if outname in fle]
+        _ = [os.rename(fle, fle.replace(outname, params.output.outname)) for fle in tr]
+        FoFo.mtz_name = FoFo.mtz_name.replace(outname, params.output.outname)
 
         coot_scripts = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if
                         fle.startswith("coot_all_")]
@@ -1062,8 +1064,8 @@ def run_X8(outdir_and_mtz_file_off_on, params, P, master_phil, startdir):
                 fle = f.read().split("\n")
             o = open(coot_script, "w")
             for lne in fle:
-                if P.outname in lne:
-                    lne = re.sub(P.outname, params.output.outname, lne)
+                if outname in lne:
+                    lne = re.sub(outname, params.output.outname, lne)
                     o.write("%s\n" % lne)
                 else:
                     o.write("%s\n" % lne)

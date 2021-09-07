@@ -8,7 +8,7 @@ from datetime import datetime
 from iotbx.file_reader import any_file
 import time
 
-log_main =open('/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/2021-08-03_08h29_Xtrapol8.log', "w")
+#log_main =open('/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/2021-08-03_08h29_Xtrapol8.log', "w")
 
 #class global
 def print_file_content(fle_in_dir, fle_out_dir):

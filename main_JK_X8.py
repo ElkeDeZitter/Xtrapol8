@@ -118,16 +118,15 @@ from JK_utils import print_terminal_and_log as print_in_T_and_log
 import Parameters as Para
 from Parameters import Parameters
 import JK_results
+import JK_simple_refinement
 
-#QUESTIONS???
-
-#TODO: Check if the input arguments for Crystfel are not overwritten if for example an other hkl file is given in 'other_stats_compare_hkl'
-#TODO: If UC anad SG are different for reference and triggered, what happens?
-#TODO: create graphs for the normal distribution of the UC parameters if the means are taken
-#TODO: Improve outputs printed in log files and terminal
+#TODO: Check if the input arguments for Crystfel are not overwritten if for example an other hkl file is given in 'other_stats_compare_hkl'. This is linked to the problem where we can not check if the additional parameters for the Crystfel programs are correct.
+#TODO: If UC and SG are different for reference and triggered, what happens?
+#TODO: Create graphs for the normal distribution of the UC parameters if the means are taken
+#TODO: Check/Improve outputs printed in log files and terminal
 #TODO: Add the parameters changed from the phil to the output phil: done in Parameters, needs to be checked, commented as 'return in output phil'
 #TODO: Be carefull with the unique axis given, if it is wrong, f2mtz will not work!
-#TODO: Add possibility for many triggered mtz files or stream files
+#TODO: Add possibility for many triggered mtz files or stream files: done
 
 master_phil = iotbx.phil.parse("""
 options{
@@ -202,6 +201,7 @@ JackKnife{
     Triggered_state{
         triggered_stream_file = None
             .type = path
+            .multiple = True
             .help = File with images to process for the on state in stream format
             .expert_level = 0            
         use_UC_and_SG_from_pdb = False
@@ -276,6 +276,7 @@ Xtrapol8{
             .expert_level = 0
         triggered_mtz = None
             .type = path
+            .multiple = True
             .help = Triggered data in mtz or mmcif format (merged).
             .expert_level = 0
         reference_pdb = None
@@ -591,6 +592,7 @@ output{
         .expert_level = 0
     outname = None
         .type = str
+        .multiple = True
         .help = Output prefix. Prefix of triggered_mtz will be used if not specified.
         .expert_level = 0
     GUI = False
@@ -601,6 +603,7 @@ output{
 """, process_includes=True)
 
 def run(args):
+
     print('################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
     print('LAUNCH XTRAPOL8\n==============================================================')
     # If no input, show complete help, should be changed in order to give help depending on the attribute level
@@ -645,15 +648,6 @@ def run(args):
     if P.run_JackKnife:
         P.get_parameters_JK()
 
-    P.get_parameters_JK_X8_output(params)
-
-    #Change directory to output directory
-    outdir = P.outdir
-    print('the output directory is %s' % (outdir))
-    # Move log file to output directory
-    if os.path.isfile(logdir):
-        shutil.move(logdir, logdir.replace(log_dir, outdir))
-    os.chdir(outdir)
     ################################################################
 
     # Add all arguments to log-file
@@ -671,18 +665,29 @@ def run(args):
     #Run JackKnife and Xtrapol8
     #Run JackKnife
     if P.run_JackKnife:
-        print_in_T_and_log('################################################################################\nLAUNCH JACK KNIFE\n################################################################################')
-        if P.JK_one_stream_file:
-            print_in_T_and_log('JACK KNIFE ONLY\n==============================================================')
-        # run only JackKnife and get list of [directory where to find mtz file, mtz file complete directory] for the only stream file (off file)
-            if P.fraction == 1: #if fraction wanted is 1, no total needed (same thing) #TODO: if the fraction =1, JK is ran as many times as 'repeats', change that into 1? If so, go to main_JK>Run_JK and change 'P.repeats'=1
-                main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, total=False)
-            else:
-                main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, total=True)
-        else:
+    #get parameters and move to directory
+        index=0 #init the index
+        for stream_file_on in P.stream_file_on: #for each stream file (multiple stream files possible)
+            P.get_parameters_multiple_JK_X8_output(params, index)  # getting output parameters common to JK and X8: output and outname
+            # Change directory to output directory
+            outdir = P.outdir
+            outname = P.outname
+            print('\nthe output directory is %s' % (outdir))
+            # Move log file to output directory
+            if os.path.isfile(logdir):
+                shutil.move(logdir, logdir.replace(log_dir, outdir))
+            os.chdir(outdir)
+
+            P.get_parameters_JK_triggered_stream_file(stream_file_on) #getting the parameters of the triggered stream file
+
+    #run Jackknife only
+            print_in_T_and_log('\n################################################################################\nLAUNCH JACK KNIFE\n################################################################################')
+
+    #run Jackknife
+
             print_in_T_and_log('JACK KNIFE FOR OFF STATE\n==============================================================')
             #run JackKnife and get list of [directory where to find mtz file, mtz file complete directory, nb_JK] for the off state
-            if P.fraction == 1: #if fraction wanted is 1, no total needed (same thing)
+            if P.fraction == 1: #if fraction wanted is 1, no total needed (same thing)#TODO: if the fraction =1, JK is ran as many times as 'repeats', change that into 1? If so, go to main_JK>Run_JK and change 'P.repeats'=1
                 mtzoutdirs_off,_ = main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off,
                                                 P.n_frames_to_keep_off, P.system_off, P.pointgroup_off,
                                                 P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off,
@@ -693,17 +698,26 @@ def run(args):
 
             #run JackKnife and get list of [directory where to find mtz file, mtz file complete directory, nb_JK] for the on state
             if P.fraction == 1:
-                mtzoutdirs_on, _ = main_JK.run_JK(P, outdir, P.stream_file_on, P.stream_file_name_on,
+                mtzoutdirs_on, _ = main_JK.run_JK(P, outdir, stream_file_on, P.stream_file_name_on,
                                                P.n_frames_to_keep_on, P.system_on, P.pointgroup_on, P.unique_axis_on,
                                                P.a_on, P.b_on, P.c_on, P.alpha_on, P.beta_on, P.gamma_on,
                                                P.spacegroup_on, log, state='on', total=False)
             else:
-                mtzoutdirs_on, mtzoutdirs_on_total = main_JK.run_JK(P, outdir, P.stream_file_on, P.stream_file_name_on, P.n_frames_to_keep_on, P.system_on, P.pointgroup_on, P.unique_axis_on, P.a_on, P.b_on, P.c_on, P.alpha_on, P.beta_on, P.gamma_on, P.spacegroup_on, log, state='on', total=True)
+                mtzoutdirs_on, mtzoutdirs_on_total = main_JK.run_JK(P, outdir, stream_file_on, P.stream_file_name_on, P.n_frames_to_keep_on, P.system_on, P.pointgroup_on, P.unique_axis_on, P.a_on, P.b_on, P.c_on, P.alpha_on, P.beta_on, P.gamma_on, P.spacegroup_on, log, state='on', total=True)
 
             ################################################################
 
-            if P.run_Xtrapol8:
-            #create the list mtzoutdirs_dir_off_on with [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK]
+        #create the list mtzoutdirs_dir_off_on with [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK, outname]
+            def create_multiprocessing_list(mtzoutdirs_off, mtzoutdirs_on, outname):
+                '''
+                Create the list of list to run Xtrapol8 in multiprocessing for all JK files
+                Args:
+                    mtzoutdirs_off: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for off state
+                    mtzoutdirs_on: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for on state
+
+                Returns:
+                    mtzoutdirs_dir_off_on: list of [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK, outname]
+                '''
                 mtzoutdirs_dir_off_on=[]
 
                 for i in range(0,len(mtzoutdirs_off)): #for all the datasets
@@ -724,7 +738,7 @@ def run(args):
                         print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
                             mtz_off, mtz_on, newlogname), file=log)
                         # add files to list
-                        mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, JK_i_off])
+                        mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, JK_i_off, outname])
 
                     else:
                         # get log file: create new log files
@@ -732,12 +746,25 @@ def run(args):
                         print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
                             mtz_off, mtz_on, newlogname), file=log)
                         # add files to list
-                        mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, str(JK_i_off)+','+str(JK_i_on)])
-                print(mtzoutdirs_dir_off_on)
+                        mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, str(JK_i_off)+','+str(JK_i_on), outname])
 
-            # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total']
-                if P.fraction != 1: #if fraction==1, no total created
-                    # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8, mtz_off, mtz_on, newlog, 'total']
+                return(mtzoutdirs_dir_off_on)
+
+            mtzoutdirs_dir_off_on = create_multiprocessing_list(mtzoutdirs_off, mtzoutdirs_on, outname)
+
+        # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total', outname]
+            if P.fraction != 1: #if fraction==1, no total created
+                # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8, mtz_off, mtz_on, newlog, 'total', outname]
+                def create_total_multiprocessing_list(mtzoutdirs_off_total, mtzoutdirs_on_total, outname):
+                    '''
+                    Create the list to run Xtrapol8 with the total files
+                    Args:
+                        mtzoutdirs_off_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total off state
+                        mtzoutdirs_on_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total on state
+
+                    Returns:
+                        mtzoutdirs_dir_off_on_total: [outdirJKX8, mtz_off, mtz_on, newlog, 'total', outname]
+                    '''
                     outdirJKX8_total = mtzoutdirs_on_total[0] + '/Xtrapol8'  # take output directory from the mtz_on file to put results of Xtrapol8
                     os.mkdir(outdirJKX8_total)
                     # get log file: create new log files
@@ -748,10 +775,18 @@ def run(args):
                     print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
                                 mtz_off_total, mtz_on_total, newlogname), file=log)
                     # add files to list
-                    mtzoutdirs_dir_off_on_total = [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total']
+                    mtzoutdirs_dir_off_on_total = [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total', outname]
+                    return (mtzoutdirs_dir_off_on_total)
 
-            #Run Xtrapol8
-                print_in_T_and_log('################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
+                mtzoutdirs_dir_off_on_total = create_total_multiprocessing_list(mtzoutdirs_off_total, mtzoutdirs_on_total, outname)
+
+                print(mtzoutdirs_dir_off_on_total)
+            print(mtzoutdirs_dir_off_on)
+
+
+    #Run Xtrapol8
+            if P.run_Xtrapol8:
+                print_in_T_and_log('\n################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
 
                 # #Loop to run Xtrapol8 one by one for debugging
                 # tab_list=[]
@@ -794,25 +829,46 @@ def run(args):
 
                 if P.fraction != 1:
                     tab_total = main_X8.run_X8(mtzoutdirs_dir_off_on_total, params, P, master_phil, P.startdir)  # run Xtrapol8 for the total files
-                    tab_total=np.array(tab_total)
+
                     print(tab_total)
                 print(tab_list)
-                if P.fraction != 1:
-                    #compare the files from JK and total and get the results (CC, RMSD, Plot of differences between models)
-                    JK_results_outdir = outdir + '/JK_average_and_comparison_results' #name of new output directory
-                    print(JK_results_outdir)
-                    os.mkdir(JK_results_outdir) #create new output directory
-                    JK_utils.print_terminal_and_log(
-                        'CALCULATING JK RESULTS\n==============================================================')
-                    JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir, params.Xtrapol8.refinement.phenix_keywords.main.ordered_solvent) #calculate all the results and rint them in a table and create plot
 
+    #Run simple refinements
+            else: #only JK is run so a simple refinement is done
+                print_in_T_and_log('\n################################################################################\nLAUNCH SIMPLE REFINEMENTS\n################################################################################')
+                for mtzoutdirs_dir_off_on_outname in mtzoutdirs_dir_off_on:
+                    tab_list = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_off_on_outname) #run simple refinement for the JK files
+
+                if P.fraction != 1:
+                    tab_total = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_off_on_outname)  # run simple refinement for the total files
+
+
+    #Get JK results
+            if P.fraction != 1:
+                #compare the files from JK and total and get the results (CC, RMSD, Plot of differences between models)
+                JK_results_outdir = outdir + '/JK_average_and_comparison_results' #name of new output directory
+                print(JK_results_outdir)
+                os.mkdir(JK_results_outdir) #create new output directory
+                JK_utils.print_terminal_and_log('CALCULATING JK RESULTS\n==============================================================')
+                JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir, params.Xtrapol8.refinement.phenix_keywords.main.ordered_solvent) #calculate all the results and print them in a table and create plot
     ################################################################
 
     # run only Xtrapol8
-    elif P.run_Xtrapol8:
-        print_in_T_and_log(
-            '################################################################################\nLAUNCH XTRAPOL8 ONLY\n################################################################################')
-        main_X8.run_X8([outdir, params.Xtrapol8.input.reference_mtz, params.Xtrapol8.input.triggered_mtz, logdir, 'total'], params,  P, master_phil, P.startdir)
+    elif P.run_Xtrapol8 == True:
+        index=0 #index of the triggered mtz
+        list_for_X8 = [] #create the list for multiprocessing
+        for triggered_mtz in params.Xtrapol8.input.triggered_mtz:#in case of multiple triggered mtz given
+            P.get_parameters_multiple_JK_X8_output(params, index) #get the outdir and outname
+            if len(P.triggered_mtz) > 1: logdir, log = JK_utils.create_log(P.output, global_log=True) #if there are many triggered mtz files create a new log file and get full directory of the log file
+            list_for_X8.append([P.output, params.Xtrapol8.input.reference_mtz, triggered_mtz, logdir, 'total', P.outname])
+            index += 1 #get the next index
+
+
+            print_in_T_and_log(
+                '################################################################################\nLAUNCH XTRAPOL8 ONLY\n################################################################################')
+            pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
+            tab_list = pool_process.map(partial(main_X8.run_X8, params=params, P=P, master_phil=master_phil, startdir=P.startdir), list_for_X8)  # process the Xtrapol8 with mtz files iterable with pool in list_for_X8
+
 
     ################################################################
 

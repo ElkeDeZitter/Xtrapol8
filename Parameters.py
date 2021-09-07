@@ -79,7 +79,6 @@ class Parameters():
         Returns:
             self.run_JackKnife: bool, if True do JK
             self.run_Xtrapol8: bool, if True do X8
-            self.JK_one_stream_file: bool, if Ture, only JK has to be run
         '''
 
         print_in_T_and_log('>>>Getting input parameters from phil file<<<')
@@ -96,14 +95,334 @@ class Parameters():
                 self.params.options.programs.__phil_path__()))
             sys.exit()
 
-        self.JK_one_stream_file = False
-        if self.params.JackKnife.Reference_state.reference_stream_file!=None and self.params.JackKnife.Triggered_state.triggered_stream_file==None and self.run_JackKnife and (not self.run_Xtrapol8):
-            self.JK_one_stream_file = True
-
         #getting number of processors to use
         self.processors = self.params.options.processors
         if self.processors > multiprocessing.cpu_count():
             self.processors = multiprocessing.cpu_count()
+
+    # get pointgroup and system HORRILE BUT SHOULD WORK
+    def get_system_and_pointgroup(self, a, b, c, alpha, beta, gamma, spacegroup, unique_axis):
+                '''
+                Checking if spacegroup exists
+                From spacegroup, getting system and pointgroup
+                Checking unit cell correct for spacegroup, if not change according to system
+                Args:
+                    a:
+                    b:
+                    c:
+                    alpha:
+                    beta:
+                    gamma:
+                    spacegroup:
+                    unique_axis:
+
+                Returns:
+                    spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma
+                '''
+
+                merge_friedel_pairs = True  # var to give a spacegroup with which the fliedel pairs will be merged when merging intensities
+
+                # 1. Checking if spacegroup exists
+                unit_cell = [a, b, c, alpha, beta, gamma]
+                try:
+                    symmetry = crystal.symmetry(space_group=spacegroup, unit_cell=unit_cell)
+                except RuntimeError:
+                    print('The space group given does not exist, please make sure it is written correctly')
+                    sys.exit()
+
+                nb_spacegroup = crystal.symmetry.space_group_number(symmetry)
+                print('spacegroup number:', nb_spacegroup)
+
+                # 2.  From spacegroup, getting system and pointgroup
+                if nb_spacegroup in [1, 2]:
+                    system = 'triclinic'
+                    if nb_spacegroup == 1:
+                        if merge_friedel_pairs:
+                            pointgroup = '-1'
+                        else:
+                            pointgroup = '1'
+                    if nb_spacegroup == 2:
+                        pointgroup = '-1'
+
+                elif 3 <= nb_spacegroup <= 15:
+                    system = 'monoclinic'
+                    if 3 <= nb_spacegroup <= 5:
+                        if merge_friedel_pairs:
+                            pointgroup = '2/m'
+                        else:
+                            pointgroup = '2'
+                    if 6 <= nb_spacegroup <= 9:
+                        pointgroup = 'm'
+                    if 10 <= nb_spacegroup <= 15:
+                        pointgroup = '2/m'
+
+                elif 16 <= nb_spacegroup <= 74:
+                    system = 'orthogonal'
+                    if 16 <= nb_spacegroup <= 24:
+                        if merge_friedel_pairs:
+                            pointgroup = 'mmm'
+                        else:
+                            pointgroup = '222'
+                    if 25 <= nb_spacegroup <= 46:
+                        pointgroup = 'mm2'
+                    if 47 <= nb_spacegroup <= 74:
+                        pointgroup = 'mmm'
+
+                elif 75 <= nb_spacegroup <= 142:
+                    system = 'tetratgonal'
+                    if 75 <= nb_spacegroup <= 80:
+                        if merge_friedel_pairs:
+                            pointgroup = '-4'
+                        else:
+                            pointgroup = '4'
+                    if 81 <= nb_spacegroup <= 82:
+                        pointgroup = '-4'
+                    if 83 <= nb_spacegroup <= 88:
+                        pointgroup = '4/m'
+                    if 89 <= nb_spacegroup <= 98:
+                        if merge_friedel_pairs:
+                            pointgroup = '4/mmm'
+                        else:
+                            pointgroup = '422'
+                    if 99 <= nb_spacegroup <= 110:
+                        pointgroup = '4mm'
+                    if 111 <= nb_spacegroup <= 122:
+                        pointgroup = '-42m'
+                    if 123 <= nb_spacegroup <= 142:
+                        pointgroup = '4/m'
+
+                elif 143 <= nb_spacegroup <= 167:
+                    system = 'trigonal'
+                    if 143 <= nb_spacegroup <= 146:
+                        if merge_friedel_pairs:
+                            pointgroup = '-3'
+                        else:
+                            pointgroup = '3'
+                    if 147 <= nb_spacegroup <= 148:
+                        pointgroup = '-3'
+                    if 149 <= nb_spacegroup <= 155:
+                        if merge_friedel_pairs:
+                            pointgroup = '-31m'
+                        else:
+                            pointgroup = '312'
+                    if 156 <= nb_spacegroup <= 161:
+                        pointgroup = '3m'
+                    if 162 <= nb_spacegroup <= 167:
+                        pointgroup = '-3m'
+
+                elif 168 <= nb_spacegroup <= 194:
+                    system = 'hexagonal'
+                    if 168 <= nb_spacegroup <= 173:
+                        if merge_friedel_pairs:
+                            pointgroup = '-6'
+                        else:
+                            pointgroup = '6'
+                    if nb_spacegroup <= 174:
+                        pointgroup = '-6'
+                    if 175 <= nb_spacegroup <= 176:
+                        pointgroup = '6/m'
+                    if 177 <= nb_spacegroup <= 182:
+                        if merge_friedel_pairs:
+                            pointgroup = '6/mmm'
+                        else:
+                            pointgroup = '622'
+                    if 183 <= nb_spacegroup <= 186:
+                        pointgroup = '6mm'
+                    if 187 <= nb_spacegroup <= 190:
+                        pointgroup = '-6m2'
+                    if 191 <= nb_spacegroup <= 194:
+                        pointgroup = '6/m'
+
+                elif 195 <= nb_spacegroup <= 230:
+                    system = 'cubic'
+                    if 195 <= nb_spacegroup <= 199:
+                        if merge_friedel_pairs:
+                            pointgroup = 'm-3'
+                        else:
+                            pointgroup = '23'
+                    if 200 <= nb_spacegroup <= 206:
+                        pointgroup = 'm-3'
+                    if 207 <= nb_spacegroup <= 214:
+                        if merge_friedel_pairs:
+                            pointgroup = 'm-3m'
+                        else:
+                            pointgroup = '432'
+                    if 215 <= nb_spacegroup <= 220:
+                        pointgroup = '-43m'
+                    if 221 <= nb_spacegroup <= 230:
+                        pointgroup = 'm-3m'
+
+                if unique_axis == None:
+                    if system == 'monoclinic':
+                        unique_axis = 'b'
+                    if system == 'hexagonal' or system == 'tetragonal':
+                        unique_axis = 'c'
+
+                if unique_axis != None and (system == 'monoclinic' or system == 'hexagonal' or system == 'tetragonal'):
+                    pointgroup = pointgroup + '_ua' + unique_axis
+                else:
+                    print('the unique axis will not be taken into account because the system is not appropriate')
+
+                # 3. Checking unit cell correct for spacegroup, if not change according to system
+                adapt_unit_cell_to_system = True
+                if adapt_unit_cell_to_system:
+                    #            if not crystal.symmetry.is_compatible_unit_cell(symmetry):  # the unit cell is not compatible with the spacegroup, this doesn't work every time, resembling angles not identified
+                    if system == 'monoclinic' and unique_axis == 'a':
+                        if beta != 90:
+                            beta = 90.0
+                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
+                        if gamma != 90:
+                            print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
+                            gamma = 90.0
+
+                    if system == 'monoclinic' and unique_axis == 'b':
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
+                            alpha = 90.0
+                        if gamma != 90:
+                            print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
+                            gamma = 90.0
+
+                    if system == 'monoclinic' and (unique_axis == 'c' or unique_axis == None):
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
+                            alpha = 90.0
+                        if beta != 90:
+                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
+                            beta = 90.0
+
+                    if system == 'orthorhombic':
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
+                            alpha = 90.0
+                        if beta != 90:
+                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
+                            beta = 90.0
+                        if gamma != 90:
+                            print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
+                            gamma = 90.0
+
+                    if system == 'cubic':
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is cubic' % (alpha))
+                            alpha = 90.0
+                        if beta != 90:
+                            print('the beta angle was changed from %s to 90 since the system is cubic' % (beta))
+                            beta = 90.0
+                        if gamma != 90:
+                            print('the gamma angle was changed from %s to 90 since the system is cubic' % (gamma))
+                            gamma = 90.0
+                        if a != b or a != c or b != c:
+                            mean_abc = (a + b + c) / 3
+                            print(
+                                'a, b and c were changed from a=%s, b=%s, c=%s to a=%s, b=%s, c=%s since the system is cubic' % (
+                                    a, b, c, mean_abc, mean_abc, mean_abc))
+
+                    if system == 'hexagonal':
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is hexagonal' % (alpha))
+                            alpha = 90.0
+                        if beta != 90:
+                            print('the beta angle was changed from %s to 90 since the system is hexagonal' % (beta))
+                            beta = 90.0
+                        if gamma != 120:
+                            print('the gamma angle was changed from %s to 120 since the system is hexagonal' % (gamma))
+                            gamma = 120.0
+                        if unique_axis == 'c' or unique_axis == None:
+                            if a != b:
+                                mean_ab = (a + b) / 2
+                                print(
+                                    'a anb b were changed from a=%s, b=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                        a, b, mean_ab, mean_ab))
+                                a = mean_ab
+                                b = mean_ab
+                        if unique_axis == 'a':
+                            if c != b:
+                                mean_bc = (b + c) / 2
+                                print(
+                                    'b anb c were changed from b=%s, c=%s to b=%s, c=%s since the system is trigonal or hexagonal' % (
+                                        b, c, mean_bc, mean_bc))
+                                b = mean_bc
+                                c = mean_bc
+                        if unique_axis == 'b':
+                            if a != c:
+                                mean_ac = (a + c) / 2
+                                print(
+                                    'a anb c were changed from a=%s, c=%s to a=%s, c=%s since the system is trigonal or hexagonal' % (
+                                        a, c, mean_ac, mean_ac))
+                                a = mean_ac
+                                c = mean_ac
+
+                    if system == 'trigonal':
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is trigonal' % (alpha))
+                            alpha = 90.0
+                        if beta != 90:
+                            print('the beta angle was changed from %s to 90 since the system is trigonal' % (beta))
+                            beta = 90.0
+                        if a != b or a != c or b != c:
+                            mean_abc = (a + b + c) / 3
+                            print(
+                                'a, b and c were changed from a=%s, b=%s, c=%s to a=%s, b=%s, c=%s since the system is trigonal' % (
+                                    a, b, c, mean_abc, mean_abc, mean_abc))
+
+                    if system == 'tetragonal':
+                        if alpha != 90:
+                            print('the beta angle was changed from %s to 90 since the system is tetragonal' % (alpha))
+                            alpha = 90.0
+                        if beta != 90:
+                            print('the beta angle was changed from %s to 90 since the system is tetragonal' % (beta))
+                            beta = 90.0
+                        if gamma != 90:
+                            print('the gamma angle was changed from %s to 90 since the system is tetragonal' % (gamma))
+                            gamma = 90.0
+                        if unique_axis == 'c' or unique_axis == None:
+                            if a != b:
+                                mean_ab = (a + b) / 2
+                                print(
+                                    'a anb b were changed from a=%s, b=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                        a, b, mean_ab, mean_ab))
+                                a = mean_ab
+                                b = mean_ab
+                        if unique_axis == 'a':
+                            if c != b:
+                                mean_bc = (b + c) / 2
+                                print(
+                                    'a anb b were changed from b=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                        b, c, mean_bc, mean_bc))
+                                b = mean_bc
+                                c = mean_bc
+                        if unique_axis == 'b':
+                            if a != c:
+                                mean_ac = (a + c) / 2
+                                print(
+                                    'a anb b were changed from a=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                        a, c, mean_ac, mean_ac))
+                                a = mean_ac
+                                c = mean_ac
+
+                unit_cell = [a, b, c, alpha, beta, gamma]
+
+                print_in_T_and_log('space group = %s\n'
+                                   'system = %s\n'
+                                   'unique axis = %s\n'
+                                   'point group = %s\n'
+                                   'unit cell = %s' % (spacegroup, system, unique_axis, pointgroup, unit_cell))
+                return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma, unique_axis)
+
+    def normal_distribution_test_unit_cell(self, array, variable_tested):
+        try:
+            statistic, p = scipy.stats.normaltest(array)
+            print_in_T_and_log('%s : p= %s , statistic= %s' % (variable_tested, p, statistic))
+            if p >= 0.05:
+                print_in_T_and_log(
+                    "Peaks not normal distributed (p-value for normality test = %.3f). The %s value might not be correct. The process will continue but the unit cell might be wrong." % (
+                    p, variable_tested))
+                time.sleep(15)  # time delay of 15s
+        except ValueError:
+            print_in_T_and_log(
+                "Test for normality could not be performed. Probably not enough peaks. Jack Knife will not be run because there might not be enough images.")
+            sys.exit()
 
     def get_parameters_JK(self):
         '''
@@ -161,28 +480,17 @@ class Parameters():
         # test for normal distribution
         print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
 
-        def normal_distribution_test_unit_cell(array, variable_tested):
-            try:
-                statistic, p = scipy.stats.normaltest(array)
-                print_in_T_and_log('%s : p= %s , statistic= %s' %(variable_tested, p, statistic))
-                if p >= 0.05:
-                    print_in_T_and_log("Peaks not normal distributed (p-value for normality test = %.3f). The %s value might not be correct. The process will continue but the unit cell might be wrong." % (p, variable_tested))
-                    time.sleep(15)  # time delay of 15s
-            except ValueError:
-                print_in_T_and_log("Test for normality could not be performed. Probably not enough peaks. Jack Knife will not be run because there might not be enough images.")
-                sys.exit()
-
-        normal_distribution_test_unit_cell(a_array_off, 'a_off')
-        normal_distribution_test_unit_cell(b_array_off, 'b_off')
-        normal_distribution_test_unit_cell(c_array_off, 'c_off')
-        normal_distribution_test_unit_cell(alpha_array_off, 'alpha_off')
-        normal_distribution_test_unit_cell(beta_array_off, 'beta_off')
-        normal_distribution_test_unit_cell(gamma_array_off, 'gamma_off')
+        self.normal_distribution_test_unit_cell(a_array_off, 'a_off')
+        self.normal_distribution_test_unit_cell(b_array_off, 'b_off')
+        self.normal_distribution_test_unit_cell(c_array_off, 'c_off')
+        self.normal_distribution_test_unit_cell(alpha_array_off, 'alpha_off')
+        self.normal_distribution_test_unit_cell(beta_array_off, 'beta_off')
+        self.normal_distribution_test_unit_cell(gamma_array_off, 'gamma_off')
 
         # getting unit cell parameters
         print_in_T_and_log('---Getting unit cell parameters---')
 
-        if self.params.JackKnife.Reference_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8: #TODO: get pdb unit cell parameters if not pdb file but cif
+        if self.params.JackKnife.Reference_state.use_UC_and_SG_from_pdb: #TODO: get pdb unit cell parameters if not pdb file but cif
             # check file
             Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
             #get unit cell parameters from pdb file
@@ -238,317 +546,7 @@ class Parameters():
             self.unique_axis_off = None
 
 
-        # get pointgroup and system HORRILE BUT SHOULD WORK
-        def get_system_and_pointgroup(a, b, c, alpha, beta, gamma, spacegroup, unique_axis):
-            '''
-            Checking if spacegroup exists
-            From spacegroup, getting system and pointgroup
-            Checking unit cell correct for spacegroup, if not change according to system
-            Args:
-                a:
-                b:
-                c:
-                alpha:
-                beta:
-                gamma:
-                spacegroup:
-                unique_axis:
-
-            Returns:
-                spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma
-            '''
-
-            merge_friedel_pairs = True #var to give a spacegroup with which the fliedel pairs will be merged when merging intensities
-
-            # 1. Checking if spacegroup exists
-            unit_cell = [a, b, c, alpha, beta, gamma]
-            try:
-                symmetry = crystal.symmetry(space_group=spacegroup, unit_cell=unit_cell)
-            except RuntimeError:
-                print('The space group given does not exist, please make sure it is written correctly')
-                sys.exit()
-
-            nb_spacegroup = crystal.symmetry.space_group_number(symmetry)
-            print('spacegroup number:', nb_spacegroup)
-
-            # 2.  From spacegroup, getting system and pointgroup
-            if nb_spacegroup in [1, 2]:
-                system = 'triclinic'
-                if nb_spacegroup == 1:
-                    if merge_friedel_pairs:
-                        pointgroup = '-1'
-                    else:
-                        pointgroup = '1'
-                if nb_spacegroup == 2:
-                    pointgroup = '-1'
-
-            elif 3 <= nb_spacegroup <= 15:
-                system = 'monoclinic'
-                if 3 <= nb_spacegroup <= 5:
-                    if merge_friedel_pairs:
-                        pointgroup = '2/m'
-                    else:
-                        pointgroup = '2'
-                if 6 <= nb_spacegroup <= 9:
-                    pointgroup = 'm'
-                if 10 <= nb_spacegroup <= 15:
-                    pointgroup = '2/m'
-
-            elif 16 <= nb_spacegroup <= 74:
-                system = 'orthogonal'
-                if 16 <= nb_spacegroup <= 24:
-                    if merge_friedel_pairs:
-                        pointgroup = 'mmm'
-                    else:
-                        pointgroup = '222'
-                if 25 <= nb_spacegroup <= 46:
-                    pointgroup = 'mm2'
-                if 47 <= nb_spacegroup <= 74:
-                    pointgroup = 'mmm'
-
-            elif 75 <= nb_spacegroup <= 142:
-                system = 'tetratgonal'
-                if 75 <= nb_spacegroup <= 80:
-                    if merge_friedel_pairs:
-                        pointgroup = '-4'
-                    else:
-                        pointgroup = '4'
-                if 81 <= nb_spacegroup <= 82:
-                    pointgroup = '-4'
-                if 83 <= nb_spacegroup <= 88:
-                    pointgroup = '4/m'
-                if 89 <= nb_spacegroup <= 98:
-                    if merge_friedel_pairs:
-                        pointgroup = '4/mmm'
-                    else:
-                        pointgroup = '422'
-                if 99 <= nb_spacegroup <= 110:
-                    pointgroup = '4mm'
-                if 111 <= nb_spacegroup <= 122:
-                    pointgroup = '-42m'
-                if 123 <= nb_spacegroup <= 142:
-                    pointgroup = '4/m'
-
-            elif 143 <= nb_spacegroup <= 167:
-                system = 'trigonal'
-                if 143 <= nb_spacegroup <= 146:
-                    if merge_friedel_pairs:
-                        pointgroup = '-3'
-                    else:
-                        pointgroup = '3'
-                if 147 <= nb_spacegroup <= 148:
-                    pointgroup = '-3'
-                if 149 <= nb_spacegroup <= 155:
-                    if merge_friedel_pairs:
-                        pointgroup = '-31m'
-                    else:
-                        pointgroup = '312'
-                if 156 <= nb_spacegroup <= 161:
-                    pointgroup = '3m'
-                if 162 <= nb_spacegroup <= 167:
-                    pointgroup = '-3m'
-
-            elif 168 <= nb_spacegroup <= 194:
-                system = 'hexagonal'
-                if 168 <= nb_spacegroup <= 173:
-                    if merge_friedel_pairs:
-                        pointgroup = '-6'
-                    else:
-                        pointgroup = '6'
-                if nb_spacegroup <= 174:
-                    pointgroup = '-6'
-                if 175 <= nb_spacegroup <= 176:
-                    pointgroup = '6/m'
-                if 177 <= nb_spacegroup <= 182:
-                    if merge_friedel_pairs:
-                        pointgroup = '6/mmm'
-                    else:
-                        pointgroup = '622'
-                if 183 <= nb_spacegroup <= 186:
-                    pointgroup = '6mm'
-                if 187 <= nb_spacegroup <= 190:
-                    pointgroup = '-6m2'
-                if 191 <= nb_spacegroup <= 194:
-                    pointgroup = '6/m'
-
-            elif 195 <= nb_spacegroup <= 230:
-                system = 'cubic'
-                if 195 <= nb_spacegroup <= 199:
-                    if merge_friedel_pairs:
-                        pointgroup = 'm-3'
-                    else:
-                        pointgroup = '23'
-                if 200 <= nb_spacegroup <= 206:
-                    pointgroup = 'm-3'
-                if 207 <= nb_spacegroup <= 214:
-                    if merge_friedel_pairs:
-                        pointgroup = 'm-3m'
-                    else:
-                        pointgroup = '432'
-                if 215 <= nb_spacegroup <= 220:
-                    pointgroup = '-43m'
-                if 221 <= nb_spacegroup <= 230:
-                    pointgroup = 'm-3m'
-
-            if unique_axis==None:
-                if system=='monoclinic':
-                    unique_axis='b'
-                if system=='hexagonal' or system=='tetragonal':
-                    unique_axis='c'
-
-            if unique_axis != None and (system == 'monoclinic' or system == 'hexagonal' or system == 'tetragonal'):
-                pointgroup = pointgroup + '_ua' + unique_axis
-            else:
-                print('the unique axis will not be taken into account because the system is not appropriate')
-
-            # 3. Checking unit cell correct for spacegroup, if not change according to system
-            adapt_unit_cell_to_system=True
-            if adapt_unit_cell_to_system:
-#            if not crystal.symmetry.is_compatible_unit_cell(symmetry):  # the unit cell is not compatible with the spacegroup, this doesn't work every time, resembling angles not identified
-                if system == 'monoclinic' and unique_axis == 'a':
-                    if beta != 90:
-                        beta = 90.0
-                        print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
-                    if gamma != 90:
-                        print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
-                        gamma = 90.0
-
-                if system == 'monoclinic' and unique_axis == 'b':
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
-                        alpha = 90.0
-                    if gamma != 90:
-                        print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
-                        gamma = 90.0
-
-                if system == 'monoclinic' and (unique_axis == 'c' or unique_axis == None):
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
-                        alpha = 90.0
-                    if beta != 90:
-                        print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
-                        beta = 90.0
-
-                if system == 'orthorhombic':
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
-                        alpha = 90.0
-                    if beta != 90:
-                        print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
-                        beta = 90.0
-                    if gamma != 90:
-                        print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
-                        gamma = 90.0
-
-                if system == 'cubic':
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is cubic' % (alpha))
-                        alpha = 90.0
-                    if beta != 90:
-                        print('the beta angle was changed from %s to 90 since the system is cubic' % (beta))
-                        beta = 90.0
-                    if gamma != 90:
-                        print('the gamma angle was changed from %s to 90 since the system is cubic' % (gamma))
-                        gamma = 90.0
-                    if a != b or a != c or b != c:
-                        mean_abc = (a + b + c) / 3
-                        print(
-                            'a, b and c were changed from a=%s, b=%s, c=%s to a=%s, b=%s, c=%s since the system is cubic' % (
-                                a, b, c, mean_abc, mean_abc, mean_abc))
-
-                if system == 'hexagonal':
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is hexagonal' % (alpha))
-                        alpha = 90.0
-                    if beta != 90:
-                        print('the beta angle was changed from %s to 90 since the system is hexagonal' % (beta))
-                        beta = 90.0
-                    if gamma != 120:
-                        print('the gamma angle was changed from %s to 120 since the system is hexagonal' % (gamma))
-                        gamma = 120.0
-                    if unique_axis == 'c' or unique_axis == None:
-                        if a != b:
-                            mean_ab = (a + b) / 2
-                            print(
-                                'a anb b were changed from a=%s, b=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
-                                    a, b, mean_ab, mean_ab))
-                            a = mean_ab
-                            b = mean_ab
-                    if unique_axis == 'a':
-                        if c != b:
-                            mean_bc = (b + c) / 2
-                            print(
-                                'b anb c were changed from b=%s, c=%s to b=%s, c=%s since the system is trigonal or hexagonal' % (
-                                    b, c, mean_bc, mean_bc))
-                            b = mean_bc
-                            c = mean_bc
-                    if unique_axis == 'b':
-                        if a != c:
-                            mean_ac = (a + c) / 2
-                            print(
-                                'a anb c were changed from a=%s, c=%s to a=%s, c=%s since the system is trigonal or hexagonal' % (
-                                    a, c, mean_ac, mean_ac))
-                            a = mean_ac
-                            c = mean_ac
-
-                if system == 'trigonal':
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is trigonal' % (alpha))
-                        alpha = 90.0
-                    if beta != 90:
-                        print('the beta angle was changed from %s to 90 since the system is trigonal' % (beta))
-                        beta = 90.0
-                    if a != b or a != c or b != c:
-                        mean_abc = (a + b + c) / 3
-                        print(
-                            'a, b and c were changed from a=%s, b=%s, c=%s to a=%s, b=%s, c=%s since the system is trigonal' % (
-                                a, b, c, mean_abc, mean_abc, mean_abc))
-
-                if system == 'tetragonal':
-                    if alpha != 90:
-                        print('the beta angle was changed from %s to 90 since the system is tetragonal' % (alpha))
-                        alpha = 90.0
-                    if beta != 90:
-                        print('the beta angle was changed from %s to 90 since the system is tetragonal' % (beta))
-                        beta = 90.0
-                    if gamma != 90:
-                        print('the gamma angle was changed from %s to 90 since the system is tetragonal' % (gamma))
-                        gamma = 90.0
-                    if unique_axis == 'c' or unique_axis == None:
-                        if a != b:
-                            mean_ab = (a + b) / 2
-                            print(
-                                'a anb b were changed from a=%s, b=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
-                                    a, b, mean_ab, mean_ab))
-                            a = mean_ab
-                            b = mean_ab
-                    if unique_axis == 'a':
-                        if c != b:
-                            mean_bc = (b + c) / 2
-                            print(
-                                'a anb b were changed from b=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
-                                    b, c, mean_bc, mean_bc))
-                            b = mean_bc
-                            c = mean_bc
-                    if unique_axis == 'b':
-                        if a != c:
-                            mean_ac = (a + c) / 2
-                            print(
-                                'a anb b were changed from a=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
-                                    a, c, mean_ac, mean_ac))
-                            a = mean_ac
-                            c = mean_ac
-
-            unit_cell = [a, b, c, alpha, beta, gamma]
-
-            print_in_T_and_log('space group = %s\n'
-                                            'system = %s\n'
-                                            'unique axis = %s\n'
-                                            'point group = %s\n'
-                                            'unit cell = %s' % (spacegroup, system, unique_axis, pointgroup, unit_cell))
-            return (spacegroup, system, pointgroup, a, b, c, alpha, beta, gamma, unique_axis)
-
-        self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
+        self.spacegroup_off, self.system_off, self.pointgroup_off, self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.unique_axis_off = self.get_system_and_pointgroup(self.a_off, self.b_off, self.c_off, self.alpha_off, self.beta_off, self.gamma_off, self.spacegroup_off, self.unique_axis_off)
         # return in output phil:
         self.params.JackKnife.Reference_state.spacegroup = self.spacegroup_off
         self.params.JackKnife.Reference_state.unique_axis = self.unique_axis_off
@@ -564,110 +562,10 @@ class Parameters():
         self.n_frames_to_keep_off = int(self.n_frames_off * self.fraction)
 
     # getting On state parameters
-        if not self.JK_one_stream_file:
-            self.stream_file_on = self.params.JackKnife.Triggered_state.triggered_stream_file
+        self.stream_file_on = self.params.JackKnife.Triggered_state.triggered_stream_file
 
-            # check file
-            Fextr_utils.check_all_files([self.stream_file_on])
-
-            # read the stream file and get the number of indexed images, and the number of frames to keep
-            print_in_T_and_log("---Reading stream file of the triggered state---")
-            S_on = Stream(self.stream_file_on)
-            self.stream_file_name_on = Fextr_utils.get_name(self.stream_file_on)
-            self.a_on, a_array_on, astdev_on, self.b_on, b_array_on, bstdev_on, self.c_on, c_array_on, cstdev_on, self.alpha_on, alpha_array_on, alphastdev_on, self.beta_on, beta_array_on, betastdev_on, self.gamma_on, gamma_array_on, gammasdtev_on = Stream(self.stream_file_on).get_cell_stats()
-
-            # Convert unit cell parameters (nm to A)
-            self.a_on = self.a_on * 10
-            self.b_on = self.b_on * 10
-            self.c_on = self.c_on * 10
-
-            # test for normal distribution
-            print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
-
-            normal_distribution_test_unit_cell(a_array_on, 'a_on')
-            normal_distribution_test_unit_cell(b_array_on, 'b_on')
-            normal_distribution_test_unit_cell(c_array_on, 'c_on')
-            normal_distribution_test_unit_cell(alpha_array_on, 'alpha_on')
-            normal_distribution_test_unit_cell(beta_array_on, 'beta_on')
-            normal_distribution_test_unit_cell(gamma_array_on, 'gamma_on')
-
-            # getting unit cell parameters
-            print_in_T_and_log('---Getting unit cell parameters---')
-
-            if self.params.JackKnife.Triggered_state.use_UC_and_SG_from_pdb and self.run_Xtrapol8:  # get pdb unit cell parameters from off state pdb
-                # check file
-                Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
-                # get unit cell parameters from pdb file
-                model_in = any_file(self.params.Xtrapol8.input.reference_pdb, force_type="pdb",
-                                    raise_sorry_if_errors=True)
-                unitcell = model_in.crystal_symmetry().unit_cell()
-                self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on = unitcell.parameters()
-                spacegroup_on = str(model_in.crystal_symmetry().space_group_info())
-                self.spacegroup_on = ''
-                for i in spacegroup_on:
-                    if i != ' ':
-                        self.spacegroup_on += i
-
-            else:  # get input unit cell parameters if given
-
-                if self.params.JackKnife.Triggered_state.unit_cell.a != None:
-                    self.a_on = self.params.JackKnife.Triggered_state.unit_cell.a
-                else:
-                    print('Since a was not given, the average a will be taken')
-                if self.params.JackKnife.Triggered_state.unit_cell.b != None:
-                    self.b_on = self.params.JackKnife.Triggered_state.unit_cell.b
-                else:
-                    print('Since b was not given, the average b will be taken')
-                if self.params.JackKnife.Triggered_state.unit_cell.c != None:
-                    self.c_on = self.params.JackKnife.Triggered_state.unit_cell.c
-                else:
-                    print('Since c was not given, the average c will be taken')
-                if self.params.JackKnife.Triggered_state.unit_cell.alpha != None:
-                    self.alpha_on = self.params.JackKnife.Triggered_state.unit_cell.alpha
-                else:
-                    print('Since alpha was not given, the average alpha will be taken')
-                if self.params.JackKnife.Triggered_state.unit_cell.beta != None:
-                    self.beta_on = self.params.JackKnife.Triggered_state.unit_cell.beta
-                else:
-                    print('Since beta was not given, the average beta will be taken')
-                if self.params.JackKnife.Triggered_state.unit_cell.gamma != None:
-                    self.gamma_on = self.params.JackKnife.Triggered_state.unit_cell.gamma
-                else:
-                    print('Since gamma was not given, the average gamma will be taken')
-
-                # get symmetry parameters
-                spacegroup_on = self.params.JackKnife.Triggered_state.spacegroup
-                if spacegroup_on == None:
-                    print('Please give the space group for JackKnife')
-                    sys.exit()
-                else:
-                    self.spacegroup_on = ''
-                    for i in spacegroup_on:
-                        if i != ' ':
-                            self.spacegroup_on += i
-
-            self.unique_axis_on = self.params.JackKnife.Triggered_state.unique_axis
-            if self.unique_axis_on == None or self.unique_axis_on == 'default':
-                self.unique_axis_on = None
-
-            # get pointgroup and system
-            self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.unique_axis_on = get_system_and_pointgroup(
-                self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
-                self.unique_axis_on)
-            # return in output phil:
-            self.params.JackKnife.Triggered_state.spacegroup=self.spacegroup_on
-            self.params.JackKnife.Triggered_state.unique_axis=self.unique_axis_on
-            self.params.JackKnife.Triggered_state.unit_cell.a = self.a_on
-            self.params.JackKnife.Triggered_state.unit_cell.b = self.b_on
-            self.params.JackKnife.Triggered_state.unit_cell.c = self.c_on
-            self.params.JackKnife.Triggered_state.unit_cell.alpha = self.alpha_on
-            self.params.JackKnife.Triggered_state.unit_cell.beta = self.beta_on
-            self.params.JackKnife.Triggered_state.unit_cell.gamma=self.gamma_on
-
-            # get nb of indexed images and number of images to use for JK
-            self.n_frames_on = len(S_on.frames)  # search number of indexed images (frame is an indexed image)
-            self.n_frames_to_keep_on = int(self.n_frames_on * self.fraction)
-
+        # check file
+        Fextr_utils.check_all_files(self.stream_file_on)
 
     # getting method for intensity merging, pointgroup and other parameters
         self.method_process_hkl = self.method_partialator = False
@@ -688,7 +586,7 @@ class Parameters():
             self.method_process_hkl = True
             self.other_process_hkl = None
             self.other_partialator = None
-            self.params.JackKnife.Scaling_and_merging.algorithm=['process_hkl'] #return in output phil
+            self.params.JackKnife.Scaling_and_merging.algorithm = 'process_hkl' #return in output phil
 
         if self.other_process_hkl==None: self.other_process_hkl=''
         if self.other_partialator==None: self.other_partialator=''
@@ -822,6 +720,106 @@ class Parameters():
             else:
                 self.params.Xtrapol8.occupancies.list_occ = self.occ_lst
 
+    def get_parameters_JK_triggered_stream_file(self, stream_file_on):
+        # read the stream file and get the number of indexed images, and the number of frames to keep
+        print_in_T_and_log("---Reading stream file of the triggered state---")
+        S_on = Stream(stream_file_on)
+        self.stream_file_name_on = Fextr_utils.get_name(stream_file_on)
+        self.a_on, a_array_on, astdev_on, self.b_on, b_array_on, bstdev_on, self.c_on, c_array_on, cstdev_on, self.alpha_on, alpha_array_on, alphastdev_on, self.beta_on, beta_array_on, betastdev_on, self.gamma_on, gamma_array_on, gammasdtev_on = Stream(
+            stream_file_on).get_cell_stats()
+
+        # Convert unit cell parameters (nm to A)
+        self.a_on = self.a_on * 10
+        self.b_on = self.b_on * 10
+        self.c_on = self.c_on * 10
+
+        # test for normal distribution
+        print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
+
+        self.normal_distribution_test_unit_cell(a_array_on, 'a_on')
+        self.normal_distribution_test_unit_cell(b_array_on, 'b_on')
+        self.normal_distribution_test_unit_cell(c_array_on, 'c_on')
+        self.normal_distribution_test_unit_cell(alpha_array_on, 'alpha_on')
+        self.normal_distribution_test_unit_cell(beta_array_on, 'beta_on')
+        self.normal_distribution_test_unit_cell(gamma_array_on, 'gamma_on')
+
+        # getting unit cell parameters
+        print_in_T_and_log('---Getting unit cell parameters---')
+
+        if self.params.JackKnife.Triggered_state.use_UC_and_SG_from_pdb:  # get pdb unit cell parameters from off state pdb
+            # check file
+            Fextr_utils.check_all_files([self.params.Xtrapol8.input.reference_pdb])
+            # get unit cell parameters from pdb file
+            model_in = any_file(self.params.Xtrapol8.input.reference_pdb, force_type="pdb",
+                                raise_sorry_if_errors=True)
+            unitcell = model_in.crystal_symmetry().unit_cell()
+            self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on = unitcell.parameters()
+            spacegroup_on = str(model_in.crystal_symmetry().space_group_info())
+            self.spacegroup_on = ''
+            for i in spacegroup_on:
+                if i != ' ':
+                    self.spacegroup_on += i
+
+        else:  # get input unit cell parameters if given
+
+            if self.params.JackKnife.Triggered_state.unit_cell.a != None:
+                self.a_on = self.params.JackKnife.Triggered_state.unit_cell.a
+            else:
+                print('Since a was not given, the average a will be taken')
+            if self.params.JackKnife.Triggered_state.unit_cell.b != None:
+                self.b_on = self.params.JackKnife.Triggered_state.unit_cell.b
+            else:
+                print('Since b was not given, the average b will be taken')
+            if self.params.JackKnife.Triggered_state.unit_cell.c != None:
+                self.c_on = self.params.JackKnife.Triggered_state.unit_cell.c
+            else:
+                print('Since c was not given, the average c will be taken')
+            if self.params.JackKnife.Triggered_state.unit_cell.alpha != None:
+                self.alpha_on = self.params.JackKnife.Triggered_state.unit_cell.alpha
+            else:
+                print('Since alpha was not given, the average alpha will be taken')
+            if self.params.JackKnife.Triggered_state.unit_cell.beta != None:
+                self.beta_on = self.params.JackKnife.Triggered_state.unit_cell.beta
+            else:
+                print('Since beta was not given, the average beta will be taken')
+            if self.params.JackKnife.Triggered_state.unit_cell.gamma != None:
+                self.gamma_on = self.params.JackKnife.Triggered_state.unit_cell.gamma
+            else:
+                print('Since gamma was not given, the average gamma will be taken')
+
+            # get symmetry parameters
+            spacegroup_on = self.params.JackKnife.Triggered_state.spacegroup
+            if spacegroup_on == None:
+                print('Please give the space group for JackKnife')
+                sys.exit()
+            else:
+                self.spacegroup_on = ''
+                for i in spacegroup_on:
+                    if i != ' ':
+                        self.spacegroup_on += i
+
+        self.unique_axis_on = self.params.JackKnife.Triggered_state.unique_axis
+        if self.unique_axis_on == None or self.unique_axis_on == 'default':
+            self.unique_axis_on = None
+
+        # get pointgroup and system
+        self.spacegroup_on, self.system_on, self.pointgroup_on, self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.unique_axis_on = self.get_system_and_pointgroup(
+            self.a_on, self.b_on, self.c_on, self.alpha_on, self.beta_on, self.gamma_on, self.spacegroup_on,
+            self.unique_axis_on)
+        # return in output phil:
+        self.params.JackKnife.Triggered_state.spacegroup = self.spacegroup_on
+        self.params.JackKnife.Triggered_state.unique_axis = self.unique_axis_on
+        self.params.JackKnife.Triggered_state.unit_cell.a = self.a_on
+        self.params.JackKnife.Triggered_state.unit_cell.b = self.b_on
+        self.params.JackKnife.Triggered_state.unit_cell.c = self.c_on
+        self.params.JackKnife.Triggered_state.unit_cell.alpha = self.alpha_on
+        self.params.JackKnife.Triggered_state.unit_cell.beta = self.beta_on
+        self.params.JackKnife.Triggered_state.unit_cell.gamma = self.gamma_on
+
+        # get nb of indexed images and number of images to use for JK
+        self.n_frames_on = len(S_on.frames)  # search number of indexed images (frame is an indexed image)
+        self.n_frames_to_keep_on = int(self.n_frames_on * self.fraction)
+
     def get_parameters_JK_X8_output(self, params):
         '''
         Get the values of the output parameters from the phil file (for JK and/or X8)
@@ -863,7 +861,74 @@ class Parameters():
         else:
             self.outdir = os.getcwd()
 
-        if not self.JK_one_stream_file:
+        if self.run_JackKnife and not self.run_Xtrapol8:
+            outdir_0 = self.outdir + '/' + self.outname
+            if self.run_JackKnife:
+                outdir_0 = outdir_0 + '_JackKnife'
+            if self.run_Xtrapol8:
+                outdir_0 = outdir_0 + '_Xtrapol8'
+
+            outdir_i=outdir_0
+            i = 1
+            while os.path.isdir(outdir_i):
+                outdir_i = outdir_0 + '_' + str(i)
+                i += 1
+            self.outdir=outdir_i
+
+        if not os.path.isdir(self.outdir):
+            os.mkdir(self.outdir)
+
+    def get_parameters_multiple_JK_X8_output(self, params, index):
+        '''
+        Get the values of the output parameters from the phil file (for JK and/or X8)
+        Args:
+            params
+            index: int, index of the list of triggered input file (mtz or stream)
+        Returns:
+            outname (multiple), output
+        '''
+        #TODO: Manage outnames in case of many triggered mtz or stream files done
+
+        # get output name, or take prefix of triggered mtz or take dummy name if name is too long.
+        if self.params.output.outname == None:
+            if self.run_Xtrapol8 and not self.run_JackKnife: #if X8 only is run:
+                if len(params.Xtrapol8.input.triggered_mtz)-1>=index: #if the number of triggered mtz files is bigger or equal to the index
+                    self.params.output.outname = Fextr_utils.get_name(params.Xtrapol8.input.triggered_mtz[index]) #outname=name of the triggered mtz file given number index
+                else:
+                    self.params.output.outname = Fextr_utils.get_name(params.Xtrapol8.input.triggered_mtz[len(params.Xtrapol8.input.triggered_mtz)-1]) #outname= the name of the last triggered_mtz given
+            else:
+                self.params.output.outname = self.stream_file_name_on #if run_JackKnife: outname=name of the triggered stream file
+
+        else:
+            if len(self.params.output.outname) - 1 >= index: #if the number of outnames is bigger or equal to the index
+                self.outname = self.params.output.outname[index] #outname=outname given number index
+
+            else:
+                self.outname = self.params.output.outname[len(self.params.output.outname) - 1] #outname= the name of the last outname given
+
+        if len(self.outname) > 50:
+            self.outname = 'triggered'
+            print_in_T_and_log(
+                "output.outname='%s' is too long. It will be substituted by '%s' during the excecution of Xtrapol8 and at the end the file names will be converted to the real output names. Please take this into account when inspecting log files." % (
+                    self.params.output.outname, self.outname))
+            print_in_T_and_log('---------------------------')
+
+        print('GETTING OUTPUT DIRECTORY\n==============================================================')
+        #get output and change to output directory
+        self.startdir = os.getcwd()
+        if self.params.output.outdir != None and os.path.isdir(self.params.output.outdir):
+            self.outdir = self.params.output.outdir
+        elif self.params.output.outdir != None and os.path.exists(self.params.output.outdir)==False:
+            try:
+                os.mkdir(self.params.output.outdir)
+                print('Output directory not present thus being created: %s' % (self.params.output.outdir))
+            except OSError:
+                os.makedirs(self.params.output.outdir)
+            self.outdir = os.path.abspath(self.params.output.outdir)
+        else:
+            self.outdir = os.getcwd()
+
+        if self.run_JackKnife and not self.run_Xtrapol8:
             outdir_0 = self.outdir + '/' + self.outname
             if self.run_JackKnife:
                 outdir_0 = outdir_0 + '_JackKnife'
