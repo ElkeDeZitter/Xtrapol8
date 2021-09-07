@@ -249,13 +249,13 @@ JackKnife{
             .help = Method for intensity merging
             .expert_level = 0
         process_hkl{
-            other_process_hkl = --max-adu=17000 --scale
+            other_process_hkl = None
                 .type = str
                 .help = other inputs for the process_hlk merging of images. For more infromation go to https://www.desy.de/~twhite/crystfel/manual.html (written like inputs for Crystfel, example: --min-snr=1)
                 .expert_level = 0
             }
         partialator{
-            other_partialator = --iterations=1 --model=unity
+            other_partialator = None
                 .type = str
                 .help = other inputs for the process_hlk merging of images.
                 .expert_level = 0
