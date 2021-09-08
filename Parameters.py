@@ -255,7 +255,7 @@ class Parameters():
 
                     if system == 'monoclinic' and unique_axis == 'b':
                         if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
+                            print('the alpha angle was changed from %s to 90 since the system is monoclinic' % (alpha))
                             alpha = 90.0
                         if gamma != 90:
                             print('the gamma angle was changed from %s to 90 since the system is monoclinic' % (gamma))
@@ -263,7 +263,7 @@ class Parameters():
 
                     if system == 'monoclinic' and (unique_axis == 'c' or unique_axis == None):
                         if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
+                            print('the alpha angle was changed from %s to 90 since the system is monoclinic' % (alpha))
                             alpha = 90.0
                         if beta != 90:
                             print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
@@ -271,7 +271,7 @@ class Parameters():
 
                     if system == 'orthorhombic':
                         if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is monoclinic' % (alpha))
+                            print('the alpha angle was changed from %s to 90 since the system is monoclinic' % (alpha))
                             alpha = 90.0
                         if beta != 90:
                             print('the beta angle was changed from %s to 90 since the system is monoclinic' % (beta))
@@ -282,7 +282,7 @@ class Parameters():
 
                     if system == 'cubic':
                         if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is cubic' % (alpha))
+                            print('the alpha angle was changed from %s to 90 since the system is cubic' % (alpha))
                             alpha = 90.0
                         if beta != 90:
                             print('the beta angle was changed from %s to 90 since the system is cubic' % (beta))
@@ -298,7 +298,7 @@ class Parameters():
 
                     if system == 'hexagonal':
                         if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is hexagonal' % (alpha))
+                            print('the alpha angle was changed from %s to 90 since the system is hexagonal' % (alpha))
                             alpha = 90.0
                         if beta != 90:
                             print('the beta angle was changed from %s to 90 since the system is hexagonal' % (beta))
@@ -332,12 +332,15 @@ class Parameters():
                                 c = mean_ac
 
                     if system == 'trigonal':
-                        if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is trigonal' % (alpha))
+                        if alpha != 90 and unique_axis!=a:
+                            print('the alpha angle was changed from %s to 90 since the system is trigonal' % (alpha))
                             alpha = 90.0
-                        if beta != 90:
+                        if beta != 90 and unique_axis!=b:
                             print('the beta angle was changed from %s to 90 since the system is trigonal' % (beta))
                             beta = 90.0
+                        if gamma != 90 and unique_axis!=c:
+                            print('the gamma angle was changed from %s to 90 since the system is trigonal' % (beta))
+                            gamma = 90.0
                         if a != b or a != c or b != c:
                             mean_abc = (a + b + c) / 3
                             print(
@@ -346,7 +349,7 @@ class Parameters():
 
                     if system == 'tetragonal':
                         if alpha != 90:
-                            print('the beta angle was changed from %s to 90 since the system is tetragonal' % (alpha))
+                            print('the alpha angle was changed from %s to 90 since the system is tetragonal' % (alpha))
                             alpha = 90.0
                         if beta != 90:
                             print('the beta angle was changed from %s to 90 since the system is tetragonal' % (beta))
@@ -366,7 +369,7 @@ class Parameters():
                             if c != b:
                                 mean_bc = (b + c) / 2
                                 print(
-                                    'a anb b were changed from b=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                    'b anb c were changed from b=%s, c=%s to b=%s, c=%s since the system is trigonal or hexagonal' % (
                                         b, c, mean_bc, mean_bc))
                                 b = mean_bc
                                 c = mean_bc
@@ -374,7 +377,7 @@ class Parameters():
                             if a != c:
                                 mean_ac = (a + c) / 2
                                 print(
-                                    'a anb b were changed from a=%s, c=%s to a=%s, b=%s since the system is trigonal or hexagonal' % (
+                                    'a anb c were changed from a=%s, c=%s to a=%s, c=%s since the system is trigonal or hexagonal' % (
                                         a, c, mean_ac, mean_ac))
                                 a = mean_ac
                                 c = mean_ac
