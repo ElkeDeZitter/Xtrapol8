@@ -687,15 +687,15 @@ def run(args):
 
             print_terminal_and_log('JACK KNIFE FOR OFF STATE\n==============================================================')
             #run JackKnife and get list of [directory where to find mtz file, mtz file complete directory, nb_JK] for the off state
-            if P.fraction == 1: #if fraction wanted is 1, no total needed (same thing)#TODO: if the fraction =1, JK is ran as many times as 'repeats', change that into 1? If so, go to main_JK>Run_JK and change 'P.repeats'=1
+            if P.fraction == 1 and P.run_Xtrapol8: #if fraction wanted is 1, no total needed (same thing)#TODO: if the fraction =1, JK is ran as many times as 'repeats', change that into 1? If so, go to main_JK>Run_JK and change 'P.repeats'=1
                 mtzoutdirs_off,_ = main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off,
                                                 P.n_frames_to_keep_off, P.system_off, P.pointgroup_off,
                                                 P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off,
                                                 P.gamma_off, P.spacegroup_off, log, state='off', total=False)
-            else:
+            elif P.run_Xtrapol8:
                 mtzoutdirs_off, mtzoutdirs_off_total = main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, state='off', total=True)
-            print_terminal_and_log('JACK KNIFE FOR ON STATE\n==============================================================')
 
+            print_terminal_and_log('JACK KNIFE FOR ON STATE\n==============================================================')
             #run JackKnife and get list of [directory where to find mtz file, mtz file complete directory, nb_JK] for the on state
             if P.fraction == 1:
                 mtzoutdirs_on, _ = main_JK.run_JK(P, outdir, stream_file_on, P.stream_file_name_on,
@@ -707,85 +707,86 @@ def run(args):
 
             ################################################################
 
-        #create the list mtzoutdirs_dir_off_on with [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK, outname]
-            def create_multiprocessing_list(mtzoutdirs_off, mtzoutdirs_on, outname):
-                '''
-                Create the list of list to run Xtrapol8 in multiprocessing for all JK files
-                Args:
-                    mtzoutdirs_off: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for off state
-                    mtzoutdirs_on: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for on state
-
-                Returns:
-                    mtzoutdirs_dir_off_on: list of [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK, outname]
-                '''
-                mtzoutdirs_dir_off_on=[]
-
-                for i in range(0,len(mtzoutdirs_off)): #for all the datasets
-                    i_mtzoutdirs_off = mtzoutdirs_off[i] #get the list with [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for each dataset of the off state
-                    i_mtzoutdirs_on = mtzoutdirs_on[i] #get the list with [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for each dataset of the on state
-
-                    outdirJKX8 = i_mtzoutdirs_on[0] + '/Xtrapol8' #take output directory from the mtz_on file to put results of Xtrapol8
-                    os.mkdir(outdirJKX8)
-                    mtz_off = i_mtzoutdirs_off[1]
-                    JK_i_off = i_mtzoutdirs_off[2] #nb_JK
-                    mtz_on = i_mtzoutdirs_on[1]
-                    JK_i_on = i_mtzoutdirs_on[2]
-
-                    # Check if the two total mtz files are correctly paired else get the two numbers of JK
-                    if JK_i_off == JK_i_on :  # if the mtz files are correctly paired
-                        # get log file: create new log files
-                        newlogname, newlog = Log_file.create_log(outdirJKX8)
-                        print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
-                            mtz_off, mtz_on, newlogname), file=log)
-                        # add files to list
-                        mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, JK_i_off, outname])
-
-                    else:
-                        # get log file: create new log files
-                        newlogname, newlog = Log_file.create_log(outdirJKX8)
-                        print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
-                            mtz_off, mtz_on, newlogname), file=log)
-                        # add files to list
-                        mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, str(JK_i_off)+','+str(JK_i_on), outname])
-
-                return(mtzoutdirs_dir_off_on)
-
-            mtzoutdirs_dir_off_on = create_multiprocessing_list(mtzoutdirs_off, mtzoutdirs_on, outname)
-
-        # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total', outname]
-            if P.fraction != 1: #if fraction==1, no total created
-                # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8, mtz_off, mtz_on, newlog, 'total', outname]
-                def create_total_multiprocessing_list(mtzoutdirs_off_total, mtzoutdirs_on_total, outname):
-                    '''
-                    Create the list to run Xtrapol8 with the total files
-                    Args:
-                        mtzoutdirs_off_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total off state
-                        mtzoutdirs_on_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total on state
-
-                    Returns:
-                        mtzoutdirs_dir_off_on_total: [outdirJKX8, mtz_off, mtz_on, newlog, 'total', outname]
-                    '''
-                    outdirJKX8_total = mtzoutdirs_on_total[0] + '/Xtrapol8'  # take output directory from the mtz_on file to put results of Xtrapol8
-                    os.mkdir(outdirJKX8_total)
-                    # get log file: create new log files
-                    newlogname, newlog = Log_file.create_log(outdirJKX8_total)
-
-                    mtz_off_total = mtzoutdirs_off_total[1]
-                    mtz_on_total = mtzoutdirs_on_total[1]
-                    print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
-                                mtz_off_total, mtz_on_total, newlogname), file=log)
-                    # add files to list
-                    mtzoutdirs_dir_off_on_total = [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total', outname]
-                    return (mtzoutdirs_dir_off_on_total)
-
-                mtzoutdirs_dir_off_on_total = create_total_multiprocessing_list(mtzoutdirs_off_total, mtzoutdirs_on_total, outname)
-
-                print(mtzoutdirs_dir_off_on_total)
-            print(mtzoutdirs_dir_off_on)
-
-
     #Run Xtrapol8
             if P.run_Xtrapol8:
+                #1. create the list mtzoutdirs_dir_off_on with [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK, outname]
+                def create_multiprocessing_list_X8(mtzoutdirs_off, mtzoutdirs_on, outname):
+                    '''
+                    Create the list of list to run Xtrapol8 in multiprocessing for all JK files
+                    Args:
+                        mtzoutdirs_off: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for off state
+                        mtzoutdirs_on: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for on state
+
+                    Returns:
+                        mtzoutdirs_dir_off_on: list of [outdirJKX8, mtz_off, mtz_on, newlog, nb_JK, outname]
+                    '''
+                    mtzoutdirs_dir_off_on=[]
+
+                    for i in range(0,len(mtzoutdirs_off)): #for all the datasets
+                        i_mtzoutdirs_off = mtzoutdirs_off[i] #get the list with [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for each dataset of the off state
+                        i_mtzoutdirs_on = mtzoutdirs_on[i] #get the list with [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for each dataset of the on state
+
+                        outdirJKX8 = i_mtzoutdirs_on[0] + '/Xtrapol8' #take output directory from the mtz_on file to put results of Xtrapol8
+                        os.mkdir(outdirJKX8)
+                        mtz_off = i_mtzoutdirs_off[1]
+                        JK_i_off = i_mtzoutdirs_off[2] #nb_JK
+                        mtz_on = i_mtzoutdirs_on[1]
+                        JK_i_on = i_mtzoutdirs_on[2]
+
+                        # Check if the two total mtz files are correctly paired else get the two numbers of JK
+                        if JK_i_off == JK_i_on :  # if the mtz files are correctly paired
+                            # get log file: create new log files
+                            newlogname, newlog = Log_file.create_log(outdirJKX8)
+                            print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
+                                mtz_off, mtz_on, newlogname), file=log)
+                            # add files to list
+                            mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, JK_i_off, outname])
+
+                        else:
+                            # get log file: create new log files
+                            newlogname, newlog = Log_file.create_log(outdirJKX8)
+                            print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
+                                mtz_off, mtz_on, newlogname), file=log)
+                            # add files to list
+                            mtzoutdirs_dir_off_on.append([outdirJKX8, mtz_off, mtz_on, newlogname, str(JK_i_off)+','+str(JK_i_on), outname])
+
+                    return(mtzoutdirs_dir_off_on)
+
+                mtzoutdirs_dir_off_on_outname = create_multiprocessing_list_X8(mtzoutdirs_off, mtzoutdirs_on, outname)
+
+                # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total', outname]
+                if P.fraction != 1: #if fraction==1, no total created
+                    # create the list mtzoutdirs_dir_off_on_total with [outdirJKX8, mtz_off, mtz_on, newlog, 'total', outname]
+                    def create_total_multiprocessing_list_X8(mtzoutdirs_off_total, mtzoutdirs_on_total, outname):
+                        '''
+                        Create the list to run Xtrapol8 with the total files
+                        Args:
+                            mtzoutdirs_off_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total off state
+                            mtzoutdirs_on_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total on state
+
+                        Returns:
+                            mtzoutdirs_dir_off_on_total: [outdirJKX8, mtz_off, mtz_on, newlog, 'total', outname]
+                        '''
+                        outdirJKX8_total = mtzoutdirs_on_total[0] + '/Xtrapol8'  # take output directory from the mtz_on file to put results of Xtrapol8
+                        os.mkdir(outdirJKX8_total)
+                        # get log file: create new log files
+                        newlogname, newlog = Log_file.create_log(outdirJKX8_total)
+
+                        mtz_off_total = mtzoutdirs_off_total[1]
+                        mtz_on_total = mtzoutdirs_on_total[1]
+                        print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
+                                    mtz_off_total, mtz_on_total, newlogname), file=log)
+                        # add files to list
+                        mtzoutdirs_dir_off_on_total = [outdirJKX8_total, mtz_off_total, mtz_on_total, newlogname, 'total', outname]
+                        return (mtzoutdirs_dir_off_on_total)
+
+                    mtzoutdirs_dir_off_on_outname_total = create_total_multiprocessing_list_X8(mtzoutdirs_off_total, mtzoutdirs_on_total, outname)
+
+                    print(mtzoutdirs_dir_off_on_outname_total)
+                print(mtzoutdirs_dir_off_on_outname)
+
+                #2. run Xtrapol8
+
                 print_terminal_and_log('\n################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
 
                 # #Loop to run Xtrapol8 one by one for debugging
@@ -824,23 +825,85 @@ def run(args):
                 #     tab_list.append(tab_listi)
 
                 pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
-                tab_list = pool_process.map(partial(main_X8.run_X8, params=params, P=P, master_phil=master_phil, startdir=P.startdir), mtzoutdirs_dir_off_on)  # process the Xtrapol8 with mtz files iterable with pool in mtzoutdirs_dir_off_on
+                tab_list = pool_process.map(partial(main_X8.run_X8, params=params, P=P, master_phil=master_phil, startdir=P.startdir), mtzoutdirs_dir_off_on_outname)  # process the Xtrapol8 with mtz files iterable with pool in mtzoutdirs_dir_off_on
 
-
-                if P.fraction != 1:
-                    tab_total = main_X8.run_X8(mtzoutdirs_dir_off_on_total, params, P, master_phil, P.startdir)  # run Xtrapol8 for the total files
+                if P.fraction != 1: #if the fraction is different from 1 the total exists
+                    tab_total = main_X8.run_X8(mtzoutdirs_dir_off_on_outname_total, params, P, master_phil, P.startdir)  # run Xtrapol8 for the total files
 
                     print(tab_total)
                 print(tab_list)
 
     #Run simple refinements
             else: #only JK is run so a simple refinement is done
-                print_terminal_and_log('\n################################################################################\nLAUNCH SIMPLE REFINEMENTS\n################################################################################')
-                for mtzoutdirs_dir_off_on_outname in mtzoutdirs_dir_off_on:
-                    tab_list = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_off_on_outname) #run simple refinement for the JK files
 
-                if P.fraction != 1:
-                    tab_total = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_off_on_outname)  # run simple refinement for the total files
+                #1. create the list mtzoutdirs_dir_on with [outdirJKref, mtz_on, newlog, nb_JK, outname]
+                def create_multiprocessing_list_JKref(mtzoutdirs_on, outname):
+                    '''
+                    Create the list of list to run Xtrapol8 in multiprocessing for all JK files
+                    Args:
+                        mtzoutdirs_on: list of [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for on state
+
+                    Returns:
+                        mtzoutdirs_dir_off_on: list of [outdirJKref, mtz_on, newlog, nb_JK, outname]
+                    '''
+                    mtzoutdirs_dir_off_on = []
+
+                    for i in range(0, len(mtzoutdirs_on)):  # for all the datasets
+                        i_mtzoutdirs_on = mtzoutdirs_on[i]  # get the list with [directory where to find mtz file, mtz file complete directory, True/False:the file is for total data] for each dataset of the on state
+                        outdirJKref = i_mtzoutdirs_on[0]  # take output directory from the mtz_on file to put results of refinement
+                        mtz_on = i_mtzoutdirs_on[1]
+                        JK_i_on = i_mtzoutdirs_on[2]# nb_JK
+
+
+                        # get log file: create new log files
+                        newlogname, newlog = Log_file.create_log(outdirJKref)
+                        print(
+                            'The log file of refinement launched with  triggered mtz = %s is: %s' % (
+                                 mtz_on, newlogname), file=log)
+                        # add files to list
+                        mtzoutdirs_dir_off_on.append([outdirJKref, mtz_on, newlogname, JK_i_on, outname])
+
+
+                    return (mtzoutdirs_dir_off_on)
+
+                mtzoutdirs_dir_on_outname = create_multiprocessing_list_JKref(mtzoutdirs_off, mtzoutdirs_on, outname)
+
+                # create the list mtzoutdirs_dir_off_on_total with [outdirJKref_total, mtz_on_total, newlogname, 'total', outname]
+                if P.fraction != 1:  # if fraction==1, no total created
+                    # create the list mtzoutdirs_dir_off_on_total with [outdirJKref, mtz_on, newlog, 'total', outname]
+                    def create_total_multiprocessing_list_JKref(mtzoutdirs_on_total, outname):
+                        '''
+                        Create the list to run Xtrapol8 with the total files
+                        Args:
+                            mtzoutdirs_on_total: [directory where to find total mtz file, total mtz file complete directory, 'total'] for total on state
+
+                        Returns:
+                            mtzoutdirs_dir_off_on_total: [outdirJKref, mtz_on, newlog, 'total', outname]
+                        '''
+                        outdirJKref_total = mtzoutdirs_on_total[0]  # take output directory from the mtz_on file to put results of refinement
+                        # get log file: create new log files
+                        newlogname, newlog = Log_file.create_log(outdirJKref_total)
+
+                        mtz_on_total = mtzoutdirs_on_total[1]
+                        print(
+                            'The log file of refinement launched with  triggered mtz = %s is: %s' % (mtz_on_total, newlogname), file=log)
+                        # add files to list
+                        mtzoutdirs_dir_off_on_total = [outdirJKref_total, mtz_on_total, newlogname,
+                                                       'total', outname]
+                        return (mtzoutdirs_dir_off_on_total)
+
+                    mtzoutdirs_dir_on_outname_total = create_total_multiprocessing_list_JKref(mtzoutdirs_on_total, outname)
+
+                    print(mtzoutdirs_dir_on_outname_total)
+                print(mtzoutdirs_dir_on_outname)
+
+                #2. run refinements
+                print_terminal_and_log('\n################################################################################\nLAUNCH SIMPLE REFINEMENTS\n################################################################################')
+                for mtzoutdirs_dir_off_on_outname in mtzoutdirs_dir_on_outname:
+                    tab_list = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_on_outname) #run simple refinement for the JK files
+
+                if P.fraction != 1: #if the fraction is different from 1 the total exists
+                    tab_total = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_on_outname_total)  # run simple refinement for the total files
 
 
     #Get JK results
