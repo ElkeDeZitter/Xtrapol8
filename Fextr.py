@@ -108,7 +108,7 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
-import JK_utils
+import Log_file
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -565,7 +565,7 @@ class DataHandler(object):
         pdb_hier = hierarchy.input(file_name=self.pdb_in)
         outname = 'model_edit.pdb'
         if pdb_hier.hierarchy.remove_hd() != 0:
-            JK_utils.print_terminal_and_log("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" %(outname))
+            Log_file.print_terminal_and_log("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" % (outname))
             pdb_hier.hierarchy.remove_hd()
             p = open('%s/%s' %(self.outdir, outname), 'w')
             p.write(pdb_hier.hierarchy.as_pdb_string(crystal_symmetry=pdb_hier.input.crystal_symmetry()))
