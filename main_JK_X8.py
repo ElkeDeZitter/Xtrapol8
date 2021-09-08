@@ -668,6 +668,16 @@ def run(args):
     #get parameters and move to directory
         index=0 #init the index
         for stream_file_on in P.stream_file_on: #for each stream file (multiple stream files possible)
+
+            #manage log file
+            if index==0 and len(P.stream_file_on) > 1:
+                end_line= 'zzz end of common parameters zzz'
+                print(end_line, file= logdir) #print the end line of the lines to copy into the new log files if many stream files are given, in the first log file
+
+            if index > 0:
+                logdir, log = Log_file.create_log(P.output, global_log=True)  # if there are many triggered stream files create a new log file and get full directory of the log file
+                print_file_content(log_0, logdir, end_line=end_line) #print the common parameters in the new log files
+
             P.get_parameters_multiple_JK_X8_output(params, index)  # getting output parameters common to JK and X8: output and outname
             # Change directory to output directory
             outdir = P.outdir
@@ -677,6 +687,9 @@ def run(args):
             if os.path.isfile(logdir):
                 shutil.move(logdir, logdir.replace(log_dir, outdir))
             os.chdir(outdir)
+
+            #manage log file
+            if index==0: log_0=outdir + get_name(logdir) + '.log' #get the first log file containing all the information from the begining of the program
 
             P.get_parameters_JK_triggered_stream_file(stream_file_on) #getting the parameters of the triggered stream file
 
@@ -922,8 +935,27 @@ def run(args):
         list_for_X8 = [] #create the list for multiprocessing
         for triggered_mtz in params.Xtrapol8.input.triggered_mtz:#in case of multiple triggered mtz given
             P.get_parameters_multiple_JK_X8_output(params, index) #get the outdir and outname
-            if len(P.triggered_mtz) > 1: logdir, log = Log_file.create_log(P.output, global_log=True) #if there are many triggered mtz files create a new log file and get full directory of the log file
-            list_for_X8.append([P.output, params.Xtrapol8.input.reference_mtz, triggered_mtz, logdir, 'total', P.outname])
+
+            # manage log file
+            if index == 0 and len(P.triggered_mtz) > 1:
+                end_line = 'zzz end of common parameters zzz'
+                print(end_line, file=logdir)  # print the end line of the lines to copy into the new log files if many mtz files are given, in the first log file
+
+            if index > 0:
+                logdir, log = Log_file.create_log(P.output, global_log=True)  # if there are many triggered mtz files create a new log file and get full directory of the log file
+                print_file_content(log_0, logdir, end_line=end_line)  # print the common parameters in the new log files
+
+            # Change directory to output directory
+            print('\nthe output directory is %s' % (P.outdir))
+            # Move log file to output directory
+            if os.path.isfile(logdir):
+                shutil.move(logdir, logdir.replace(log_dir, P.outdir))
+            os.chdir(P.outdir)
+
+            #manage log file
+            if index==0: log_0 = P.outdir + get_name(logdir) + '.log' #get the first log file containing all the information from the begining of the program
+
+            list_for_X8.append([P.output, params.Xtrapol8.input.reference_mtz, triggered_mtz, logdir, 'total', P.outname]) #addition to the list for multiprocessing
             index += 1 #get the next index
 
 

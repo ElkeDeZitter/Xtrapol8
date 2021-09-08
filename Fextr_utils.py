@@ -68,7 +68,7 @@ def open_mtz(mtz_off, mtz_on):
     return (reflections_off, reflections_on)
 
 
-def print_file_content(fle_in_dir, fle_out_dir):
+def print_file_content(fle_in_dir, fle_out_dir, end_line=None):
     '''
     Copy the content of one file into a new file
 
@@ -103,7 +103,10 @@ def print_file_content(fle_in_dir, fle_out_dir):
             fle_out_dir=open(fle_out_dir, 'w')
             print('------------------------------------------------------------------------------------------', file=fle_out_dir)
             for line in filelines:
-                print(line, file=fle_out_dir)
+                if end_line!=None: #if an end of part to be printed is given, print the lines until that line
+                    while line !=end_line:
+                        print(line, file=fle_out_dir)
+                else: print(line, file=fle_out_dir) #if no end line is given, print all the lines of the file
             print('------------------------------------------------------------------------------------------', file=fle_out_dir)
             fle_in_dir.close()
             fle_out_dir.close()
