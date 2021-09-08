@@ -113,8 +113,8 @@ from Fextr import SymManager, DataHandler, FobsFobs, Fextrapolate, Filesandmaps
 import main_X8
 import main_JK
 
-import JK_utils
-from JK_utils import print_terminal_and_log as print_in_T_and_log
+import Log_file
+from Log_file import print_terminal_and_log
 import Parameters as Para
 from Parameters import Parameters
 import JK_results
@@ -615,9 +615,9 @@ def run(args):
     # Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
     #create log file and get global log = open(logname, "w")
     log_dir = os.getcwd() #directory where the log file will be created
-    logdir, log = JK_utils.create_log(log_dir, global_log=True) #full directory of the log file
+    logdir, log = Log_file.create_log(log_dir, global_log=True) #full directory of the log file
 
-    print_in_T_and_log('EXTRACTING INPUT PHIL FILE\n==============================================================')
+    print_terminal_and_log('EXTRACTING INPUT PHIL FILE\n==============================================================')
     # Extract input from inputfile and command line
     argument_interpreter = master_phil.command_line_argument_interpreter(home_scope="options")
     input_objects = iotbx.phil.process_command_line_with_files(
@@ -627,18 +627,18 @@ def run(args):
     params = input_objects.work.extract()
 #Elke    # modified_phil = master_phil.format(python_object=params)
 
-    print_in_T_and_log('GETTING PROGRAM TO EXECUTE\n==============================================================')
+    print_terminal_and_log('GETTING PROGRAM TO EXECUTE\n==============================================================')
     P = Parameters(params) #init Class to get parameters
     P.get_parameters_JK_X8() #get parameters common to JK and Xtrapol8
 
-    print_in_T_and_log('CHECKING PROGRAMS\n==============================================================')
+    print_terminal_and_log('CHECKING PROGRAMS\n==============================================================')
     #Check existance and execution of necessary programs
     if P.run_JackKnife:
         Para.check_programs_JK()
     if P.run_Xtrapol8:
         Para.check_programs_X8(params)
 
-    JK_utils.print_terminal_and_log('GETTING PARAMETERS\n==============================================================')
+    print_terminal_and_log('GETTING PARAMETERS\n==============================================================')
     #get all input parameters from phil and stream file
 
     #Order of getting parameters is IMPORTANT!!
@@ -651,7 +651,7 @@ def run(args):
     ################################################################
 
     # Add all arguments to log-file
-    print_in_T_and_log('-----------------------------------------\nNON DEFAULT ARGUMENTS\n-----------------------------------------')
+    print_terminal_and_log('-----------------------------------------\nNON DEFAULT ARGUMENTS\n-----------------------------------------')
 
     modified_phil = master_phil.format(python_object=params)
 #Elke    # modified_phil.show(out=log)
@@ -681,11 +681,11 @@ def run(args):
             P.get_parameters_JK_triggered_stream_file(stream_file_on) #getting the parameters of the triggered stream file
 
     #run Jackknife only
-            print_in_T_and_log('\n################################################################################\nLAUNCH JACK KNIFE\n################################################################################')
+            print_terminal_and_log('\n################################################################################\nLAUNCH JACK KNIFE\n################################################################################')
 
     #run Jackknife
 
-            print_in_T_and_log('JACK KNIFE FOR OFF STATE\n==============================================================')
+            print_terminal_and_log('JACK KNIFE FOR OFF STATE\n==============================================================')
             #run JackKnife and get list of [directory where to find mtz file, mtz file complete directory, nb_JK] for the off state
             if P.fraction == 1: #if fraction wanted is 1, no total needed (same thing)#TODO: if the fraction =1, JK is ran as many times as 'repeats', change that into 1? If so, go to main_JK>Run_JK and change 'P.repeats'=1
                 mtzoutdirs_off,_ = main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off,
@@ -694,7 +694,7 @@ def run(args):
                                                 P.gamma_off, P.spacegroup_off, log, state='off', total=False)
             else:
                 mtzoutdirs_off, mtzoutdirs_off_total = main_JK.run_JK(P, outdir, P.stream_file_off, P.stream_file_name_off, P.n_frames_to_keep_off, P.system_off, P.pointgroup_off, P.unique_axis_off, P.a_off, P.b_off, P.c_off, P.alpha_off, P.beta_off, P.gamma_off, P.spacegroup_off, log, state='off', total=True)
-            print_in_T_and_log('JACK KNIFE FOR ON STATE\n==============================================================')
+            print_terminal_and_log('JACK KNIFE FOR ON STATE\n==============================================================')
 
             #run JackKnife and get list of [directory where to find mtz file, mtz file complete directory, nb_JK] for the on state
             if P.fraction == 1:
@@ -734,7 +734,7 @@ def run(args):
                     # Check if the two total mtz files are correctly paired else get the two numbers of JK
                     if JK_i_off == JK_i_on :  # if the mtz files are correctly paired
                         # get log file: create new log files
-                        newlogname, newlog = JK_utils.create_log(outdirJKX8)
+                        newlogname, newlog = Log_file.create_log(outdirJKX8)
                         print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
                             mtz_off, mtz_on, newlogname), file=log)
                         # add files to list
@@ -742,7 +742,7 @@ def run(args):
 
                     else:
                         # get log file: create new log files
-                        newlogname, newlog = JK_utils.create_log(outdirJKX8)
+                        newlogname, newlog = Log_file.create_log(outdirJKX8)
                         print('The log file of Xtrapol8 launched with reference mtz = %s and triggered mtz = %s is: %s' % (
                             mtz_off, mtz_on, newlogname), file=log)
                         # add files to list
@@ -768,7 +768,7 @@ def run(args):
                     outdirJKX8_total = mtzoutdirs_on_total[0] + '/Xtrapol8'  # take output directory from the mtz_on file to put results of Xtrapol8
                     os.mkdir(outdirJKX8_total)
                     # get log file: create new log files
-                    newlogname, newlog = JK_utils.create_log(outdirJKX8_total)
+                    newlogname, newlog = Log_file.create_log(outdirJKX8_total)
 
                     mtz_off_total = mtzoutdirs_off_total[1]
                     mtz_on_total = mtzoutdirs_on_total[1]
@@ -786,7 +786,7 @@ def run(args):
 
     #Run Xtrapol8
             if P.run_Xtrapol8:
-                print_in_T_and_log('\n################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
+                print_terminal_and_log('\n################################################################################\nLAUNCH XTRAPOL8\n################################################################################')
 
                 # #Loop to run Xtrapol8 one by one for debugging
                 # tab_list=[]
@@ -801,7 +801,7 @@ def run(args):
                 #     newlogname=outdir_and_mtz_file_off_on[3]
                 #     total = outdir_and_mtz_file_off_on[4]
                 #
-                #     # JK_utils.run_in_terminal('sftools << eof\n'
+                #     # run_in_terminal('sftools << eof\n'
                 #     #                  'READ %s\n'
                 #     #                  'REDUCE CCP4\n'
                 #     #                  'WRITE %s_sftools.mtz\n'
@@ -809,7 +809,7 @@ def run(args):
                 #     #                  'eof'% (mtz_off,mtz_off),
                 #     #                  existing_files=[mtz_off +'_sftools.mtz'])
                 #     # mtz_off=mtz_off +'_sftools.mtz'
-                #     # JK_utils.run_in_terminal('sftools << eof\n'
+                #     # run_in_terminal('sftools << eof\n'
                 #     #                  'READ %s\n'
                 #     #                  'REDUCE CCP4\n'
                 #     #                  'WRITE %s_sftools.mtz\n'
@@ -835,7 +835,7 @@ def run(args):
 
     #Run simple refinements
             else: #only JK is run so a simple refinement is done
-                print_in_T_and_log('\n################################################################################\nLAUNCH SIMPLE REFINEMENTS\n################################################################################')
+                print_terminal_and_log('\n################################################################################\nLAUNCH SIMPLE REFINEMENTS\n################################################################################')
                 for mtzoutdirs_dir_off_on_outname in mtzoutdirs_dir_off_on:
                     tab_list = JK_simple_refinement.run_simple_refinement(params, P, mtzoutdirs_dir_off_on_outname) #run simple refinement for the JK files
 
@@ -849,7 +849,7 @@ def run(args):
                 JK_results_outdir = outdir + '/JK_average_and_comparison_results' #name of new output directory
                 print(JK_results_outdir)
                 os.mkdir(JK_results_outdir) #create new output directory
-                JK_utils.print_terminal_and_log('CALCULATING JK RESULTS\n==============================================================')
+                print_terminal_and_log('CALCULATING JK RESULTS\n==============================================================')
                 JK_results.get_JK_results(tab_total, tab_list, JK_results_outdir, params.Xtrapol8.refinement.phenix_keywords.main.ordered_solvent) #calculate all the results and print them in a table and create plot
     ################################################################
 
@@ -859,12 +859,12 @@ def run(args):
         list_for_X8 = [] #create the list for multiprocessing
         for triggered_mtz in params.Xtrapol8.input.triggered_mtz:#in case of multiple triggered mtz given
             P.get_parameters_multiple_JK_X8_output(params, index) #get the outdir and outname
-            if len(P.triggered_mtz) > 1: logdir, log = JK_utils.create_log(P.output, global_log=True) #if there are many triggered mtz files create a new log file and get full directory of the log file
+            if len(P.triggered_mtz) > 1: logdir, log = Log_file.create_log(P.output, global_log=True) #if there are many triggered mtz files create a new log file and get full directory of the log file
             list_for_X8.append([P.output, params.Xtrapol8.input.reference_mtz, triggered_mtz, logdir, 'total', P.outname])
             index += 1 #get the next index
 
 
-            print_in_T_and_log(
+            print_terminal_and_log(
                 '################################################################################\nLAUNCH XTRAPOL8 ONLY\n################################################################################')
             pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
             tab_list = pool_process.map(partial(main_X8.run_X8, params=params, P=P, master_phil=master_phil, startdir=P.startdir), list_for_X8)  # process the Xtrapol8 with mtz files iterable with pool in list_for_X8

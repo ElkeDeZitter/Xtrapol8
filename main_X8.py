@@ -1,52 +1,15 @@
 
 from __future__ import division, print_function
-import re
-import os
-import sys
-import random
-import subprocess
-import shutil
 from select import select
-from datetime import datetime
-import numpy as np
-from iotbx.file_reader import any_file
-from iotbx import symmetry
-from iotbx.pdb import hierarchy
-from cctbx.array_family import flex
-from cctbx import maptbx, miller, crystal, xray
-import iotbx.phil
-import iotbx.map_tools
-from libtbx.utils import Usage
-import mmtbx.f_model
-import mmtbx.map_tools
-import mmtbx.maps.utils
-from mmtbx import utils
-from cctbx import sgtbx
-from iotbx import pdb
-from mmtbx.scaling.matthews import p_vm_calculator
 
-#sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
-
-from calculate_q import calculate_q, outlier_rejection_only
-from calculate_k import calculate_k
 from map_explorer import map_explorer
 from map_explorer_analysis import Map_explorer_analysis
-from ccp4_scaleit import run_scaleit
 from plotalpha import plotalpha
-import map_tools_fomsource
-import map_tools_Millerset
-import ccp4_refmac
-import phenix_refinements
-from column_extraction import Column_extraction, Extrapolated_column_extraction
-from pymol_visualization import Pymol_visualization, Pymol_movie
+from pymol_visualization import Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
-from Fextr import SymManager, DataHandler, FobsFobs, Fextrapolate, Filesandmaps
-
-import JK_utils
-import Parameters
-from Parameters import Parameters
+from Fextr import SymManager, DataHandler, FobsFobs, Fextrapolate
 
 
 def run_X8(outdir_and_mtz_file_off_on_outname, params, P, master_phil, startdir):

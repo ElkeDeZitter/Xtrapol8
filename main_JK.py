@@ -2,14 +2,11 @@ from __future__ import division, print_function
 import multiprocessing
 import os
 from functools import partial
-import numpy as np
-from iotbx.pdb import hierarchy
-import matplotlib.pyplot as plt
 
 from Stream_EDZ import Stream
 import JK_image_merging_and_create_mtz_file
-import JK_utils
-from JK_utils import print_terminal_and_log
+import Log_file
+from Log_file import print_terminal_and_log
 import Fextr_utils
 
 def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, stream_file, outdir, state=None, total=False):
@@ -81,7 +78,7 @@ def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, strea
         print('%s directory created' % (outdirfiles))
 
     # 1,5.create log file
-        logname, log = JK_utils.create_log(outdirfiles)
+        logname, log = Log_file.create_log(outdirfiles)
 
     #2.create stream files
         newstreamfiledir = '%s/%s_%iimages.stream' % (outdirfiles, stream_file_name, n_frames_to_keep) #new stream file directory with new name
@@ -102,7 +99,7 @@ def create_files (stream_file_name, percentage, n_frames_to_keep, repeats, strea
     if total == True:
         total_outdirfiles = newoutdir + '/' + stream_file_name + '_total'
         os.mkdir(total_outdirfiles)
-        logname, log = JK_utils.create_log(total_outdirfiles)
+        logname, log = Log_file.create_log(total_outdirfiles)
         table_dir_streamfile_total = [total_outdirfiles, stream_file, logname, 'total']  # add list of total output directory and stream file directory to the total list
 
     return (newoutdir, table_dir_streamfile, table_dir_streamfile_total)
@@ -201,11 +198,11 @@ def image_merging_and_create_mtz_file(dir_streamfile, pointgroup, other_process_
 
     #2. Get figures of merit
     statistics_file_name = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).statistics( cell, other_stats_compare_hkl, outdirfiles, do_hkl12_statistics)
-    JK_utils.print_terminal_and_log('The figures of merit are regrouped in the file : %s' % (statistics_file_name), log=log)
+    print_terminal_and_log('The figures of merit are regrouped in the file : %s' % (statistics_file_name), log=log)
 
     #3. Create mtz files
     mtzoutdir = JK_image_merging_and_create_mtz_file.Image_merging_and_create_mtz_file(stream_fle, output_file_name, pointgroup, dir_cryst_prog, log).create_mtz(spacegroup, a, b, c, alpha, beta, gamma, hkl_file)#create mtz and get full directory of mtz file
-    JK_utils.print_terminal_and_log('mtz file %s created in %s' % (mtzoutdir, outdirfiles), log=log)
+    print_terminal_and_log('mtz file %s created in %s' % (mtzoutdir, outdirfiles), log=log)
 
     return [outdirfiles, mtzoutdir, total] #returning directory of mtz file and total or number of JK
 
@@ -247,20 +244,20 @@ def run_JK(P, outdir,  stream_file, stream_file_name, n_frames_to_keep, system, 
             [directory where to find total mtz file, total mtz file complete directory, 'total']
     '''
 #1. Create new directories
-    JK_utils.print_terminal_and_log('CREATING NEW DIRECTORIES\n==============================================================')
+    print_terminal_and_log('CREATING NEW DIRECTORIES\n==============================================================')
     #Create new directories
     newoutdir, table_dir_streamfile, table_dir_streamfile_total = create_files(stream_file_name, P.percentage, n_frames_to_keep,
                                                                 P.repeats, stream_file, outdir, state=state, total=total)
-    JK_utils.print_terminal_and_log('The output directory of the files for Jack Knife is : %s' %(newoutdir), log=log)
+    print_terminal_and_log('The output directory of the files for Jack Knife is : %s' %(newoutdir), log=log)
 
 #2. Create CELL file
-    JK_utils.print_terminal_and_log('CREATING CELL FILE\n==============================================================')
+    print_terminal_and_log('CREATING CELL FILE\n==============================================================')
     #creating cell file containing the symmetry of the crystal
     cell= create_cell_file(system, unique_axis, a, b, c, alpha, beta, gamma, newoutdir,
                                          spacegroup)
 
 #3. Merging images and creating mtz files
-    JK_utils.print_terminal_and_log('MERGING IMAGES AND CREATING MTZ FILES\n==============================================================')
+    print_terminal_and_log('MERGING IMAGES AND CREATING MTZ FILES\n==============================================================')
     #for each section of images (new stream file): merging images, getting figure of merit and creating mtz file - simultaniously
     pool_process = multiprocessing.Pool(P.processors)  # Create a multiprocessing Pool with the number of processors defined
     mtzoutdirs = pool_process.map(partial(image_merging_and_create_mtz_file, pointgroup=pointgroup, other_process_hkl=P.other_process_hkl, other_partialator=P.other_partialator, cell=cell, other_stats_compare_hkl=P.other_stats_compare_hkl, a=a, b=b, c=c, alpha=alpha, beta=beta, gamma=gamma, dir_cryst_prog=P.dir_cryst_prog,  spacegroup=spacegroup, method_process_hkl=P.method_process_hkl, method_partialator=P.method_partialator), table_dir_streamfile) # process the function image_merging_and_create_mtz_file with dir_streamfile iterable with pool in table_dir_streamfile

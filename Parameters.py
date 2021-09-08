@@ -1,28 +1,7 @@
 from __future__ import division, print_function
-import re
 import os
 import sys
-import random
-import subprocess
-import shutil
-from select import select
-from datetime import datetime
-import numpy as np
 from iotbx.file_reader import any_file
-from iotbx import symmetry
-from iotbx.pdb import hierarchy
-from cctbx.array_family import flex
-from cctbx import maptbx, miller, crystal, xray
-import iotbx.phil
-import iotbx.map_tools
-from libtbx.utils import Usage
-import mmtbx.f_model
-import mmtbx.map_tools
-import mmtbx.maps.utils
-from mmtbx import utils
-from cctbx import sgtbx
-from iotbx import pdb
-from mmtbx.scaling.matthews import p_vm_calculator
 import scipy.stats
 from cctbx import crystal
 import multiprocessing
@@ -30,8 +9,7 @@ import time
 
 from Stream_EDZ import Stream
 import Fextr_utils
-import JK_utils
-from JK_utils import print_terminal_and_log as print_in_T_and_log
+from Log_file import print_terminal_and_log
 
 def check_programs_JK():
     '''
@@ -45,14 +23,14 @@ def check_programs_JK():
     # check programs
     # check if ccp4 is installed and f2mtz is executable
     if Fextr_utils.check_program_path('f2mtz') == False:
-        print_in_T_and_log("ccp4 not found. Make sure ccp4 is correctly instaled and added to PATH.")
+        print_terminal_and_log("ccp4 not found. Make sure ccp4 is correctly instaled and added to PATH.")
         sys.exit()
 
     # check if CrystFEL is installed and programs are excutable
     if Fextr_utils.check_program_path('process_hkl') == False or Fextr_utils.check_program_path(
             'partialator') == False or Fextr_utils.check_program_path(
         'check_hkl') == False or Fextr_utils.check_program_path('compare_hkl') == False:
-        print_in_T_and_log(
+        print_terminal_and_log(
             'CrystFEL not found. Make sure CrystFEL is correctly instaled and added to PATH.')
         sys.exit()
 
@@ -60,13 +38,13 @@ def check_programs_X8(params):
 
     # Check if non-phenix programs can be found:
     if Fextr_utils.check_program_path('coot') == False:
-        print_in_T_and_log("COOT not found.")
+        print_terminal_and_log("COOT not found.")
     if Fextr_utils.check_program_path('scaleit') == False:
-        print_in_T_and_log("scaleit not found. Data will not be scaled.")
+        print_terminal_and_log("scaleit not found. Data will not be scaled.")
         params.Xtrapol8.scaling.b_scaling = 'no'
     if params.Xtrapol8.refinement.use_refmac_instead_of_phenix:
         if (Fextr_utils.check_program_path('refmac5') and Fextr_utils.check_program_path('coot')) == False:
-            print_in_T_and_log("refmac and/or COOT not found. Phenix will be used for refinement.")
+            print_terminal_and_log("refmac and/or COOT not found. Phenix will be used for refinement.")
             params.Xtrapol8.refinement.use_refmac_instead_of_phenix = False
 
 class Parameters():
@@ -81,7 +59,7 @@ class Parameters():
             self.run_Xtrapol8: bool, if True do X8
         '''
 
-        print_in_T_and_log('>>>Getting input parameters from phil file<<<')
+        print_terminal_and_log('>>>Getting input parameters from phil file<<<')
 
         # getting programs to run
         self.run_JackKnife = False
@@ -403,7 +381,7 @@ class Parameters():
 
                 unit_cell = [a, b, c, alpha, beta, gamma]
 
-                print_in_T_and_log('space group = %s\n'
+                print_terminal_and_log('space group = %s\n'
                                    'system = %s\n'
                                    'unique axis = %s\n'
                                    'point group = %s\n'
@@ -413,14 +391,14 @@ class Parameters():
     def normal_distribution_test_unit_cell(self, array, variable_tested):
         try:
             statistic, p = scipy.stats.normaltest(array)
-            print_in_T_and_log('%s : p= %s , statistic= %s' % (variable_tested, p, statistic))
+            print_terminal_and_log('%s : p= %s , statistic= %s' % (variable_tested, p, statistic))
             if p >= 0.05:
-                print_in_T_and_log(
+                print_terminal_and_log(
                     "Peaks not normal distributed (p-value for normality test = %.3f). The %s value might not be correct. The process will continue but the unit cell might be wrong." % (
                     p, variable_tested))
                 time.sleep(15)  # time delay of 15s
         except ValueError:
-            print_in_T_and_log(
+            print_terminal_and_log(
                 "Test for normality could not be performed. Probably not enough peaks. Jack Knife will not be run because there might not be enough images.")
             sys.exit()
 
@@ -438,23 +416,23 @@ class Parameters():
     # getting input parameters
         self.repeats = self.params.JackKnife.input.repeats
         if self.repeats == None:
-            print_in_T_and_log('If you want to run Jack Knife, please give a value to repeats (Number of times JackKnife will be repeated)')
+            print_terminal_and_log('If you want to run Jack Knife, please give a value to repeats (Number of times JackKnife will be repeated)')
             sys.exit()
 
         self.fraction = self.params.JackKnife.input.fraction
         if self.fraction == None:
-            print_in_T_and_log('If you want to run Jack Knife, please give a value to fraction (Percentage of images used for JackKnife (fractional))')
+            print_terminal_and_log('If you want to run Jack Knife, please give a value to fraction (Percentage of images used for JackKnife (fractional))')
             sys.exit()
         # check if the fraction is correct
         if self.fraction == 0:
-            print_in_T_and_log("please select fraction between 0.0 and 1.0")
+            print_terminal_and_log("please select fraction between 0.0 and 1.0")
             sys.exit()
         # get percentage
         self.percentage = int(self.fraction * 100)
 
         self.dir_cryst_prog = self.params.JackKnife.input.directory_crystfel_programs
         if self.dir_cryst_prog == None :
-            print_in_T_and_log("%s not defined. No path for crystfel programs will be applied and might cause problems if they are not correctly sourced." % (
+            print_terminal_and_log("%s not defined. No path for crystfel programs will be applied and might cause problems if they are not correctly sourced." % (
                     self.params.JackKnife.input.directory_crystfel_programs.__phil_path__()))
             self.dir_cryst_prog = ''
 
@@ -467,7 +445,7 @@ class Parameters():
         Fextr_utils.check_all_files([self.stream_file_off])
 
         # read the stream file and get the number of indexed images, and the number of frames to keep
-        print_in_T_and_log("---Reading stream file of the reference state---")
+        print_terminal_and_log("---Reading stream file of the reference state---")
         self.S_off = Stream(self.stream_file_off)
         self.stream_file_name_off = Fextr_utils.get_name(self.stream_file_off)
         self.a_off, a_array_off, astdev_off, self.b_off, b_array_off, bstdev_off, self.c_off, c_array_off, cstdev_off, self.alpha_off, alpha_array_off, alphastdev_off, self.beta_off, beta_array_off, betastdev_off, self.gamma_off, gamma_array_off, gammasdtev_off = Stream(self.stream_file_off).get_cell_stats()
@@ -478,7 +456,7 @@ class Parameters():
         self.c_on = self.c_off * 10
 
         # test for normal distribution
-        print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
+        print_terminal_and_log(' - Checking normal distribution of unit cell parameters - ')
 
         self.normal_distribution_test_unit_cell(a_array_off, 'a_off')
         self.normal_distribution_test_unit_cell(b_array_off, 'b_off')
@@ -488,7 +466,7 @@ class Parameters():
         self.normal_distribution_test_unit_cell(gamma_array_off, 'gamma_off')
 
         # getting unit cell parameters
-        print_in_T_and_log('---Getting unit cell parameters---')
+        print_terminal_and_log('---Getting unit cell parameters---')
 
         if self.params.JackKnife.Reference_state.use_UC_and_SG_from_pdb: #TODO: get pdb unit cell parameters if not pdb file but cif
             # check file
@@ -643,7 +621,7 @@ class Parameters():
                 self.qFoFo_weight = False
                 self.kFoFo_weight = True
             else:
-                print_in_T_and_log("%s not defined. Q-weighting will be applied." % (self.params.Xtrapol8.f_and_maps.fofo_type.__phil_path__()))
+                print_terminal_and_log("%s not defined. Q-weighting will be applied." % (self.params.Xtrapol8.f_and_maps.fofo_type.__phil_path__()))
                 self.qFoFo_weight = True
                 self.kFoFo_weight = False
 
@@ -665,7 +643,7 @@ class Parameters():
 
             # if all map types being false:
             if self.qFextr_map == self.qFgenick_map == self.qFextr_calc_map == self.Fextr_map == self.Fgenick_map == self.Fextr_calc_map == self.kFextr_map == self.kFgenick_map == self.kFextr_calc_map == False and self.params.Xtrapol8.f_and_maps.fast_and_furious == False:
-                print_in_T_and_log(
+                print_terminal_and_log(
                     'The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr')
                 self.qFextr_map = True
             # if fast_and_furious mode: overwrite all F and map setting to default:
@@ -682,7 +660,7 @@ class Parameters():
             #If JK is run, calm and curious method will be used
             if self.run_JackKnife:
                 self.params.Xtrapol8.f_and_maps.fast_and_furious = False
-                print_in_T_and_log('Jack Knife can not be run with Fast and Furious. Calm and Curious will be run with the few parameters of Fast and Furious.')
+                print_terminal_and_log('Jack Knife can not be run with Fast and Furious. Calm and Curious will be run with the few parameters of Fast and Furious.')
 
             # Bring all maptypes to be calculated together in list instead of using loose variables:
             self.all_maptypes = ['qFextr_map', 'Fextr_map', 'qFgenick_map', 'Fgenick_map', 'qFextr_calc_map',
@@ -722,7 +700,7 @@ class Parameters():
 
     def get_parameters_JK_triggered_stream_file(self, stream_file_on):
         # read the stream file and get the number of indexed images, and the number of frames to keep
-        print_in_T_and_log("---Reading stream file of the triggered state---")
+        print_terminal_and_log("---Reading stream file of the triggered state---")
         S_on = Stream(stream_file_on)
         self.stream_file_name_on = Fextr_utils.get_name(stream_file_on)
         self.a_on, a_array_on, astdev_on, self.b_on, b_array_on, bstdev_on, self.c_on, c_array_on, cstdev_on, self.alpha_on, alpha_array_on, alphastdev_on, self.beta_on, beta_array_on, betastdev_on, self.gamma_on, gamma_array_on, gammasdtev_on = Stream(
@@ -734,7 +712,7 @@ class Parameters():
         self.c_on = self.c_on * 10
 
         # test for normal distribution
-        print_in_T_and_log(' - Checking normal distribution of unit cell parameters - ')
+        print_terminal_and_log(' - Checking normal distribution of unit cell parameters - ')
 
         self.normal_distribution_test_unit_cell(a_array_on, 'a_on')
         self.normal_distribution_test_unit_cell(b_array_on, 'b_on')
@@ -744,7 +722,7 @@ class Parameters():
         self.normal_distribution_test_unit_cell(gamma_array_on, 'gamma_on')
 
         # getting unit cell parameters
-        print_in_T_and_log('---Getting unit cell parameters---')
+        print_terminal_and_log('---Getting unit cell parameters---')
 
         if self.params.JackKnife.Triggered_state.use_UC_and_SG_from_pdb:  # get pdb unit cell parameters from off state pdb
             # check file
@@ -839,10 +817,10 @@ class Parameters():
 
         if len(self.params.output.outname) > 50:
             self.outname = 'triggered'
-            print_in_T_and_log(
+            print_terminal_and_log(
                 "output.outname='%s' is too long. It will be substituted by '%s' during the excecution of Xtrapol8 and at the end the file names will be converted to the real output names. Please take this into account when inspecting log files." % (
                     self.params.output.outname, self.outname))
-            print_in_T_and_log('---------------------------')
+            print_terminal_and_log('---------------------------')
         else:
             self.outname = self.params.output.outname
 
@@ -908,10 +886,10 @@ class Parameters():
 
         if len(self.outname) > 50:
             self.outname = 'triggered'
-            print_in_T_and_log(
+            print_terminal_and_log(
                 "output.outname='%s' is too long. It will be substituted by '%s' during the excecution of Xtrapol8 and at the end the file names will be converted to the real output names. Please take this into account when inspecting log files." % (
                     self.params.output.outname, self.outname))
-            print_in_T_and_log('---------------------------')
+            print_terminal_and_log('---------------------------')
 
         print('GETTING OUTPUT DIRECTORY\n==============================================================')
         #get output and change to output directory
