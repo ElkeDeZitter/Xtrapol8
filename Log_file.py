@@ -53,3 +53,15 @@ def print_terminal_and_log(x, log=None): #needs to be done that way instead of l
         print(x, file = log_main)
         print(x)
 
+def update_log_main(new_log_main):
+    '''
+    Update the global log_main into the new_log_main
+    Args:
+        new_log_main: directory of the log file to update as log_main
+
+    Returns:
+
+    '''
+    log_main = open(new_log_main, "w")
+    global log_main
+

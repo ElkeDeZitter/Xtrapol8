@@ -548,6 +548,9 @@ class Parameters():
 
         # check file
         Fextr_utils.check_all_files(self.stream_file_on)
+        if self.stream_file_on == []:
+            print_terminal_and_log('If you want to run Jackknife, please give at least one triggered_stream_file')
+            sys.exit()
 
     # getting method for intensity merging, pointgroup and other parameters
         self.method_process_hkl = self.method_partialator = False
@@ -872,7 +875,7 @@ class Parameters():
         #TODO: Manage outnames in case of many triggered mtz or stream files done
 
         # get output name, or take prefix of triggered mtz or take dummy name if name is too long.
-        if self.params.output.outname == None:
+        if self.params.output.outname == []:
             if self.run_Xtrapol8 and not self.run_JackKnife: #if X8 only is run:
                 if len(params.Xtrapol8.input.triggered_mtz)-1>=index: #if the number of triggered mtz files is bigger or equal to the index
                     self.params.output.outname = Fextr_utils.get_name(params.Xtrapol8.input.triggered_mtz[index]) #outname=name of the triggered mtz file given number index
