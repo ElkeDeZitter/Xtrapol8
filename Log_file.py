@@ -2,6 +2,7 @@ from __future__ import division, print_function
 import os
 from datetime import datetime
 
+#for test of part of code
 #log_main =open('/mnt/ibs-equipe-weik.04/edezitter/PaulaOeser/2021-08-03_08h29_Xtrapol8.log', "w")
 
 #class log():
