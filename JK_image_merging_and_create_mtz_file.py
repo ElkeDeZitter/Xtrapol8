@@ -3,7 +3,7 @@ import os
 import sys
 
 from Log_file import print_terminal_and_log
-from Fextr_utils import get_name, run_in_terminal
+from Fextr_utils import get_name, run_in_terminal, print_file_content
 
 class Image_merging_and_create_mtz_file(object):
 
