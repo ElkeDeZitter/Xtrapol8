@@ -237,16 +237,18 @@ def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
                                                                            std_rmsd_residues_list,
                                                                            ' ',
                                                                            ' '), log=JK_results_file_open)
-
-        if os.path.isfile(total_model) and len(list_of_models)>0:
-            calculate_difference_plot(total_model, list_of_models, use_waters, i, occ, maptype, refinement)
+    #Create the difference plot
+        if os.path.isfile(total_model) and len(list_of_models)>0: #if the total model exists and there is at least one other JK model:
+            calculate_difference_plot(total_model, list_of_models, use_waters, i, occ, maptype, refinement) #the values for the plot are calculated and the plot is created
             print_terminal_and_log(
                 'see the plot : %s: occ=%s, maptype=%s, refinement=%s - Differences of mean coordinates of residues between the JK models and the total model' % (
-                i, occ, maptype, refinement), log=JK_results_file_open)
+                i, occ, maptype, refinement), log=JK_results_file_open) #under the table with CC and RMSD, print the corresponding plot
         else:
             print_terminal_and_log('No models no plot')
 
+        #TODO:remove the temp_dir?         os.remove(outdir + '/temp_dir')
 
+#functions to get CC of maps:
 def average_maps(list_of_maps, mapoutname, labels):
     '''
     Get the average map of a list of maps
@@ -310,7 +312,7 @@ def get_cc_mtz_mtz(mtz_avg_map, mtz, outdir):
 
     return (cc)
 
-
+#functions to get RMSD of models (some are used for the plot too):
 def superpose_pdbs(total_pdb, other_pdb):
     """
     Get the total rmsd between the total model and an other model (fitted to the total model) and get the fitted other model
@@ -471,7 +473,7 @@ def calculate_rmsd(coord_total_common, coord_other_common):
     return (rmsd)
 
 
-
+#functions to create the plot:
 def calculate_difference_between_atoms(coord_listA, coord_listB, axis = 1):
     """
     Calculate distances between two list of atoms, gives the list of distances between each atoms
@@ -548,6 +550,8 @@ def cartesian_to_spherical(x, y, z):
 
     return r, theta, phi
 
+
+#main function that creates the plot:
 def calculate_difference_plot(pdb_file_total, pdb_file_list, use_waters, i, occ, maptype, refinement):
     '''
     Calculate the differences between the JK models and the total model to create the final plot of the 'Differences of mean coordinates of residues between the JK models and the total model'
