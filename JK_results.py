@@ -38,6 +38,17 @@ import os
 import numpy as np
 
 def get_JK_results(tab_total, tab_list, outdir, ordered_solvent):
+    '''
+    Global function calculating the RMSD and CC to create the tables and the plot to compare the JK and total
+    Args:
+        tab_total: table for total
+        tab_list: table for all JKs
+        outdir: directory where to put the file with all JK results
+        ordered_solvent: bool, variable from the phil
+
+    Returns:
+    file with CC and RMSD tables and plots
+    '''
     os.chdir(outdir) #change directory to the output directory of the JK_results
 
 #0. Use waters for comparison?
