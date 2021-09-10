@@ -47,23 +47,23 @@ def run_simple_refinement(params, P, outdir_and_mtz_file_off_on_outname):
     check_all_files([DH.pdb_in])
     DH.open_pdb_or_cif()
 
-    mtz_on = '/Users/paula/Scripts/Xtrapol8_JK_folders/Cyt1A_JackKnife_Xtrapol8_1/JK_CYT1A_WT_PH10_ALL_triggered/CYT1A_WT_PH10_ALL_total/CYT1A_WT_PH10_ALL.mtz'
+#converting I to F and adding Rfree
     # run truncate to get Rfree
     script_out = 'launch_truncate.sh'
     i = open(script_out, 'w')
     i.write("#!/bin/bash\n\
-    truncate hklin %s hklout tmp.mtz << EOF\n\
-    TITLE Truncate run on native data\n\
-    TRUNCATE YES\n\
-    ANOMALOUS NO\n\
-    LABIN IMEAN=IMEAN SIGIMEAN=SIGIMEAN \n\
-    SYMMETRY %s\n\
-    EOF\n\
-    uniqueify tmp.mtz\n\
-    out=`basename %s .mtz` \n\
-    mypath=`dirname %s` \n\
-    mv tmp-unique.mtz ${mypath}/${out}_FPFREE.mtz\n\
-    rm tmp.mtz tmp-unique.log" % (mtz_on, 'P6122', mtz_on, mtz_on))
+truncate hklin %s hklout tmp.mtz << EOF\n\
+TITLE Truncate run on native data\n\
+TRUNCATE YES\n\
+ANOMALOUS NO\n\
+LABIN IMEAN=IMEAN SIGIMEAN=SIGIMEAN \n\
+SYMMETRY %s\n\
+EOF\n\
+uniqueify tmp.mtz\n\
+out=`basename %s .mtz` \n\
+mypath=`dirname %s` \n\
+mv tmp-unique.mtz ${mypath}/${out}_FPFREE.mtz\n\
+rm tmp.mtz tmp-unique.log" % (mtz_on, 'P6122', mtz_on, mtz_on))
     i.close()
     os.system('bash %s' % (script_out))
     new_mtz_on = (mtz_on.split('.mtz')[0])+ '_FPFREE.mtz'
