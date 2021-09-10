@@ -598,10 +598,13 @@ class DataHandler(object):
             dmax = low_res
         return f_obs.resolution_filter(dmax, dmin)
         
-    def check_additional_files(self):
+    def check_additional_files(self, SG=None, UC=None):
         """
         Check for all additional files if they exist, if the minimum of additional files is present for phenix.refine and convert to string of additional files to add as an argument to phenix.refine later.
         """
+        if SG!=None: self.SG = SG #give a new space group for the function (used for JK simple refinement)
+        if UC != None: self.UC = UC  # give a new space group for the function (used for JK simple refinement)
+
         self.cif_objects = []
         additional = " "
         if self.additional!= None:
