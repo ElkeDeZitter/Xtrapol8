@@ -118,7 +118,7 @@ from Log_file import print_terminal_and_log
 import Parameters as Para
 from Parameters import Parameters
 import JK_results
-import JK_simple_refinement
+import Simple_refinement_JK as JK_simple_refinement
 
 #TODO: Check if the input arguments for Crystfel are not overwritten if for example an other hkl file is given in 'other_stats_compare_hkl'. This is linked to the problem where we can not check if the additional parameters for the Crystfel programs are correct.
 #TODO: If UC and SG are different for reference and triggered, what happens?
