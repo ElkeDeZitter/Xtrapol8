@@ -487,18 +487,44 @@ class DataHandler(object):
         
     def check_outdir(self):
         """
-        Check if output directory exists. Will be created if not yet existing
+        Make output directory:
+        - if no name specified, then it will be called Xtrapol8
+        - if the output directory already exists, then a number will be added
+         This way creates a maximum of 1000 Xtrapol8 output directories
         """
         if self.outdir == None:
-            self.outdir = os.getcwd()
-        else:
-            if os.path.exists(self.outdir) == False:
-                try:
-                    os.mkdir(self.outdir)
-                    print('Output directory not present thus being created: %s'%(self.outdir))
-                except OSError:
-                    os.makedirs(self.outdir)
-            self.outdir = os.path.abspath(self.outdir)
+            #self.outdir = os.getcwd()
+            self.outdir = "Xtrapol8"
+            
+        #else:
+            #if os.path.exists(self.outdir) == False:
+                #try:
+                    #os.mkdir(self.outdir)
+                    #print('Output directory not present thus being created: %s'%(self.outdir))
+                #except OSError:
+                    #os.makedirs(self.outdir)
+            #self.outdir = os.path.abspath(self.outdir)
+            
+        outdir = self.outdir
+        i = 1
+        while os.path.exists(outdir):
+            outdir = "%s_%d" %(self.outdir, i)
+            i += 1
+            if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
+                break
+            
+        try:
+            os.mkdir(outdir)
+            print('Output directory being created: %s'%(outdir))
+        except OSError:
+            try:
+                os.makedirs(outdir)
+                print('Output directory being created: %s'%(outdir))
+            except OSError:
+                print("Output directory already exists, this might lead to problems. Consider chosing a new name and rerun")
+            
+        self.outdir = os.path.abspath(outdir)
+                
 
     def open_files(self):
         """
@@ -2051,6 +2077,10 @@ def run(args):
         print(err_m)
         print("Check input files and rerun")
         sys.exit()
+        
+    #Update the params TODO: add input parameters too
+    params.output.outdir = DH.outdir
+    
             
     #get output name, or take prefix of triggered mtz or take dummy name if name is too long.
     if params.output.outname == None:
@@ -2072,7 +2102,7 @@ def run(args):
     DH.check_additional_files()
     print('---------------------------')
 
-    #cchange to output directory
+    #change to output directory
     startdir = os.getcwd()
     outdir = DH.outdir
     os.chdir(outdir)
