@@ -83,12 +83,13 @@ def fitting(sel, x):
         return np.array(popt)
     
 class Distance_analysis(object):
-    def __init__(self, pdblst, occupancies, resids_lst = None, use_waters = True, outsuffix = '', log = sys.stdout):
-        self.resids_lst   = resids_lst
-        self.occupancies  = occupancies
-        self.use_waters   = use_waters
-        self.outsuffix    = outsuffix
-        self.log          = log
+    def __init__(self, pdblst, occupancies, resids_lst = None, plateau_fraction=0.98, use_waters = True, outsuffix = '', log = sys.stdout):
+        self.resids_lst       = resids_lst
+        self.plateau_fraction = plateau_fraction
+        self.occupancies      = occupancies
+        self.use_waters       = use_waters
+        self.outsuffix        = outsuffix
+        self.log              = log
         
         print("DISTANCE ANALYSIS")
         print("DISTANCE ANALYSIS", file=self.log)
@@ -385,7 +386,7 @@ class Distance_analysis(object):
         assert self.info.shape[0] == toplot_matrix.shape[0] == toplot_matrix.shape[1]
         
         plt.close()
-        fig, ax = plt.subplots(1,1, figsize=(10, 5))
+        fig, (ax0,ax1) = plt.subplots(1,2, figsize=(10, 5))
 
         x = np.array(self.alphas)
         
@@ -455,6 +456,17 @@ class Distance_analysis(object):
         assert fulllist_av.shape[0] == len(self.alphas)
         #print("fulllist_av", fulllist_av)
         
+        #Search x for 0.95 = 1*(1-np.exp(-b*x))
+        #   0.05 = 1/(np.exp(b*x)
+        #   ln(1/0.05) = b*x
+        #   ln(20)/b = x
+        #If a != 1, we need to use the gerenal case:
+        #find x for 0.95 = a*(1-np.exp(-b*x))
+        #   ln(-a/(0.95-a))/b = x
+        #For 98% of plateau level, need ln(50); np.log is natural logarithm hence ln
+        val = np.log(1/(1-self.plateau_fraction))
+
+        
         #only loop over all distances to plot if less than 40
         if np.where(np.any(toplot_matrix==1, axis =1))[0].shape[0] < 40:
             print("Less than 40 atoms involved in distance calculation. Let's plot all distances:", file=self.log)
@@ -468,11 +480,11 @@ class Distance_analysis(object):
                 for j in toplot2:
                     a=0
                     title = "--".join(["-".join(info_for_print[n]),"-".join(info_for_print[j])])
-                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(np.log(50)/fitting_matrix[1, n,j])), file=self.log)
-                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(np.log(50)/fitting_matrix[1, n,j])))
+                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(val/fitting_matrix[1, n,j])), file=self.log)
+                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(val/fitting_matrix[1, n,j])))
                     #print(" %s   %.2f   %.2f   %.2f" %(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(np.log(20)/fitting_matrix[1, n,j])), file=self.log)
-                    ax.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.25, label='Distance')# ,marker='s', label='Method 2, {:.0%} occ.'.format(occ))          #+'; '+str(int(wavenumber[0]))+r' cm$^{-1}$')
-                    ax.plot(x, np.abs(logfit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.25, label = 'Exp. fit')#label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+                    ax0.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.25, label='Distance')# ,marker='s', label='Method 2, {:.0%} occ.'.format(occ))          #+'; '+str(int(wavenumber[0]))+r' cm$^{-1}$')
+                    ax0.plot(x, np.abs(logfit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.25, label = 'Exp. fit')#label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
                 a+=1
         else:
             print("Too much distances, only plot averages", file=self.log)
@@ -482,7 +494,7 @@ class Distance_analysis(object):
         #yy = fulllist_av
         #yy_norm = yy/np.max(yy)
         #ax.plot(x,yy_norm)
-        ax.plot(x,fulllist_av, label = "<Distance>")
+        ax0.plot(x,fulllist_av, label = "Average distance")
         xx = np.arange(0,max(self.alphas),0.1)
         
         #If not all items of fulllist_av == 0
@@ -510,7 +522,7 @@ class Distance_analysis(object):
             #yy = logfit(xx,poptave[0],poptave[1],0)
             #yy_norm = yy/np.max(yy)
             #ax.plot(xx, yy_norm, 'b-', label='alpha and movement amplitude from fitting of average')
-            ax.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit average')
+            ax0.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit of average fit')
             
         else:
             poptave = [0,0,0]
@@ -518,12 +530,12 @@ class Distance_analysis(object):
         #yy = logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0)
         #yy_norm = yy/np.max(yy)
         #ax.plot(xx, yy_norm, 'b--', label='average alpha and movement amplitude form aveage fitting')
-        ax.plot(xx, logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0), 'b--', label='Average fit')
+        ax0.plot(xx, logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0), 'b--', label='Average of all fits')
 
-        ax.set_xlabel('alpha [1/occupancy]')
-        ax.set_ylabel('Distance [A]')
+        ax0.set_xlabel('alpha [1/occupancy]')
+        ax0.set_ylabel('Distance [A]')
         
-        lines, labels = ax.get_legend_handles_labels()
+        lines, labels = ax0.get_legend_handles_labels()
         i = np.arange(len(labels))
         f = np.array([])
         unique_labels = list(set(labels))
@@ -532,11 +544,25 @@ class Distance_analysis(object):
         lines = [lines[int(j)] for j in f]
         labels = [labels[int(j)] for j in f]
         #ax.legend(lines, labels, fontsize = 'x-small', framealpha=0.5, loc=1, bbox_to_anchor=(0.05, 0.5, 0.5, 0.45))
-        ax.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        plt.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top = 0.95)
+        ax0.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.85, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+        ax0.set_title("Distance differences", fontsize = 'medium')#,fontweight="bold")
+        
+        
+        #Plot the histogram with possible occupancies
+        possible_occ = np.round(1/(val/possible_b), decimals=3)
+        print(possible_occ)
+        counts, bins = np.histogram(possible_occ)
+
+        ax1.hist(bins[:-1], bins, weights=counts)
+        ax1.set_xlabel("Occupancy")
+        ax1.set_xlim([0, 1])
+        ax1.set_ylabel("Occurence")
+        ax1.set_title("Occupancy histogram", fontsize = 'medium')
+        
+        fig.suptitle("Distance analysis between reference model and real-space-refined models", fontsize = 'medium',fontweight="bold")
+        plt.subplots_adjust(hspace=0.35, wspace=0.40, left=0.09, right=0.95, top = 0.85)
         #ax.set_xlim(0,10)
         
-        plt.title("Distance differences between reference model and real-space-refined models", fontsize = 'medium',fontweight="bold")
         
         #plt.show()
         plt.savefig("Distance_difference_plot_%s.pdf" %(self.outsuffix), dpi=300, transparent=True)
@@ -582,33 +608,34 @@ class Distance_analysis(object):
             #If a != 1, we need to use the gerenal case:
             #find x for 0.95 = a*(1-np.exp(-b*x))
             #   ln(-a/(0.95-a))/b = x
-            #For 98% of plateau level, need log(50)
+            #For 98% of plateau level, need ln(50); np.log is natural logarithm hence ln
+            val = np.log(1/(1-self.plateau_fraction))
             
             #set waring and error to ignore because possibility of division by zero
             np.seterr(divide='ignore', invalid='ignore')
             try:
-                alp_mean = np.log(50)/b_mean
+                alp_mean = val/b_mean
                 occ_mean = 1/alp_mean
-                occ_stdev = 1/(np.log(50)/b_stdev)
+                occ_stdev = 1/(val/b_stdev)
                 
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev), file=self.log)
                 print("Other alpha determinations:", file=self.log)
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(np.log(50)/(np.asarray(peaks, dtype='float64')))), file=self.log)
-                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(np.log(50)/mode)), file=self.log)
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(val/(np.asarray(peaks, dtype='float64')))), file=self.log)
+                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(val/mode)), file=self.log)
                 #print 1/np.exp(np.asarray(peaks, dtype='float64'))
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev), file=self.log)
-                print("  Occupancy based on fit of average: %s" %(1/(np.log(50)/(poptave[1]))), file=self.log)
+                print("  Occupancy based on fit of average: %s" %(1/(val/(poptave[1]))), file=self.log)
                 #print("occupancies at alpha values tested")
                 #for i in self.alphas:
                     #print("%.3f      ///////     %.3f" %(i, logfit(i,1,b_mean,0)))
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev))
                 print("Other alpha determinations:")
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(np.log(50)/(np.asarray(peaks, dtype='float64')))))
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(val/(np.asarray(peaks, dtype='float64')))))
                 #TODO: plot the histogram. Preferable in same figure as the actual distances
-                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(np.log(50)/mode)))
+                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(val/mode)))
                 #print 1/np.exp(np.asarray(peaks, dtype='float64'))
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev))
-                print("  Occupancy based on fit of average: %s" %(1/(np.log(50)/(poptave[1]))))
+                print("  Occupancy based on fit of average: %s" %(1/(val/(poptave[1]))))
 
             except TypeError:
                 print("Problem with occupancy extraction", file=self.log)
