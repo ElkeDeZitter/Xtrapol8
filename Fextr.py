@@ -76,6 +76,7 @@ import sys
 import random
 import subprocess
 import shutil
+import pickle
 from select import select
 from datetime import datetime
 import numpy as np
@@ -112,6 +113,7 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
+from wx.lib.pubsub import pub
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -2677,6 +2679,8 @@ def run(args):
     #   5) append the refinement models and maps to the Pymol_movie script
     #   6) make ddm plot
     #   7) write coot script
+    ddm_out = None
+    script_coot = None
     reversed_maptypes = final_maptypes[:]
     reversed_maptypes.reverse()
     occ_overview = {}
@@ -2822,7 +2826,7 @@ def run(args):
             #ddm calculation
             pdb_for_ddm = pdb_list[params.occupancies.list_occ.index(occ)+1]
             print("----Generate distance difference plot----")
-            Difference_distance_analysis(DH.pdb_in, pdb_for_ddm, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
+            ddm_out = Difference_distance_analysis(DH.pdb_in, pdb_for_ddm, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
             print('---------------------------')
             
             #Coot script
@@ -2872,7 +2876,7 @@ def run(args):
                 alpha = 1/occ
             occ_dir = "%s/%s_%.3f" %(outdir, dir_prefix, occ)
             
-        occ_overview[mp_type] = occ
+        occ_overview[mp_type] = [occ, script_coot, ddm_out]
             
         print("------------------------------------")
         print("------------------------------------", file=log)
@@ -2880,17 +2884,26 @@ def run(args):
     #Add final lines to Pymol_script
     if os.path.isfile('%s/pymol_movie.py' %(outdir)):
         Pymol_movie(params.occupancies.list_occ, resids_lst = residlst).write_pymol_appearance('%s/pymol_movie.py' %(outdir))
+        
+    #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
+    if params.output.GUI:
+        #pub.sendMessage("Best occ", occ_overview=occ_overview)
+        #print("Message sent to GUI")
+        occ_pickle = open("occupancy_recap.pickle", "wb")
+        pickle.dump(occ_overview, occ_pickle)
+        occ_pickle.close()
+        
     
     print("Summary of occupancy determination:", file=log)
     print("Map type       Occupancy", file=log)
     for k in occ_overview:
-        print("{:<15} {:>5.3f}".format(k, occ_overview[k]), file=log)
+        print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]), file=log)
     print("-> Optimal occupancy of triggered state %.3f." %(occ), file=log)
     
     print("OCCUAPNCY DETERMINATION SUMMARY")
     print("Map type       Occupancy")
     for k in occ_overview:
-        print("{:<15} {:>5.3f}".format(k, occ_overview[k]))
+        print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]))
     print("-> Optimal occupancy of triggered state %.3f." %(occ))
 
     
@@ -2976,7 +2989,7 @@ def run(args):
         print("FAST AND FURIOUS REFINEMENT DONE")
         print('-----------------------------------------')
         print("----Generate distance difference plot----")
-        Difference_distance_analysis(DH.pdb_in, pdb_rec_real, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
+        ddm_out = Difference_distance_analysis(DH.pdb_in, pdb_rec_real, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
         print('---------------------------')
         
     ################################################################
