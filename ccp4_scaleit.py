@@ -1,13 +1,23 @@
 """
+Use scaleit from CCP4 for scaling instead of scale_cnslike
+
+-------
+
 authors and contact information
 -------
 Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
 Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
 Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
 
 -------
-Use scaleit from CCP4 for scaling instead of scale_cnslike
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
 """
 from __future__ import print_function
 import os, sys

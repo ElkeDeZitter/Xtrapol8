@@ -1,18 +1,7 @@
 """
 Main script to run Xtrapol8
 
-authors and contact information
 -------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
-Please start your mail with [X8]
-
-licence
--------
-Some free licence
-Xtrapol8 requires a Phenix and CCP4 installation with proper licence.
 
 usage
 -------
@@ -25,9 +14,9 @@ Parameters can be added using an input file or via command line
 example using input file (preferable)
 -------
 1) Change the nano Xtrapol8.phil using your favourite editor, e.g.
->>> nano trapol8.phil
+>>> nano Xtrapol8.phil
 2) Run Xtrapol8
->>> phenix.python <wherever>/Fextr.py trapol8.phil
+>>> phenix.python <wherever>/Fextr.py Xtrapol8.phil
 
 example using command line only
 -------
@@ -40,6 +29,22 @@ example using input file and command line
 >>> nano trapol8.phil
 2) Xtrapol8 with additional arguments. The order of arguments determines how paramters will be overwriten:
 >>> phenix.python <wherever>/Fextr.py trapol8.phil refinement.phenix_keywords.refine.cycles=3
+
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 
@@ -484,18 +489,44 @@ class DataHandler(object):
         
     def check_outdir(self):
         """
-        Check if output directory exists. Will be created if not yet existing
+        Make output directory:
+        - if no name specified, then it will be called Xtrapol8
+        - if the output directory already exists, then a number will be added
+         This way creates a maximum of 1000 Xtrapol8 output directories
         """
         if self.outdir == None:
-            self.outdir = os.getcwd()
-        else:
-            if os.path.exists(self.outdir) == False:
-                try:
-                    os.mkdir(self.outdir)
-                    print('Output directory not present thus being created: %s'%(self.outdir))
-                except OSError:
-                    os.makedirs(self.outdir)
-            self.outdir = os.path.abspath(self.outdir)
+            #self.outdir = os.getcwd()
+            self.outdir = "Xtrapol8"
+            
+        #else:
+            #if os.path.exists(self.outdir) == False:
+                #try:
+                    #os.mkdir(self.outdir)
+                    #print('Output directory not present thus being created: %s'%(self.outdir))
+                #except OSError:
+                    #os.makedirs(self.outdir)
+            #self.outdir = os.path.abspath(self.outdir)
+            
+        outdir = self.outdir
+        i = 1
+        while os.path.exists(outdir):
+            outdir = "%s_%d" %(self.outdir, i)
+            i += 1
+            if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
+                break
+            
+        try:
+            os.mkdir(outdir)
+            print('Output directory being created: %s'%(outdir))
+        except OSError:
+            try:
+                os.makedirs(outdir)
+                print('Output directory being created: %s'%(outdir))
+            except OSError:
+                print("Output directory already exists, this might lead to problems. Consider chosing a new name and rerun")
+            
+        self.outdir = os.path.abspath(outdir)
+                
 
     def open_files(self):
         """
@@ -2048,6 +2079,10 @@ def run(args):
         print(err_m)
         print("Check input files and rerun")
         sys.exit()
+        
+    #Update the params TODO: add input parameters too
+    params.output.outdir = DH.outdir
+    
             
     #get output name, or take prefix of triggered mtz or take dummy name if name is too long.
     if params.output.outname == None:
@@ -2069,7 +2104,7 @@ def run(args):
     DH.check_additional_files()
     print('---------------------------')
 
-    #cchange to output directory
+    #change to output directory
     startdir = os.getcwd()
     outdir = DH.outdir
     os.chdir(outdir)
@@ -2592,41 +2627,43 @@ def run(args):
     print("ESTIMATE OPTIMAL OCCUPANCY", file=log)
     print('-----------------------------------------', file=log)
 
-    #To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
-    #In both cases, a file with residues to base the calculation on should be provided
-    #   In case of faf, the Z-score based list will automatically be choses
-    #   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
-    if params.f_and_maps.fast_and_furious:
-        print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
-        residlst = residlist_zscore
-    else:
-        print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
-        if params.map_explorer.use_occupancy_from_distance_analysis:
-            print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-        else:
-            print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
+    ##To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
+    ##In both cases, a file with residues to base the calculation on should be provided
+    ##   In case of faf, the Z-score based list will automatically be choses
+    ##   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
+    #if params.f_and_maps.fast_and_furious:
+        #print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
+        #residlst = residlist_zscore
+    #else:
+        #print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
+        #if params.map_explorer.use_occupancy_from_distance_analysis:
+            #print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
+        #else:
+            #print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
             
-        timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
-        rlist, _, _ = select([sys.stdin], [], [], timeout)
-        if rlist:
-            s = sys.stdin.readline()
-            residlst = s.strip("\n")
-        else:
-            residlst = residlist_zscore
+        #timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
+        #rlist, _, _ = select([sys.stdin], [], [], timeout)
+        #if rlist:
+            #s = sys.stdin.readline()
+            #residlst = s.strip("\n")
+        #else:
+            #residlst = residlist_zscore
             
-        if os.path.isfile(residlst.lstrip().rstrip()):
-            residlst = residlst.lstrip().rstrip()
-        elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
-            residlst = startdir+"/"+residlst.lstrip().rstrip()
-        else:
-            residlst = residlist_zscore
-        try:
-            residlst = os.path.abspath(residlst)
-            if os.path.isfile(residlst) == False:
-                raise IOError
-        except IOError:
-            print("File %s not found. All peaks and residues will be used" %(str(residlst)))
-            residlst = None
+        #if os.path.isfile(residlst.lstrip().rstrip()):
+            #residlst = residlst.lstrip().rstrip()
+        #elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
+            #residlst = startdir+"/"+residlst.lstrip().rstrip()
+        #else:
+            #residlst = residlist_zscore
+        #try:
+            #residlst = os.path.abspath(residlst)
+            #if os.path.isfile(residlst) == False:
+                #raise IOError
+        #except IOError:
+            #print("File %s not found. All peaks and residues will be used" %(str(residlst)))
+            #residlst = None
+    #Avoid waiting and use immediately the Z-score list. The standalone version can be used if a specific residue list needs to be used.
+    residlst = residlist_zscore
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst), file=log)
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst))
     
@@ -2801,7 +2838,8 @@ def run(args):
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
             if params.refinement.phenix_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
             if params.refinement.refmac_keywords.density_modification.density_modification:

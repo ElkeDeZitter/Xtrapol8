@@ -1,18 +1,8 @@
 """
-authors and contact information
--------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
-
--------
 Script to calculate the occupancy based on the real space refined models of a reference model in Extrapolated map
 coefficients calculated with different occupancy (alpha).
 
 Automatically run in Xtrapol8 routine but can be run on a standalone basis.
-
-For use on standalone basis, change script below "if __name__ == '__main__':" and run script with python Distance_analysis_EDZ.py
 
 What do you need?
 - list with PDB files. The first PDB file in the list is the reference
@@ -25,7 +15,25 @@ What do you need?
         size of the ASU, this can become computationally very intensive (You are warned and I take no
         responsibility of your computer crashes)
     - Outsuffix to be added to the output figure
-    - Log-file. If not provided, then output will be printed to the screen
+    - Log-file. If not provided, then output will written to a predifined file
+    
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
 """
 
 from __future__ import division, print_function
@@ -62,21 +70,26 @@ def fitting(sel, x):
     else:
         #print("fitting", sel)
         try:
-            popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x),absolute_sigma=False,
-                                bounds=((1.35*np.min(sel), .7, -0.001), (1.35*np.max(sel),2, 0.001)))
-            
+            #popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x),absolute_sigma=False,
+                                #bounds=((1.35*np.min(sel), .7, -0.001), (1.35*np.max(sel),2, 0.001)))
+            #bound of a: 0 to 2*np.max(sel)
+            #bound of b to constrain occupancy to sensible values (0.1 means 300% occupancy); now 0.5 (i.e. 51% occupancy at 98/% of plateau) to 25 (i.e 1% occupancy at 98% of plateau)
+            #bound of c to account for reduction of distance difference at higher alpha values AND contrain fitted distance difference to not exceed max oxbserved; now -np.max(x) to zero
+            popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x)+x,absolute_sigma=False,
+                                bounds=((0, .5, -np.max(x)), (2*np.max(sel), 25, 0)))
         except ValueError: 
             popt = np.array([0.,0.,0.])
         #print(np.array([popt[0], popt[1], popt[2]]))
         return np.array(popt)
     
 class Distance_analysis(object):
-    def __init__(self, pdblst, occupancies, resids_lst = None, use_waters = True, outsuffix = '', log = sys.stdout):
-        self.resids_lst   = resids_lst
-        self.occupancies  = occupancies
-        self.use_waters   = use_waters
-        self.outsuffix    = outsuffix
-        self.log          = log
+    def __init__(self, pdblst, occupancies, resids_lst = None, plateau_fraction=0.98, use_waters = True, outsuffix = '', log = sys.stdout):
+        self.resids_lst       = resids_lst
+        self.plateau_fraction = plateau_fraction
+        self.occupancies      = occupancies
+        self.use_waters       = use_waters
+        self.outsuffix        = outsuffix
+        self.log              = log
         
         print("DISTANCE ANALYSIS")
         print("DISTANCE ANALYSIS", file=self.log)
@@ -103,8 +116,9 @@ class Distance_analysis(object):
         print("Distance analysis based on %d residues" %(self.residlst.shape[0]), file=self.log)
         print("Distance analysis based on %d residues" %(self.residlst.shape[0]))
         #print("self.residlst",self.residlst)
-        self.initialize_dicts(self.pdblst[0])
-        
+        self.initialize_dicts(self.pdblst[0]) #Not used anymore?
+        self.check_common_atoms()
+                
         
     def get_residlist(self):
         if self.resids_lst != None:
@@ -138,6 +152,35 @@ class Distance_analysis(object):
                     if line not in residlst_all:
                         residlst_all.append(line)
         self.residlst = np.array(residlst_all)
+        
+    def check_common_atoms(self):
+        """
+        Get list with the array atom info in order to make sure that we only compare those . Genereally, this should be performed only between the reference (first pdb from the list) and second pdb file as the others should contain the same atoms as the second one, unless use_waters was wrongly set to True. Hence, check all of them
+        """
+        
+        if len(self.pdblst) > 1:
+            #Check the common atoms between the first the 2 PDB-files of the list:
+            #get info of first pdb
+            _, info_0 = self.get_coord_from_parser_selected(self.pdblst[0])
+            #join the info to get a 1d array
+            info_0_ar = np.array([",".join(i) for i in info_0])
+            #get info of second pdb
+            _, info_1 = self.get_coord_from_parser_selected(self.pdblst[1])
+            #join the info to get a 1d array
+            info_1_ar = np.array([",".join(i) for i in info_1])
+            #get the common info
+            comm = np.intersect1d(info_0_ar, info_1_ar,return_indices=False)
+            
+            #Check common atoms between the common info and the info of the other pdb files
+            for pdb in self.pdblst[2:]:
+                #get the info
+                _, info = self.get_coord_from_parser_selected(pdb)
+                #join the info to get a 1d array
+                info_ar = np.array([",".join(i) for i in info])
+                #get the common info
+                comm = np.intersect1d(comm, info_ar, return_indices=False)
+                
+        self.common_info = comm
 
     def initialize_dicts(self, pdb_file):
         """
@@ -180,10 +223,32 @@ class Distance_analysis(object):
                                     #print a.name
                                     coord.append(list(a.xyz))
                                     i = a.fetch_labels()
-                                    info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name, i.i_seq))
+                                    #info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name, i.i_seq))
+                                    info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name))
                          
         coord = np.asarray(coord)
+        info  = np.asarray(info)
  
+        return coord, info
+    
+    def select_common_coords(self, coord, info):
+        """
+        Compare the info with the common atom info and only retain the coordinates of the common atoms
+        """
+        #join the info to get a 1d array
+        info_ar = np.array([",".join(i) for i in info])
+        #get the the indices of the common atoms
+        _,_,indices_retain = np.intersect1d(self.common_info, info_ar, return_indices=True)
+        
+        if indices_retain.shape[0] < info.shape[0]:
+            print("Trimming atom selection to those common between all pdb files")
+        
+        #select the coordinates and info from the common atoms
+        coord = coord[indices_retain]
+        info  = info[indices_retain]
+        
+        assert info.shape[0] == coord.shape[0]
+        
         return coord, info
     
     def get_d(self, p1, p2, axis=0):
@@ -217,18 +282,18 @@ class Distance_analysis(object):
         for i in range(lenght):
             ispeak = True
             if i-1 > 0:
-                ispeak &= (x[i] > 1.5 * x[i-1]) # peak value is at least 150 per cent of neighbour peak
+                ispeak &= (x[i] > 1.5 * x[i-1]) # peak value is at least 150 percent of neighbour peak
             if i+1 < lenght:
                 ispeak &= (x[i] > 1.5 * x[i+1])
 
-            ispeak &= (x[i] > 0.25 * max)   # peak value is at least 25 per cent of max value
+            ispeak &= (x[i] > 0.25 * max)   # peak value is at least 25 percent of max value
             if ispeak:
                 ret.append(y[i])
         return ret
     
     def remove_brackets_from_string(self, string):
         """
-        Just remove all brackets from string so that
+        Just remove all brackets from string
         """
         while '(' in string:
             string = re.sub('\(', '', string)
@@ -245,7 +310,9 @@ class Distance_analysis(object):
             #Extract coordinates from residues in the residue list
             print("Extracting coordinates from %s" %(pdb))
             print("Extracting coordinates from %s" %(pdb), file=self.log)
-            coord, info = self.get_coord_from_parser_selected(pdb) 
+            coord, info = self.get_coord_from_parser_selected(pdb)
+            #only use coord and info from the common atoms
+            coord, info = self.select_common_coords(coord, info)
             #Calculate the distance matric
             print("calculating distances")
             distances = np.array(self.get_dist_matrix(coord))
@@ -281,7 +348,7 @@ class Distance_analysis(object):
         #self.alldistances = np.asarray(alldistances)
         #self.alldifferences = np.asarray(alldifferences)
         
-        assert len(self.info) == self.alldistances.shape[1] == self.alldistances.shape[2] == self.alldifferences.shape[1] == self.alldifferences.shape[2]
+        assert self.info.shape[0] == self.alldistances.shape[1] == self.alldistances.shape[2] == self.alldifferences.shape[1] == self.alldifferences.shape[2]
         
         print("max sampled distance: %s" %(np.max(alldistances)), file=self.log)
         print("properties of differences (max, mean, median): %s /// %s /// %s " %(np.max(alldifferences), np.mean(alldifferences), np.median(alldifferences)), file=self.log)
@@ -316,10 +383,10 @@ class Distance_analysis(object):
         del self.alldistances
         
         toplot_matrix = np.where(toplot_matrix >=1, 1, 0)
-        assert len(self.info) == toplot_matrix.shape[0] == toplot_matrix.shape[1]
+        assert self.info.shape[0] == toplot_matrix.shape[0] == toplot_matrix.shape[1]
         
         plt.close()
-        fig, ax = plt.subplots(1,1, figsize=(10, 5))
+        fig, (ax0,ax1) = plt.subplots(1,2, figsize=(10, 5))
 
         x = np.array(self.alphas)
         
@@ -389,12 +456,23 @@ class Distance_analysis(object):
         assert fulllist_av.shape[0] == len(self.alphas)
         #print("fulllist_av", fulllist_av)
         
+        #Search x for 0.95 = 1*(1-np.exp(-b*x))
+        #   0.05 = 1/(np.exp(b*x)
+        #   ln(1/0.05) = b*x
+        #   ln(20)/b = x
+        #If a != 1, we need to use the gerenal case:
+        #find x for 0.95 = a*(1-np.exp(-b*x))
+        #   ln(-a/(0.95-a))/b = x
+        #For 98% of plateau level, need ln(50); np.log is natural logarithm hence ln
+        val = np.log(1/(1-self.plateau_fraction))
+
+        
         #only loop over all distances to plot if less than 40
         if np.where(np.any(toplot_matrix==1, axis =1))[0].shape[0] < 40:
             print("Less than 40 atoms involved in distance calculation. Let's plot all distances:", file=self.log)
-            print("     Distance                                       R2   chi2   occupancy", file=self.log)
+            print("     Distance                                  R2   chi2   occupancy", file=self.log)
             print("Less than 40 atoms involved in distance calculation. Let's plot all distances:")
-            print("     Distance                                       R2   chi2   occupancy")
+            print("     Distance                                  R2   chi2   occupancy")
 
             for n in np.where(np.any(toplot_matrix==1, axis =1))[0].astype(int):
             #n = int(n)
@@ -402,11 +480,11 @@ class Distance_analysis(object):
                 for j in toplot2:
                     a=0
                     title = "--".join(["-".join(info_for_print[n]),"-".join(info_for_print[j])])
-                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(np.log(20)/fitting_matrix[1, n,j])), file=self.log)
-                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(np.log(20)/fitting_matrix[1, n,j])))
+                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(val/fitting_matrix[1, n,j])), file=self.log)
+                    print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(val/fitting_matrix[1, n,j])))
                     #print(" %s   %.2f   %.2f   %.2f" %(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(np.log(20)/fitting_matrix[1, n,j])), file=self.log)
-                    ax.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.25, label='Distance')# ,marker='s', label='Method 2, {:.0%} occ.'.format(occ))          #+'; '+str(int(wavenumber[0]))+r' cm$^{-1}$')
-                    ax.plot(x, np.abs(logfit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.25, label = 'Exp. fit')#label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
+                    ax0.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.25, label='Distance')# ,marker='s', label='Method 2, {:.0%} occ.'.format(occ))          #+'; '+str(int(wavenumber[0]))+r' cm$^{-1}$')
+                    ax0.plot(x, np.abs(logfit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.25, label = 'Exp. fit')#label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
                 a+=1
         else:
             print("Too much distances, only plot averages", file=self.log)
@@ -416,17 +494,24 @@ class Distance_analysis(object):
         #yy = fulllist_av
         #yy_norm = yy/np.max(yy)
         #ax.plot(x,yy_norm)
-        ax.plot(x,fulllist_av, label = "<Distance>")
+        ax0.plot(x,fulllist_av, label = "Average distance")
         xx = np.arange(0,max(self.alphas),0.1)
         
         #If not all items of fulllist_av == 0
         if np.min(fulllist_av) < np.max(fulllist_av):
+            #poptave,pcovave = curve_fit(logfit,
+                                        #x,
+                                        #fulllist_av,
+                                        #sigma=np.sqrt(x),
+                                        #absolute_sigma=False,
+                                        #bounds=((1.35*np.min(fulllist_av), .1, -0.001), (1.35*np.max(fulllist_av),5, 0.001)))#,method='dogbox'))
+            #Bounds adapted
             poptave,pcovave = curve_fit(logfit,
                                         x,
                                         fulllist_av,
-                                        sigma=np.sqrt(x),
+                                        sigma=np.sqrt(x)+x,
                                         absolute_sigma=False,
-                                        bounds=((1.35*np.min(fulllist_av), .1, -0.001), (1.35*np.max(fulllist_av),5, 0.001)))#,method='dogbox'))
+                                        bounds=((1.25*np.min(fulllist_av), .5, -0.001), (1.25*np.max(fulllist_av),25, 0.001)))
         
             #print("poptave", poptave)
             #print("possible_amp", possible_amp)
@@ -437,7 +522,7 @@ class Distance_analysis(object):
             #yy = logfit(xx,poptave[0],poptave[1],0)
             #yy_norm = yy/np.max(yy)
             #ax.plot(xx, yy_norm, 'b-', label='alpha and movement amplitude from fitting of average')
-            ax.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit average')
+            ax0.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit of average fit')
             
         else:
             poptave = [0,0,0]
@@ -445,12 +530,12 @@ class Distance_analysis(object):
         #yy = logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0)
         #yy_norm = yy/np.max(yy)
         #ax.plot(xx, yy_norm, 'b--', label='average alpha and movement amplitude form aveage fitting')
-        ax.plot(xx, logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0), 'b--', label='Average fit')
+        ax0.plot(xx, logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0), 'b--', label='Average of all fits')
 
-        ax.set_xlabel('alpha [1/occupancy]')
-        ax.set_ylabel('Distance [A]')
+        ax0.set_xlabel('alpha [1/occupancy]')
+        ax0.set_ylabel('Distance [A]')
         
-        lines, labels = ax.get_legend_handles_labels()
+        lines, labels = ax0.get_legend_handles_labels()
         i = np.arange(len(labels))
         f = np.array([])
         unique_labels = list(set(labels))
@@ -459,11 +544,25 @@ class Distance_analysis(object):
         lines = [lines[int(j)] for j in f]
         labels = [labels[int(j)] for j in f]
         #ax.legend(lines, labels, fontsize = 'x-small', framealpha=0.5, loc=1, bbox_to_anchor=(0.05, 0.5, 0.5, 0.45))
-        ax.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        plt.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top = 0.95)
+        ax0.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.85, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+        ax0.set_title("Distance differences", fontsize = 'medium')#,fontweight="bold")
+        
+        
+        #Plot the histogram with possible occupancies
+        possible_occ = np.round(1/(val/possible_b), decimals=3)
+        print(possible_occ)
+        counts, bins = np.histogram(possible_occ)
+
+        ax1.hist(bins[:-1], bins, weights=counts)
+        ax1.set_xlabel("Occupancy")
+        ax1.set_xlim([0, 1])
+        ax1.set_ylabel("Occurence")
+        ax1.set_title("Occupancy histogram", fontsize = 'medium')
+        
+        fig.suptitle("Distance analysis between reference model and real-space-refined models", fontsize = 'medium',fontweight="bold")
+        plt.subplots_adjust(hspace=0.35, wspace=0.40, left=0.09, right=0.95, top = 0.85)
         #ax.set_xlim(0,10)
         
-        plt.title("Distance differences between reference model and real-space-refined models", fontsize = 'medium',fontweight="bold")
         
         #plt.show()
         plt.savefig("Distance_difference_plot_%s.pdf" %(self.outsuffix), dpi=300, transparent=True)
@@ -476,7 +575,8 @@ class Distance_analysis(object):
         self.get_all_distances()
         if self.resids_lst == None:
             #print("No resdlist")
-            possible_b, poptave = self.plot_distance_differences_and_get_possible_b(maxdist = 5.0, mindist = 2.4, maxdiff = 1000, mindiff=0.05)
+            #possible_b, poptave = self.plot_distance_differences_and_get_possible_b(maxdist = 5.0, mindist = 2.4, maxdiff = 1000, mindiff=0.05)
+            possible_b, poptave = self.plot_distance_differences_and_get_possible_b(maxdist = 5.0, mindist = 2.4, maxdiff = 10, mindiff=0.25)
         else:
             #print("residlist")
             possible_b, poptave = self.plot_distance_differences_and_get_possible_b()
@@ -508,31 +608,34 @@ class Distance_analysis(object):
             #If a != 1, we need to use the gerenal case:
             #find x for 0.95 = a*(1-np.exp(-b*x))
             #   ln(-a/(0.95-a))/b = x
+            #For 98% of plateau level, need ln(50); np.log is natural logarithm hence ln
+            val = np.log(1/(1-self.plateau_fraction))
             
             #set waring and error to ignore because possibility of division by zero
             np.seterr(divide='ignore', invalid='ignore')
             try:
-                alp_mean = np.log(20)/b_mean
+                alp_mean = val/b_mean
                 occ_mean = 1/alp_mean
-                occ_stdev = 1/(np.log(20)/b_stdev)
+                occ_stdev = 1/(val/b_stdev)
                 
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev), file=self.log)
                 print("Other alpha determinations:", file=self.log)
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(np.log(20)/(np.asarray(peaks, dtype='float64')))), file=self.log)
-                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(np.log(20)/mode)), file=self.log)
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(val/(np.asarray(peaks, dtype='float64')))), file=self.log)
+                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(val/mode)), file=self.log)
                 #print 1/np.exp(np.asarray(peaks, dtype='float64'))
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev), file=self.log)
-                print("  Occupancy based on fit of average: %s" %(1/(np.log(20)/(poptave[1]))), file=self.log)
+                print("  Occupancy based on fit of average: %s" %(1/(val/(poptave[1]))), file=self.log)
                 #print("occupancies at alpha values tested")
                 #for i in self.alphas:
                     #print("%.3f      ///////     %.3f" %(i, logfit(i,1,b_mean,0)))
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev))
                 print("Other alpha determinations:")
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(np.log(20)/(np.asarray(peaks, dtype='float64')))))
-                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(np.log(20)/mode)))
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(val/(np.asarray(peaks, dtype='float64')))))
+                #TODO: plot the histogram. Preferable in same figure as the actual distances
+                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(val/mode)))
                 #print 1/np.exp(np.asarray(peaks, dtype='float64'))
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev))
-                print("  Occupancy based on fit of average: %s" %(1/(np.log(20)/(poptave[1]))))
+                print("  Occupancy based on fit of average: %s" %(1/(val/(poptave[1]))))
 
             except TypeError:
                 print("Problem with occupancy extraction", file=self.log)
@@ -596,5 +699,6 @@ if __name__ == '__main__':
     else:
         do_the_distance_analysis(pdbs, occupancies, resids_lst, use_waters = use_waters, outsuffix = outsuffix, log = log)        
 
-    if  args.log_file != None:
-        log.close()
+    #if  args.log_file != None:
+        #log.close()
+    log.close()
