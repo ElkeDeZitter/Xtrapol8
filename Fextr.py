@@ -52,12 +52,10 @@ TODO:
 - clean up Fextr_utils: remove unnecessary functions
 - Resolve problem with 90% multiplicity estimation
 - option to automatically create cif with phenix.elbow
-- Map explorer analysis: should be working for DNA.
 - GUI: warning message if people want to run crazy stuff that they better run on a powerfull machine in command line mode
 - update example phil and manual
 - Suggest resolution cutoff based on Riso and CCiso, write resolution suggestions based on true completeness and <F/SIG(F)> to logfile
 - add comments to various steps of script (especially the weird steps)
-- nucleic acid compatibility
 - keep anomalous data
 - If model hasen't been refined with the mtz_ref,we should first run a rigid body refinement and use the output pdb from that
 - make an object to store the results in a clean and transparant way and get rid of lists which may mess up the analysis if refinements have failed
@@ -68,6 +66,8 @@ TODO:
 - absolute q-weighting (no normalization by devision of the average)
 - usefullness of the sig(FoFo)_vs_sig(Fextr) plot
 - check scaling no with data from XSCALE
+- plot the F and sig(F) after negative handling
+- ddm with linear scale / sum of differences instead of plotting for each atom
 """
 from __future__ import division, print_function
 import re
