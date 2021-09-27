@@ -50,7 +50,7 @@ colorlib=['purple','indigo','rebeccapurple', 'midnightblue', 'darkblue', 'medium
 
 def logfit(x, a, b, c):
     #c = 0
-    return a * (1- np.exp(-b * x)) + c #* x
+    return a * (1- np.exp(-b * x)) + c * x
 
 def logfit_2(fact,x):
     """
@@ -58,7 +58,7 @@ def logfit_2(fact,x):
     """
     a, b, c = fact
     #c = 0
-    return a * (1- np.exp(-b * x)) + c #* x
+    return a * (1- np.exp(-b * x)) + c * x
 
 def sumofsquares(arr):
     return np.sum(arr**2)
