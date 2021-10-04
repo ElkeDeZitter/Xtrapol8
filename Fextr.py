@@ -703,16 +703,26 @@ class DataHandler(object):
         """
         cif_list = []
         for cif in self.cif_objects:
+            normal_cif = False
             for comp in cif[1]:
-                try:
+                try: #This should work for a proper cif file
                     ligand = re.search(r'comp_(.+?)$', comp).group(1)
+                    if len(ligand) == 3 and ligand not in cif_list:
+                        cif_list.append(ligand)
+                    normal_cif == True
+                except AttributeError:
+                    continue
+            if normal_cif: #when multiple ligands are merged into one cif-file
+                for ligand in cif[1]['comp_list']['_chem_comp.id']:
+                    if ligand not in cif_list:
+                        cif_list.append(ligand)
+            else:
+                try: #This is for a raw downloaded cif file (bugs may appear later in Xtrapol8). Requires a single ligand per file for now
+                    ligand = cif[1].keys()[0]
                     if len(ligand) == 3 and ligand not in cif_list:
                         cif_list.append(ligand)
                 except AttributeError:
                     continue
-            for ligand in cif[1]['comp_list']['_chem_comp.id']:
-                if ligand not in cif_list:
-                    cif_list.append(ligand)
         return cif_list
 
     def generate_Rfree(self, array, fraction):
@@ -2017,7 +2027,7 @@ def run(args):
     maptypes_zip   = zip(all_maptypes, all_maps)
     final_maptypes = [mp[0] for mp in maptypes_zip if mp[1] == True]
     
-    print("final_maptypes", final_maptypes)
+    #print("final_maptypes", final_maptypes)
     
     if qFoFo_weight:
         params.f_and_maps.fofo_type = 'qfofo'
