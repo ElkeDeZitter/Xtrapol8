@@ -52,12 +52,10 @@ TODO:
 - clean up Fextr_utils: remove unnecessary functions
 - Resolve problem with 90% multiplicity estimation
 - option to automatically create cif with phenix.elbow
-- Map explorer analysis: should be working for DNA.
 - GUI: warning message if people want to run crazy stuff that they better run on a powerfull machine in command line mode
 - update example phil and manual
 - Suggest resolution cutoff based on Riso and CCiso, write resolution suggestions based on true completeness and <F/SIG(F)> to logfile
 - add comments to various steps of script (especially the weird steps)
-- nucleic acid compatibility
 - keep anomalous data
 - If model hasen't been refined with the mtz_ref,we should first run a rigid body refinement and use the output pdb from that
 - make an object to store the results in a clean and transparant way and get rid of lists which may mess up the analysis if refinements have failed
@@ -68,6 +66,8 @@ TODO:
 - absolute q-weighting (no normalization by devision of the average)
 - usefullness of the sig(FoFo)_vs_sig(Fextr) plot
 - check scaling no with data from XSCALE
+- plot the F and sig(F) after negative handling
+- ddm with linear scale / sum of differences instead of plotting for each atom
 """
 from __future__ import division, print_function
 import re
@@ -703,16 +703,26 @@ class DataHandler(object):
         """
         cif_list = []
         for cif in self.cif_objects:
+            normal_cif = False
             for comp in cif[1]:
-                try:
+                try: #This should work for a proper cif file
                     ligand = re.search(r'comp_(.+?)$', comp).group(1)
+                    if len(ligand) == 3 and ligand not in cif_list:
+                        cif_list.append(ligand)
+                    normal_cif == True
+                except AttributeError:
+                    continue
+            if normal_cif: #when multiple ligands are merged into one cif-file
+                for ligand in cif[1]['comp_list']['_chem_comp.id']:
+                    if ligand not in cif_list:
+                        cif_list.append(ligand)
+            else:
+                try: #This is for a raw downloaded cif file (bugs may appear later in Xtrapol8). Requires a single ligand per file for now
+                    ligand = cif[1].keys()[0]
                     if len(ligand) == 3 and ligand not in cif_list:
                         cif_list.append(ligand)
                 except AttributeError:
                     continue
-            for ligand in cif[1]['comp_list']['_chem_comp.id']:
-                if ligand not in cif_list:
-                    cif_list.append(ligand)
         return cif_list
 
     def generate_Rfree(self, array, fraction):
@@ -2017,7 +2027,7 @@ def run(args):
     maptypes_zip   = zip(all_maptypes, all_maps)
     final_maptypes = [mp[0] for mp in maptypes_zip if mp[1] == True]
     
-    print("final_maptypes", final_maptypes)
+    #print("final_maptypes", final_maptypes)
     
     if qFoFo_weight:
         params.f_and_maps.fofo_type = 'qfofo'
@@ -2884,6 +2894,15 @@ def run(args):
     #Add final lines to Pymol_script
     if os.path.isfile('%s/pymol_movie.py' %(outdir)):
         Pymol_movie(params.occupancies.list_occ, resids_lst = residlst).write_pymol_appearance('%s/pymol_movie.py' %(outdir))
+        
+    #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
+    if params.output.GUI:
+        #pub.sendMessage("Best occ", occ_overview=occ_overview)
+        #print("Message sent to GUI")
+        occ_pickle = open("occupancy_recap.pickle", "wb")
+        pickle.dump(occ_overview, occ_pickle)
+        occ_pickle.close()
+        
     
 
     #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
@@ -2905,7 +2924,6 @@ def run(args):
     print("Map type       Occupancy")
     for k in occ_overview:
         print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]))
-
     print("-> Optimal occupancy of triggered state %.3f." %(occ))
 
     

@@ -241,6 +241,10 @@ class Difference_distance_analysis(object):
         
         n_rows = n_rows_prot
 
+        outname = '%s/ddm_%s_vs_%s'%(self.outdir, self.pdb1_name,self.pdb2_name)
+        outname_pdf = '%s.pdf'%(outname)
+        outname_png = '%s.png'%(outname)
+
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(10*n_rows, 10*n_cols))#, constrained_layout=True)
         #fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
         c = mcolors.ColorConverter().to_rgb
@@ -269,7 +273,15 @@ class Difference_distance_analysis(object):
                             
                     ddm, seq_info = self.calculate_ddm(chain1, chain2)
                     
-                    n,m = ddm.shape
+                    try:
+                        n,m = ddm.shape
+                        if ddm.shape[0] == 0:
+                            raise ValueError
+                    except ValueError:
+                        print("ddm cannot be generated.")
+                        #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though
+                        return outname_png
+                    
                     assert n==m, "Difference matrix for chain %s is incorrect"
                     
                     mask = np.zeros_like(ddm, dtype=np.bool)
@@ -369,12 +381,8 @@ class Difference_distance_analysis(object):
             #row += 1
             #col = 0
             
-                
         fig.tight_layout()
-        outname = '%s/ddm_%s_vs_%s'%(self.outdir, self.pdb1_name,self.pdb2_name)
-        outname_pdf = '%s.pdf'%(outname)
         plt.savefig(outname_pdf, dpi=300, transparent=True)
-        outname_png = '%s.png'%(outname)
         plt.savefig(outname_png, dpi=300, transparent=True)
         plt.close()
         

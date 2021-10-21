@@ -49,6 +49,7 @@ import scipy.stats
 colorlib=['purple','indigo','rebeccapurple', 'midnightblue', 'darkblue', 'mediumblue', 'blue', 'royalblue', 'dodgerblue', 'cornflowerblue', 'deepskyblue', 'lightskyblue', 'cadetblue','darkcyan', 'darkturquoise', 'mediumturquoise', 'turquoise', 'aqua', 'mediumaquamarine', 'aquamarine', 'mediumspringgreen', 'springgreen', 'green', 'lime', 'lawngreen', 'chartreuse', 'greenyellow', 'yellow', 'gold', 'goldenrod', 'orange', 'darkorange', 'chocolate', 'darksalmon', 'orangered', 'red', 'firebrick', 'maroon', 'darkred', 'black']
 
 def logfit(x, a, b, c):
+    #c = 0
     return a * (1- np.exp(-b * x)) + c * x
 
 def logfit_2(fact,x):
@@ -56,6 +57,7 @@ def logfit_2(fact,x):
     variant of previous function for easier use with np.apply_along_axis
     """
     a, b, c = fact
+    #c = 0
     return a * (1- np.exp(-b * x)) + c * x
 
 def sumofsquares(arr):
@@ -75,8 +77,10 @@ def fitting(sel, x):
             #bound of a: 0 to 2*np.max(sel)
             #bound of b to constrain occupancy to sensible values (0.1 means 300% occupancy); now 0.5 (i.e. 51% occupancy at 98/% of plateau) to 25 (i.e 1% occupancy at 98% of plateau)
             #bound of c to account for reduction of distance difference at higher alpha values AND contrain fitted distance difference to not exceed max oxbserved; now -np.max(x) to zero
-            popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x)+x,absolute_sigma=False,
-                                bounds=((0, .5, -np.max(x)), (2*np.max(sel), 25, 0)))
+            #popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x)+x,absolute_sigma=False,
+                                #bounds=((0, .5, -np.max(x)), (2*np.max(sel), 25, 0)))
+            popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x),absolute_sigma=False,
+                                bounds=((0.80*np.max(sel), 0.001, -0.001), (1.15*np.max(sel),100, 0.001)))
         except ValueError: 
             popt = np.array([0.,0.,0.])
         #print(np.array([popt[0], popt[1], popt[2]]))
@@ -246,7 +250,7 @@ class Distance_analysis(object):
         #select the coordinates and info from the common atoms
         coord = coord[indices_retain]
         info  = info[indices_retain]
-        
+        #print("info", info)
         assert info.shape[0] == coord.shape[0]
         
         return coord, info
@@ -270,7 +274,7 @@ class Distance_analysis(object):
             CA = coords[i]
         #print CA
             diff[:,i] = self.get_d(coords, CA, axis=1)
-        #print diff
+        #print(diff)
         return diff
     
     def find_peaks(self, a,b):
@@ -318,6 +322,7 @@ class Distance_analysis(object):
             distances = np.array(self.get_dist_matrix(coord))
             #We actually only needs the upper triangle because all distances are double
             distances = np.triu(distances)
+            #print("max distance:", np.max(distances))
             #Assemble the difference matrices from the different pdb-files
             #alldistances.append(distances)
             try:
@@ -330,12 +335,12 @@ class Distance_analysis(object):
             difference = np.subtract(distances, alldistances[0])
             #difference=distances-alldistances[0]
             #difference=np.array(difference)
-            #Only keep the differences that are larger dan mindiff
-            print("Filter distances > %.2f" %(mindiff))
-            maxids = np.where(np.abs(difference)>mindiff)
-            #minids = np.where(difference<-mindiff)
-            max_proj=np.zeros(np.shape(difference))
-            max_proj[maxids] = difference[maxids] 
+            #Only keep the differences that are larger dan mindiff: this is not done here anymore: maxids and max_proj not used
+            #print("Filter distances > %.2f" %(mindiff))
+            #maxids = np.where(np.abs(difference)>mindiff)
+            ##minids = np.where(difference<-mindiff)
+            #max_proj=np.zeros(np.shape(difference))
+            #max_proj[maxids] = difference[maxids] 
             #max_proj[minids] = difference[minids] 
             try:
                 alldifferences= np.vstack([alldifferences, difference[np.newaxis,...]])
@@ -349,11 +354,16 @@ class Distance_analysis(object):
         #self.alldifferences = np.asarray(alldifferences)
         
         assert self.info.shape[0] == self.alldistances.shape[1] == self.alldistances.shape[2] == self.alldifferences.shape[1] == self.alldifferences.shape[2]
-        
-        print("max sampled distance: %s" %(np.max(alldistances)), file=self.log)
-        print("properties of differences (max, mean, median): %s /// %s /// %s " %(np.max(alldifferences), np.mean(alldifferences), np.median(alldifferences)), file=self.log)
-        print("max sampled distance: %s" %(np.max(alldistances)))
-        print("properties of differences (max, mean, median): %s /// %s /// %s " %(np.max(alldifferences), np.mean(alldifferences), np.median(alldifferences)))
+
+        try:
+            print("max sampled distance: %s" %(np.max(alldistances)), file=self.log)
+            print("properties of differences (max, mean, median): %s /// %s /// %s " %(np.max(alldifferences), np.mean(alldifferences), np.median(alldifferences)), file=self.log)
+            print("max sampled distance: %s" %(np.max(alldistances)))
+            print("properties of differences (max, mean, median): %s /// %s /// %s " %(np.max(alldifferences), np.mean(alldifferences), np.median(alldifferences)))
+        except ValueError:
+            #This happens in case the alldistances matrix is empty
+            print("No distance differences observed", file=self.log)
+            print("No distance differences observed")
                 
     def plot_distance_differences_and_get_possible_b(self, maxdist = 6.0, mindist = 2.0, maxdiff = 1000, mindiff=0.05):
         
@@ -367,6 +377,7 @@ class Distance_analysis(object):
         self.alldifferences = np.abs(self.alldifferences)
 
         # get matrix with all interesting combinations distances for alpha calculation
+        print("Filter distance differences between %.2f and %.2f" %(mindiff, maxdiff))
         for a in range(1,len(self.alphas)):
             s = np.where(self.alldifferences[a] <= maxdiff, 1, 0)
             t = np.where(self.alldifferences[a] >= mindiff, 1, 0)
@@ -432,7 +443,7 @@ class Distance_analysis(object):
         #e don't need intermediate matrices anymore, so let's clear them already
         del res_matrix, sumofsquares_res_matrix, totalsumsquares_matrix
         
-        #update toplot_matrix with only the row-column pairs where r_square > 0.95 and chisq > 1.5:
+        #update toplot_matrix with only the row-column pairs where r_square > 0.95 and 0 < chisq < 1.5:
         a = np.where((1.5 - chisq_matrix) > 0, 1, 0)
         b = np.where(r_squared_matrix > 0.95, 1, 0)
         toplot_matrix = np.multiply(a, b)
@@ -550,7 +561,7 @@ class Distance_analysis(object):
         
         #Plot the histogram with possible occupancies
         possible_occ = np.round(1/(val/possible_b), decimals=3)
-        print(possible_occ)
+        #print(possible_occ)
         counts, bins = np.histogram(possible_occ)
 
         ax1.hist(bins[:-1], bins, weights=counts)
@@ -573,6 +584,11 @@ class Distance_analysis(object):
     def extract_alpha(self):
         
         self.get_all_distances()
+        if self.alldistances.shape[1] == 0:
+            print("Occupancy cannot be determined",file=self.log)
+            print("Occupancy cannot be determined")
+            return 1.0, 1.0
+        
         if self.resids_lst == None:
             #print("No resdlist")
             #possible_b, poptave = self.plot_distance_differences_and_get_possible_b(maxdist = 5.0, mindist = 2.4, maxdiff = 1000, mindiff=0.05)
@@ -619,23 +635,22 @@ class Distance_analysis(object):
                 occ_stdev = 1/(val/b_stdev)
                 
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev), file=self.log)
-                print("Other alpha determinations:", file=self.log)
+                print("Other:", file=self.log)
                 print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(val/(np.asarray(peaks, dtype='float64')))), file=self.log)
                 print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(val/mode)), file=self.log)
                 #print 1/np.exp(np.asarray(peaks, dtype='float64'))
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev), file=self.log)
-                print("  Occupancy based on fit of average: %s" %(1/(val/(poptave[1]))), file=self.log)
+                print("  Occupancy based on fit of average distance: %s" %(1/(val/(poptave[1]))), file=self.log)
                 #print("occupancies at alpha values tested")
                 #for i in self.alphas:
                     #print("%.3f      ///////     %.3f" %(i, logfit(i,1,b_mean,0)))
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev))
-                print("Other alpha determinations:")
+                print("Other:")
                 print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(val/(np.asarray(peaks, dtype='float64')))))
-                #TODO: plot the histogram. Preferable in same figure as the actual distances
                 print("  Occupancy based on most occuring value in histogram: %.3f" %(1/(val/mode)))
                 #print 1/np.exp(np.asarray(peaks, dtype='float64'))
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev))
-                print("  Occupancy based on fit of average: %s" %(1/(val/(poptave[1]))))
+                print("  Occupancy based on fit of average distance: %s" %(1/(val/(poptave[1]))))
 
             except TypeError:
                 print("Problem with occupancy extraction", file=self.log)

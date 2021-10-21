@@ -1024,6 +1024,25 @@ def run(args):
     all_maps       = [qFextr_map, Fextr_map, qFgenick_map, Fgenick_map, qFextr_calc_map, Fextr_calc_map, kFextr_map, kFgenick_map, kFextr_calc_map]
     maptypes_zip   = zip(all_maptypes, all_maps)
     final_maptypes = [mp[0] for mp in maptypes_zip if mp[1] == True]
+    
+    
+    #Add all arguments to log-file
+    print('-----------------------------------------', file=log)
+    print("ARGUMENTS", file=log)
+    print('-----------------------------------------', file=log)
+    
+    print('-----------------------------------------')
+    print("ARGUMENTS")
+    print('-----------------------------------------')
+
+    modified_phil = master_phil.format(python_object=params)
+    modified_phil.show()
+    modified_phil.show(out=log)
+    ##get the differences with the default values and only show these in the log-file
+    #diff_phil = master_phil.fetch_diff(source=modified_phil)
+    #diff_phil.show()
+    #diff_phil.show(out=log)
+
 
     print('-----------------------------------------')
     print('DATA PREPARATION')
