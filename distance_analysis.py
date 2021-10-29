@@ -79,17 +79,26 @@ def fitting(sel, x):
             #bound of c to account for reduction of distance difference at higher alpha values AND contrain fitted distance difference to not exceed max oxbserved; now -np.max(x) to zero
             #popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x)+x,absolute_sigma=False,
                                 #bounds=((0, .5, -np.max(x)), (2*np.max(sel), 25, 0)))
+            bmax = val #see below for val definition and why bmax=val
+            bmin = val/100 #see below for val definition and why bmin=val/100
             popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x),absolute_sigma=False,
-                                bounds=((0.80*np.max(sel), 0.001, -0.001), (1.15*np.max(sel),100, 0.001)))
+                                bounds=((0.80*np.max(sel), bmin, -0.001), (1.15*np.max(sel), bmax, 0.001)))
         except ValueError: 
             popt = np.array([0.,0.,0.])
         #print(np.array([popt[0], popt[1], popt[2]]))
         return np.array(popt)
     
 class Distance_analysis(object):
-    def __init__(self, pdblst, occupancies, resids_lst = None, plateau_fraction=0.98, use_waters = True, outsuffix = '', log = sys.stdout):
+    def __init__(self, pdblst, occupancies, resids_lst = None, plateau_fraction=0.99, use_waters = True, outsuffix = '', log = sys.stdout):
         self.resids_lst       = resids_lst
-        self.plateau_fraction = plateau_fraction
+        if plateau_fraction < 0.0:
+            print("Distance analysis plateau fraction should be set between 0.0 and 1.0")
+            self.plateau_fraction = 0.99
+        elif plateau_fraction > 1.0:
+            print("Distance analysis plateau fraction should be set between 0.0 and 1.0")
+            self.plateau_fraction = 0.99
+        else:
+            self.plateau_fraction = plateau_fraction
         self.occupancies      = occupancies
         self.use_waters       = use_waters
         self.outsuffix        = outsuffix
@@ -102,6 +111,27 @@ class Distance_analysis(object):
         #Assumes the alpha of the reference still needs to be added and that this will be the first pdb in the list...
         if (0.01 not in alphas and len(alphas) != len(pdblst)):
             alphas = [0.01]+alphas
+            
+        #Search alpha for 0.95 = 1*(1-np.exp(-b*alpha))
+        #   0.05 = 1/(np.exp(b*alpha)
+        #   ln(1/0.05) = b*alpha
+        #   ln(20)/b = alpha
+        #For 98% of plateau level, need ln(50)
+        #If a != 1, we need to use the gerenal case:
+        #find x for 0.95 = a*(1-np.exp(-b*x))
+        #   ln(-a/(0.95-a))/b = x
+        #for any plateau-fraction (np.log is natural logarithm):
+        val = np.log(1/(1-self.plateau_fraction))
+        global val
+        #val/b = alpha
+        #To find max and min b-values:
+        #   b = val/alpha
+        #For occ = 1.0 => alpha = 1
+        #   b = val
+        #For occ = 0.01 => alpha=100
+        #   b = val/100
+        
+
      
         #Sort the pdb files and alphas in order to have alpha from small to large, this is important for fitting
         #This might not work in pyhton3
@@ -475,7 +505,7 @@ class Distance_analysis(object):
         #find x for 0.95 = a*(1-np.exp(-b*x))
         #   ln(-a/(0.95-a))/b = x
         #For 98% of plateau level, need ln(50); np.log is natural logarithm hence ln
-        val = np.log(1/(1-self.plateau_fraction))
+        #val = np.log(1/(1-self.plateau_fraction))
 
         
         #only loop over all distances to plot if less than 40
@@ -615,17 +645,6 @@ class Distance_analysis(object):
             #plt.ylabel("Occurance")
             #plt.title("Alpha histogram based on distance difference with reference model")
             #plt.savefig("Possible_b_based_on_rmsd_%s.png" %(self.outsuffix), dpi=300, transparent=True)
-                        
-            
-            #Search x for 0.95 = 1*(1-np.exp(-b*x))
-            #   0.05 = 1/(np.exp(b*x)
-            #   ln(1/0.05) = b*x
-            #   ln(20)/b = x
-            #If a != 1, we need to use the gerenal case:
-            #find x for 0.95 = a*(1-np.exp(-b*x))
-            #   ln(-a/(0.95-a))/b = x
-            #For 98% of plateau level, need ln(50); np.log is natural logarithm hence ln
-            val = np.log(1/(1-self.plateau_fraction))
             
             #set waring and error to ignore because possibility of division by zero
             np.seterr(divide='ignore', invalid='ignore')
