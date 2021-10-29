@@ -1,12 +1,10 @@
 import os.path
-import random
+import glob
 import threading
 from threading import Thread
 import sys
 import wx
-import time
 import subprocess
-
 from wx.lib.pubsub import pub
 from gui import panelIO, panelExtrapolation, panelRefinement, panelLog
 from gui.panelLog import TabLog, TabMainImg, TabOccResults
@@ -14,8 +12,6 @@ from gui.panelLog import TabLog, TabMainImg, TabOccResults
 from libtbx.phil import parse
 
 from Fextr import master_phil
-from Fextr import run as MainX8
-#from debug_phil import input_debug_phil
 from wx.aui import AuiNotebook
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
@@ -45,7 +41,6 @@ class NotebookConfigure(AuiNotebook):
                              # wx.BK_BOTTOM
                              # wx.BK_LEFT
                              # wx.BK_RIGHT
-
 
         # Create the first tab and add it to the notebook
         self.tabIO = panelIO.TabIO(self)
@@ -128,6 +123,17 @@ class MainNotebook(AuiNotebook):
         if self.idx > 0 : self.SetWindowStyleFlag(bookStyleYES)
         else : self.SetWindowStyleFlag(bookStyleNO)
 
+    def OnPageClose(self, idx):
+        SelectedThread = self.threads[idx]
+        if SelectedThread.is_alive():
+            Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus', wx.YES_NO | wx.NO_DEFAULT).ShowModal()
+            if Stop == wx.ID_YES:
+                SelectedThread.stop()
+            else:
+                evt.Veto()
+                return
+        self.threads.pop(idx)
+
 
 class X8Thread(Thread):
     """This is the thread which will run the code"""
@@ -145,14 +151,14 @@ class X8Thread(Thread):
         # For debugging purpose
         #pub.sendMessage("END", Nlog=self.Nlog)
         #return
-        p = subprocess.Popen(['phenix.python', os.path.join(script_dir, 'Fextr.py'), 'tmp.phil'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)#sys.stdout.fileno())
+        p = subprocess.Popen(['phenix.python', os.path.join(script_dir, 'Fextr.py'), 'tmp.phil'],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         while True:
 
             line = p.stdout.readline()
             if not line:
                 pub.sendMessage("END", Nlog=self.Nlog)
-                print("JOB FINISHED")
                 return
             if self.stopped():
                 print("Run stopped")
@@ -176,12 +182,13 @@ class MainFrame(wx.Frame):
     This Frame also holds part of the model (design to be improved)
     """
     # ----------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self,args):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "XtraPol8",
+                          "XtraPolG8",
                           size=(1100, 1000)
                           )
+
 
         default_font = wx.Font(11, wx.MODERN, wx.NORMAL, wx.NORMAL, False, 'MS Shell Dlg 2')
 
@@ -189,6 +196,7 @@ class MainFrame(wx.Frame):
         menubar = wx.MenuBar()
         fileMenu = wx.Menu()
         fileItemOpenPhil = fileMenu.Append(wx.ID_ANY, 'Open phil', 'Open input phil')
+        fileItemLoadResults = fileMenu.Append(wx.ID_ANY, 'Load Results', 'Load Results from previous Xtrapol8 runs')
         fileItemSavePhil = fileMenu.Append(wx.ID_ANY, 'Save phil', 'Save all inputs in a phil file')
         fileItemQuit = fileMenu.Append(wx.ID_EXIT, 'Quit', 'Quit application')
         menubar.Append(fileMenu, "&File")
@@ -196,6 +204,7 @@ class MainFrame(wx.Frame):
         self.SetMenuBar(menubar)
         self.Bind(wx.EVT_MENU, self.OnClose, fileItemQuit)
         self.Bind(wx.EVT_MENU, self.OnOpenPhil, fileItemOpenPhil)
+        self.Bind(wx.EVT_MENU, self.OnLoadResults, fileItemLoadResults)
         self.Bind(wx.EVT_MENU, self.OnSavePhil, fileItemSavePhil)
         self.Bind(wx.EVT_CLOSE, self.OnClose)
 
@@ -209,7 +218,7 @@ class MainFrame(wx.Frame):
         self.ToolBar.Realize()
 
         #The panel will hold the MainNotebook
-        panel = wx.Panel(self)
+        panel = wx.Panel(parent=self)
         self.notebook = MainNotebook(panel)
         self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.OnPageClose, self.notebook) #Closgin a run tab
 
@@ -222,6 +231,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
         self.Bind(wx.EVT_TIMER, self.updateFextr, self.timerFextr)
         pub.subscribe(self.updateFextr, "updateFextr")
+        pub.subscribe(self.X8ModeChanged,"X8Mode")
 
         # These variables will be used by the timer callbacks to update the gui accordingly
         self.pngs = ["Riso_CCiso.png",
@@ -245,6 +255,30 @@ class MainFrame(wx.Frame):
         panel.SetSizer(self.fsizer)
         self.Layout()
         self.Show()
+        if len(args) >= 1:
+            phil = args[1]
+            #try:
+            self.OnOpenPhil(event=None,phil_file=phil)
+            #except:
+            #    pass
+
+
+    def X8ModeChanged(self ,mode):
+        old, new = mode
+        modes = ["FoFo", "FNF", "CNC"]
+        new_mode = modes[new]
+        # Saving phil for future restauration
+        input_phil = self.extract_phil()
+        modified_phil = master_phil.format(python_object=input_phil)
+        modified_phil.show(out=open(".%s.phil"%old, "w"))
+
+        # Restauration if possible
+        self.notebook.Configure.tabExt.currentX8Mode = new_mode
+        phil_file = ".%s.phil" % new_mode
+        if os.path.exists(phil_file):
+            user_params = self.extract_debug_phil(open(phil_file).read())
+            self.SetWidgetsTabExt(user_params,SetX8=False)
+            #self
 
     def update(self, event):
         """
@@ -255,7 +289,8 @@ class MainFrame(wx.Frame):
         :return: None
         """
         run = self.notebook.GetSelection() - 1
-        if run >= 0 and self.notebook.threads[run].is_alive():
+        if run >= 0:
+            if self.notebook.threads[run] is not None and self.notebook.threads[run].is_alive():
                 if self.pngs_idx[run] < len(self.pngs):
                     png = self.pngs[self.pngs_idx[run]]
                     
@@ -273,7 +308,7 @@ class MainFrame(wx.Frame):
 
     def updateFextr(self, evt):
         run = self.notebook.GetSelection() - 1
-        if run >= 0 and self.notebook.threads[run].is_alive():
+        if run >= 0:
             if hasattr(self.notebook.ResultsBooks[run].tabImg, 'FextrSelection'):
                 tab = self.notebook.ResultsBooks[run].tabImg
                 Fextr = tab.FextrSelection.GetStringSelection()
@@ -288,34 +323,39 @@ class MainFrame(wx.Frame):
                     if os.path.isfile(filepath):
                         tab.addFextrImg(filepath)
 
-#                    else:
-#                        print("%s does not exists" %filepath)
+                    else:
+                        print("%s does not exists" %filepath)
 
     def OnPageClose(self, evt):
         # will check that the run is not running - will clean its thread list accordingly
         # Variables to update after deleting the run tab of the main notebook
 
-        run = self.notebook.GetSelection()-1
+        run = self.notebook.GetSelection() - 1
         SelectedThread = self.notebook.threads[run]
         if SelectedThread.is_alive():
             Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus',
                                     wx.YES_NO | wx.NO_DEFAULT).ShowModal()
-            #print Stop
+            # print Stop
             if Stop == wx.ID_YES:
                 print("Clicked YES")
                 SelectedThread.stop()
-                self.notebook.threads.pop(run)
-                self.notebook.ResultsBooks.pop(run)
-                self.inputs.pop(run)
-                self.pngs_idx.pop(run)
+
             else:
                 evt.Veto()
+                return
+        self.notebook.threads.pop(run)
+        self.notebook.ResultsBooks.pop(run)
+        self.inputs.pop(run)
+        self.pngs_idx.pop(run)
 
 
     def OnClose(self, event):
         # Should check if any job is running
         if self.timer.IsRunning(): self.timer.Stop()
         if self.timerFextr.IsRunning(): self.timer.Stop()
+        phils = glob.glob(".*phil")
+        for phil in phils:
+            os.remove(phil)
         self.Destroy()
 
     def OnToolBar(self, event):
@@ -327,17 +367,19 @@ class MainFrame(wx.Frame):
         elif id == 103:
             self.OnStopRun()
 
-    def OnrunX8(self):
+    def AddResultsTab(self):
+        self.notebook.Runs += 1
+        self.notebook.ResultsBooks.append(NoteBookResults(self.notebook, self.input_phil))
+        self.notebook.AddPage(self.notebook.ResultsBooks[self.notebook.Runs], "Run #%i" % (self.notebook.Runs + 1))
+        
+
+    def OnrunX8(self,):
         if self.check_user_input():
 
             self.input_phil = self.extract_phil()
             modified_phil = master_phil.format(python_object=self.input_phil)
             modified_phil.show(out=open("tmp.phil", "w"))
-            # for debugging purpose
-            # self.input_phil = self.extract_debug_phil(input_debug_phil)
-            self.notebook.Runs += 1
-            self.notebook.ResultsBooks.append(NoteBookResults(self.notebook, self.input_phil))
-            self.notebook.AddPage(self.notebook.ResultsBooks[self.notebook.Runs], "Run #%i" % (self.notebook.Runs + 1))
+            self.AddResultsTab()
             if not self.timer.IsRunning():
                 self.timer.Start(2000)
             thread = X8Thread(self.input_phil, self.notebook.Runs)
@@ -348,6 +390,46 @@ class MainFrame(wx.Frame):
             self.inputs.append(self.input_phil)
             thread.start()
 
+    def OnLoadResults(self, evt):
+        PathResults = self.onBrowseDir(evt=None)
+        Phil = os.path.join(PathResults,'Xtrapol8_out.phil')
+        if os.path.exists(Phil):
+            
+            self.OnOpenPhil(event=None, phil_file=Phil)
+            self.input_phil = self.extract_phil()
+            self.AddResultsTab()
+            log = glob.glob(os.path.join(PathResults, "*Xtrapol8.log"))[0]
+            self.pngs_idx.append(0)
+            self.inputs.append(self.input_phil)
+            self.notebook.threads.append(None)
+            run = self.notebook.Runs
+            self.notebook.ResultsBooks[run].tabLog.LogTextCtrl.WriteText(open(log).read())
+            for png in self.pngs:
+                if os.path.isfile(png):
+                    self.notebook.ResultsBooks[run].tabImg.addImg(png)
+            self.notebook.ResultsBooks[run].tabImg.addChoices(self.inputs[run].f_and_maps.f_extrapolated_and_maps)
+            self.notebook.ResultsBooks[run].tabImg.FextrSelection.Bind(wx.EVT_CHOICE,
+                                                                       self.notebook.ResultsBooks[run].tabImg.Clear)
+
+            #if hasattr(self.notebook.ResultsBooks[run].tabImg, 'FextrSelection'):
+            tab = self.notebook.ResultsBooks[run].tabImg
+            Fextr = tab.FextrSelection.GetStringSelection()
+            Total = tab.ImgSizer.GetItemCount()
+            for j in range(Total, len(self.Fextr_pngs)):
+                if Fextr[0] in ['q','k']:
+                    Fextr = Fextr[0] + Fextr[1].upper() + Fextr[2:]
+                else:
+                    Fextr = Fextr[0].upper() + Fextr[1:]
+                png = self.Fextr_pngs[j].replace('tmp', Fextr)
+                filepath = os.path.join(PathResults, png)
+                if os.path.isfile(filepath):
+                    tab.addFextrImg(filepath)
+
+                else:
+                    print("%s does not exists" %filepath)
+            self.notebook.ResultsBooks[run].tabOcc.onFinished()
+        return
+    
     def check_user_input(self):
         tabIO = self.notebook.Configure.tabIO
         message_err="Error with your input files.\nXtrapol8 needs:\n"
@@ -396,10 +478,11 @@ class MainFrame(wx.Frame):
         #modified_phil.show(out=open("tmp.phil", "w"))
         return user_params
 
-    def OnOpenPhil(self, event):
+    def OnOpenPhil(self, event,phil_file=None):
         wildcard = "Phil files (*.phil)|*.phil|" \
                    "All files (*.*)|*.*"
-        phil_file = self.onBrowse(wildcard=wildcard)
+        if phil_file is None:
+            phil_file = self.onBrowse(wildcard=wildcard)
         user_params = self.extract_debug_phil(open(phil_file).read())
         self.SetWidgets(user_params)
 
@@ -410,7 +493,11 @@ class MainFrame(wx.Frame):
         modified_phil.show(out=open(filename, "w"))
 
     def SetWidgets(self, user_params):
-
+        self.SetWidgetsTabIO(user_params)
+        self.SetWidgetsTabExt(user_params)
+        self.SetWidgetsTabRef(user_params)
+    
+    def SetWidgetsTabIO(self, user_params):
         tabIO = self.notebook.Configure.tabIO
 
         # Clear List
@@ -459,10 +546,12 @@ class MainFrame(wx.Frame):
         if user_params.output.outname is not None:
             tabIO.outname.SetValue(user_params.output.outname)
 
+    def SetWidgetsTabExt(self, user_params,SetX8=True):
         #####################
         ### Occ - Ext_tab ###
         #####################
-        self.setX8_mode(user_params)
+        if SetX8:
+            self.setX8_mode(user_params)
 
         tabExt = self.notebook.Configure.tabExt
         tabExt.LowTextCtrl.SetValue(str(user_params.occupancies.low_occ))
@@ -504,6 +593,7 @@ class MainFrame(wx.Frame):
         tabExt.ZscoreTextCtrl.SetValue(str(user_params.map_explorer.z_score))
         tabExt.DistanceAnalysis.SetValue(user_params.map_explorer.use_occupancy_from_distance_analysis)
 
+    def SetWidgetsTabRef(self, user_params):
         # Refinement        
         tabRef = self.notebook.Configure.tabRefine
 
@@ -573,20 +663,21 @@ class MainFrame(wx.Frame):
 
     def setX8_mode(self, user_params):
         if user_params.output.generate_fofo_only is True:
-            self.notebook.Configure.tabExt.X8Modes.SetSelection(2)
+            self.notebook.Configure.tabExt.X8Modes.SetSelection(0)
             self.notebook.Configure.tabExt.onFoFo()
+            self.notebook.Configure.tabExt.currentX8Mode = "FoFo" 
             return
         if user_params.f_and_maps.fast_and_furious is True:
             self.notebook.Configure.tabExt.X8Modes.SetSelection(1)
             self.notebook.Configure.tabExt.onFastNFurious()
+            self.notebook.Configure.tabExt.currentX8Mode = "FNF"
             return
         else:
-            self.notebook.Configure.tabExt.X8Modes.SetSelection(0)
+            self.notebook.Configure.tabExt.X8Modes.SetSelection(2)
             self.notebook.Configure.tabExt.onCalmNCurious()
+            self.notebook.Configure.tabExt.currentX8Mode = "CNC"
 
     def fill_map_types(self, user_params):
-
-
         checkBoxes = ['qfextr', 'fextr', 'kfextr', 'qfgenick', 'kfgenick', 'fgenick', 'qfextr_calc', 'kfextr_calc',
                       'fextr_calc']
         tabExt = self.notebook.Configure.tabExt
@@ -652,6 +743,26 @@ class MainFrame(wx.Frame):
 
             return dlg.GetPath()
 
+    def onBrowseDir(self, evt):
+        """
+        Directory selection
+        :param evt: wx.EVT_BUTTON (guessed)
+        :param text_static: str, modified TextStatic widget
+        :param multi: bool, is text_static multiline (This could be determined by text_static attribute)
+        :param key: str, used to set the value of this key in self.inputs dict
+        :param ext: Could be used to filter file extensions (Not a the moment
+        :return: None
+        """
+        dlg = wx.DirDialog(self,
+                           'Choose Dir',
+                           '',
+                           wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_CANCEL:
+            return
+
+        path = dlg.GetPath()
+        return path
+    
     def extract_phil(self):
         """
         All inputs will be collected from widgets to build the phil object master_phil
@@ -660,27 +771,24 @@ class MainFrame(wx.Frame):
         #master_phil = iotbx.phil.parse(input_string,process_includes=True)
 
         tabIO = self.notebook.Configure.tabIO
-        #print(tabIO.files)
+
         #TODO: Here check that you have a single ref model, ref mtz and at least a trigg mtz
         try:
-            input_reference_mtz = tabIO.files["Reference mtz"][0]
+            tobeparsed = "input.reference_mtz = %s \n" % tabIO.files["Reference mtz"][0]
         except IndexError:
-            input_reference_mtz = "None"
+            tobeparsed = "input.reference_mtz = None \n"
+        
         try:
-            input_triggered_mtz = tabIO.files["Triggered mtz"][0]
+            tobeparsed += "input.triggered_mtz = %s \n" % tabIO.files["Triggered mtz"][0]
         except IndexError:
-            input_triggered_mtz = "None"
+            tobeparsed += "input.triggered_mtz = None \n"
         try:
-            reference_model = tabIO.files["Reference model"][0]
+            tobeparsed += "input.reference_pdb = %s\n" % tabIO.files["Reference model"][0]
         except IndexError:
-            reference_model = "None"
-        tobeparsed = "input.reference_mtz = %s \n" % input_reference_mtz + \
-                     "input.triggered_mtz = %s \n" % input_triggered_mtz + \
-                     "input.reference_pdb = %s\n" % reference_model
-
-        if len(tabIO.files["Restraints"]) > 0:
-            for _add_file in tabIO.files["Restraints"]:
-                if len(_add_file) > 0: tobeparsed += "input.additional_files = %s\n" % _add_file
+            tobeparsed += "input.reference_pdb = None\n" 
+        
+        for _add_file in tabIO.files["Restraints"]:
+            if len(_add_file) > 0: tobeparsed += "input.additional_files = %s\n" % _add_file
         if len(tabIO.highRes.GetValue()) > 0:
             highRes = tabIO.highRes.GetValue()
         else:
@@ -730,7 +838,7 @@ class MainFrame(wx.Frame):
         X8Mode = tabExt.X8Modes.GetSelection()
         if X8Mode == 1:
             tobeparsed += "f_and_maps.fast_and_furious = True\n"
-        if X8Mode == 2:
+        if X8Mode == 0:
             tobeparsed += "output.generate_fofo_only = True\n"
 
 
@@ -814,18 +922,24 @@ class MainFrame(wx.Frame):
             else:
                 strategy += " %s" % checkBox
 
-        tobeparsed += "refinement.phenix_keywords.refine.strategy =%s\n" % strategy +\
-                      "refinement.phenix_keywords.main.cycles = %s\n" % self.get_txtctrl_values(tabRefine.NCyclesReciprocal_TextCtrl) +\
-                      "refinement.phenix_keywords.main.ordered_solvent = %s\n" % tabRefine.ordered_solvent.IsChecked() +\
-                      "refinement.phenix_keywords.main.simulated_annealing = %s\n" % tabRefine.sim_ann.IsChecked() +\
-                      "refinement.phenix_keywords.simulated_annealing.start_temperature = %s\n" % self.get_txtctrl_values(tabRefine.start_T) + \
-                      "refinement.phenix_keywords.simulated_annealing.final_temperature = %s\n" % self.get_txtctrl_values(tabRefine.final_T) + \
-                      "refinement.phenix_keywords.simulated_annealing.cool_rate = %s\n" % self.get_txtctrl_values(tabRefine.cooling_rate) + \
+        tobeparsed += "refinement.phenix_keywords.refine.strategy =%s\n" % strategy + \
+                      "refinement.phenix_keywords.main.cycles = %s\n" % self.get_txtctrl_values(
+            tabRefine.NCyclesReciprocal_TextCtrl) + \
+                      "refinement.phenix_keywords.main.ordered_solvent = %s\n" % tabRefine.ordered_solvent.IsChecked() + \
+                      "refinement.phenix_keywords.main.simulated_annealing = %s\n" % tabRefine.sim_ann.IsChecked() + \
+                      "refinement.phenix_keywords.simulated_annealing.start_temperature = %s\n" % self.get_txtctrl_values(
+            tabRefine.start_T) + \
+                      "refinement.phenix_keywords.simulated_annealing.final_temperature = %s\n" % self.get_txtctrl_values(
+            tabRefine.final_T) + \
+                      "refinement.phenix_keywords.simulated_annealing.cool_rate = %s\n" % self.get_txtctrl_values(
+            tabRefine.cooling_rate) + \
                       "refinement.phenix_keywords.map_sharpening.map_sharpening = %s\n" % tabRefine.map_sharpening.IsChecked() + \
-                      "refinement.phenix_keywords.real_space_refine.cycles = %s\n" % self.get_txtctrl_values(tabRefine.NCyclesReal_TextCtrl) + \
-                      "refinement.phenix_keywords.density_modification.density_modification = %s\n" % tabRefine.density_modification.IsChecked() +\
+                      "refinement.phenix_keywords.real_space_refine.cycles = %s\n" % self.get_txtctrl_values(
+            tabRefine.NCyclesReal_TextCtrl) + \
+                      "refinement.phenix_keywords.density_modification.density_modification = %s\n" % tabRefine.density_modification.IsChecked() + \
                       "refinement.phenix_keywords.density_modification.combine = %s\n" % tabRefine.combine.GetStringSelection() + \
-                      "refinement.phenix_keywords.density_modification.cycles = %s\n" % self.get_txtctrl_values(tabRefine.cycles)
+                      "refinement.phenix_keywords.density_modification.cycles = %s\n" % self.get_txtctrl_values(
+            tabRefine.cycles)
 
         SA_mode = ["every_macro_cycle", "second_and_before_last", "once", "first",  "first_half"]
         choice = tabRefine.mode.GetStringSelection()
@@ -898,5 +1012,5 @@ class MainFrame(wx.Frame):
 # ----------------------------------------------------------------------
 if __name__ == "__main__":
     app = wx.App(False)
-    frame = MainFrame()
+    frame = MainFrame(sys.argv)
     app.MainLoop()

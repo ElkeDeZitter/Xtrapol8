@@ -9,6 +9,8 @@
 #----------------------------------------------------------------------
 
 import wx
+from wx.lib.pubsub import pub
+
 from utils import CharValidator
 
 class TabExtrapolation(wx.Panel):
@@ -20,6 +22,7 @@ class TabExtrapolation(wx.Panel):
         """"""
         wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
         self.createAndLayout()
+        self.parent = parent
         
     def createAndLayout(self):
 
@@ -29,8 +32,9 @@ class TabExtrapolation(wx.Panel):
         #####################
         ###   X8 Modes    ###
         #####################
-        self.X8Modes = wx.RadioBox(self, 1, "X8 Modes", size=(800, -1),choices=["Calm N Curious", "Fast N Furious", "FoFo only"])
+        self.X8Modes = wx.RadioBox(self, 1, "X8 Modes", size=(800, -1),choices=["FoFo only", "Fast N Furious", "Calm N Curious" ])
         self.X8Modes.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
+        self.currentX8Mode = "FoFo"
 
         #####################
         ###  Occupancies  ###
@@ -288,11 +292,12 @@ class TabExtrapolation(wx.Panel):
 
     def onRadioBox(self, evt):
         idx = self.X8Modes.GetSelection()
-        if idx == 0:
+        pub.sendMessage("X8Mode", mode=(self.currentX8Mode, idx))
+        if idx == 2:
             self.onCalmNCurious()
         elif idx == 1:
             self.onFastNFurious()
-        elif idx == 2:
+        elif idx == 0:
             self.onFoFo()
 
     def onCalmNCurious(self):

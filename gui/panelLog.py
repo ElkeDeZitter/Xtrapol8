@@ -13,9 +13,7 @@ from wx.lib.scrolledpanel import ScrolledPanel
 from wxtbx import metallicbutton
 from wx.lib.pubsub import pub
 import glob
-
 script_dir = os.path.dirname(os.path.abspath(__file__))
-
 
 class GradientButton (metallicbutton.MetallicButton):
     def __init__ (self, parent, label='', label2='', bmp=None,
@@ -203,7 +201,8 @@ class TabLog(wx.Panel):
 
     def CreateCoot(self):
         Button2 = wx.Button(self, wx.ID_ANY, label="Open in Coot")
-        bmp = wx.Image(os.path.join(script_dir,'pngs/coot_logo_small.png'), type=wx.BITMAP_TYPE_ANY, index=-1).ConvertToBitmap()
+        bmp = wx.Image(os.path.join(script_dir, 'pngs/coot_logo_small.png'), type=wx.BITMAP_TYPE_ANY,
+                       index=-1).ConvertToBitmap()
 
         # if size is not None :
         #        (w,h) = size
@@ -251,8 +250,6 @@ class TabMainImg(ScrolledPanel):
         self.mainSizer.Add(wx.StaticLine(self, wx.ID_ANY))
         self.mainSizer.AddSpacer(60)
         self.FitInside()
-        self.Refresh()
-        
 
     def addChoices(self, selection):
         self.FextrSelection = wx.Choice(self, wx.ID_ANY, choices=selection)
@@ -263,8 +260,6 @@ class TabMainImg(ScrolledPanel):
         self.mainSizer.AddSpacer(30)
         self.mainSizer.Add(self.ImgSizer, 0, wx.ALIGN_CENTER_HORIZONTAL)
         self.FitInside()
-        self.Refresh()
-        
         index = self.parent.GetSelection()
         pub.sendMessage("updateFextr", evt=None)
 
@@ -284,8 +279,7 @@ class TabMainImg(ScrolledPanel):
                                       wx.BitmapFromImage(img))
         self.ImgSizer.Add(self.newimg, proportion=0,  flag=wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, border=20)
         self.FitInside()
-        self.Refresh()
-        
+
     def Clear(self, evt):
         while not self.ImgSizer.IsEmpty():
             window = self.ImgSizer.GetItem(0).GetWindow()
@@ -311,7 +305,6 @@ class TabOccResults(ScrolledPanel):
         self.best_occ = {}
         self.ddm = {}
         self.coot_scripts = {}
-        pub.subscribe(self.onBestOcc,"Best occ")
         self.setupUI()
 
         self.setupBindings()
@@ -343,7 +336,8 @@ class TabOccResults(ScrolledPanel):
         FextrStatic = wx.StaticText(self, wx.ID_ANY, "Fextr type : ")
         self.best_occ_Static = wx.StaticText(self, wx.ID_ANY, "best estimation @ ...")
         self.coot_button = wx.Button(self, wx.ID_ANY, label="Open in Coot")
-        bmp = wx.Image(os.path.join(script_dir,'pngs/coot_logo_small.png'), type=wx.BITMAP_TYPE_ANY, index=-1).ConvertToBitmap()
+        bmp = wx.Image(os.path.join(script_dir, 'pngs/coot_logo_small.png'), type=wx.BITMAP_TYPE_ANY,
+                       index=-1).ConvertToBitmap()
         self.coot_button.SetBitmapMargins((2, 2))
         self.coot_button.SetBitmap(bmp)
         self.coot_button.Bind(wx.EVT_BUTTON, self.onCoot)
@@ -372,14 +366,6 @@ class TabOccResults(ScrolledPanel):
         self.mainSizer.Add(self.ImgSizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
         self.mainSizer.Layout()
         
-    
-    
-    
-    def onBestOcc(self, occ_overview):
-        print("received best occupancies")
-        print(occ_overview)
-    
-    
     def setupBindings(self):
         self.Bind(wx.EVT_CHOICE, self.onSelection, self.OccChoice)
         self.Bind(wx.EVT_CHOICE, self.onSelection, self.FextrChoice)
@@ -419,15 +405,15 @@ class TabOccResults(ScrolledPanel):
             self.addImg(FsigF)
         
         if self.finished:
-            self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
-            if self.occ == self.best_occ[self.fextr]:
+            self.best_occ_Static.SetLabel("best estimantion @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
+            if float(self.occ) == float(self.best_occ[self.fextr]):
                 self.addImg(self.ddm[self.fextr])
                 if not self.coot_button.IsShown():
                     self.occNfextrSizer.Show(self.coot_button)
             else:
                 if self.coot_button.IsShown():
                     self.occNfextrSizer.Hide(self.coot_button)
-        self.Layout()
+        self.mainSizer.Layout()
         evt.Skip()
 
     def onCoot(self, evt):
@@ -465,20 +451,29 @@ class TabOccResults(ScrolledPanel):
                 self.best_occ[fextr] = self.get_best_occupancy(paths, fextr)
         fextr = self.FextrChoice.GetStringSelection()
         self.occNfextrSizer.Show(self.best_occ_Static)
-        self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[fextr])
-        #self.occNfextrSizer.Show(self.coot_button)
+        self.best_occ_Static.SetLabel("best estimantion @ %s"%self.best_occ[fextr])
+        self.finished = True
 
     def get_best_occupancy(self, paths, fextr):
         for path in paths:
             ddms = glob.glob(os.path.join(path, 'ddm*png'))
             if len(ddms) > 0:
                 for ddm in ddms:
-                    if fextr[2:] in ddm:
-                        self.ddm[fextr] = ddm
-                        self.coot_scripts[fextr] = os.path.dirname(ddm)
-                        s = ddm.split('occupancy_')[1][0:5].strip()
-                        return s                        
-                        #self.OccChoice.SetString(index, "* %s" %s)
+                    if '_calc' in fextr:
+                        if fextr[2:] in ddm:
+                            self.ddm[fextr] = ddm
+                            self.coot_scripts[fextr] = os.path.dirname(ddm)
+                            s = ddm.split('occupancy_')[1][0:5].strip()
+                            return s
+                    else:
+                        if fextr[2:] in ddm and 'calc' not in ddm:
+                            self.ddm[fextr] = ddm
+                            self.coot_scripts[fextr] = os.path.dirname(ddm)
+                            s = ddm.split('occupancy_')[1][0:5].strip()
+                            return s
+
+
+                #self.OccChoice.SetString(index, "* %s" %s)
                         #Add ddm image
 
 
