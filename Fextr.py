@@ -2904,17 +2904,7 @@ def run(args):
     pickle.dump(occ_overview, occ_pickle)
     occ_pickle.close()
         
-    
-
-    #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
-    if params.output.GUI: 
-        #pub.sendMessage("Best occ", occ_overview=occ_overview)
-        #print("Message sent to GUI")
-        occ_pickle = open("occupancy_recap.pickle", "wb")
-        pickle.dump(occ_overview, occ_pickle)
-        occ_pickle.close()
-
-    
+      
     print("Summary of occupancy determination:", file=log)
     print("Map type       Occupancy", file=log)
     for k in occ_overview:
