@@ -2896,12 +2896,13 @@ def run(args):
         Pymol_movie(params.occupancies.list_occ, resids_lst = residlst).write_pymol_appearance('%s/pymol_movie.py' %(outdir))
         
     #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
-    if params.output.GUI:
+    #if params.output.GUI:
         #pub.sendMessage("Best occ", occ_overview=occ_overview)
         #print("Message sent to GUI")
-        occ_pickle = open("occupancy_recap.pickle", "wb")
-        pickle.dump(occ_overview, occ_pickle)
-        occ_pickle.close()
+    #Write the pickle file always as this will also be used when the GUI is launched as resultsloader
+    occ_pickle = open("occupancy_recap.pickle", "wb")
+    pickle.dump(occ_overview, occ_pickle)
+    occ_pickle.close()
         
     
     print("Summary of occupancy determination:", file=log)
@@ -3001,6 +3002,15 @@ def run(args):
         print("----Generate distance difference plot----")
         ddm_out = Difference_distance_analysis(DH.pdb_in, pdb_rec_real, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
         print('---------------------------')
+        
+        #Rewrite the pickle file as to include the ddm_out path
+        occ_overview[mp_type] = [occ, script_coot, ddm_out]
+        #if os.path.isfile("occupancy_recap.pickle"):
+            #os.remove("occupancy_recap.pickle")
+        occ_pickle = open("occupancy_recap.pickle", "wb")
+        pickle.dump(occ_overview, occ_pickle)
+        occ_pickle.close()
+
         
     ################################################################
     #Make sure we are in the output directory
