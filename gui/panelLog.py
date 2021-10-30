@@ -405,7 +405,7 @@ class TabOccResults(ScrolledPanel):
             self.addImg(FsigF)
         
         if self.finished:
-            self.best_occ_Static.SetLabel("best estimantion @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
+            self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
             if float(self.occ) == float(self.best_occ[self.fextr]):
                 self.addImg(self.ddm[self.fextr])
                 if not self.coot_button.IsShown():
@@ -451,7 +451,7 @@ class TabOccResults(ScrolledPanel):
                 self.best_occ[fextr] = self.get_best_occupancy(paths, fextr)
         fextr = self.FextrChoice.GetStringSelection()
         self.occNfextrSizer.Show(self.best_occ_Static)
-        self.best_occ_Static.SetLabel("best estimantion @ %s"%self.best_occ[fextr])
+        self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[fextr])
         self.finished = True
 
     def get_best_occupancy(self, paths, fextr):
