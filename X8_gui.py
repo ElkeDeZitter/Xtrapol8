@@ -255,7 +255,7 @@ class MainFrame(wx.Frame):
         panel.SetSizer(self.fsizer)
         self.Layout()
         self.Show()
-        if len(args) >= 1:
+        if len(args) > 1:
             phil = args[1]
             #try:
             self.OnOpenPhil(event=None,phil_file=phil)
