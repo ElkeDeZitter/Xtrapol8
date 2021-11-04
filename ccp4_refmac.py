@@ -54,7 +54,8 @@ class refmac_refinements(object):
                  map_sharpening        = False,
                  density_modification  = False,
                  dm_combine            = "PERT",
-                 dm_ncycle             = 10):
+                 dm_ncycle             = 10.,
+                 additional_reciprocal_keywords = []):
         
         #Try this instead of huge repetition of the arguments
         adopt_init_args(self, locals())
@@ -124,6 +125,11 @@ class refmac_refinements(object):
             map_sharp_line = 'MAPC SHAR'
         else:
             map_sharp_line = ''
+            
+        additional_keywords_line = ''
+        if len(self.additional_reciprocal_keywords) > 0:
+            for keyword in self.additional_reciprocal_keywords:
+                additional_keywords_line+= "%s " %(keyword)
         
         script_out = 'launch_refmac.sh'
         i = open(script_out,'w')
@@ -152,8 +158,9 @@ NOHARVEST\n\
 %s\
 %s\
 %s\n\
+%s\n\
 end\n\
-eor\n' %(extra_line, self.mtz_in, mtz_out, self.pdb_in, pdb_out, additional_lines, log_file, self.F_column_labels, self.F_column_labels, self.rfree_col, refinement_weight, TLS_line, self.refinement_type, self.Brefinement, twin_line, self.cycles, ext_restraints_line, jelly_body_line, map_sharp_line))
+eor\n' %(extra_line, self.mtz_in, mtz_out, self.pdb_in, pdb_out, additional_lines, log_file, self.F_column_labels, self.F_column_labels, self.rfree_col, refinement_weight, TLS_line, self.refinement_type, self.Brefinement, twin_line, self.cycles, ext_restraints_line, jelly_body_line, map_sharp_line, additional_keywords_line))
         
         ccp4_map_name = re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", mtz_out)
         

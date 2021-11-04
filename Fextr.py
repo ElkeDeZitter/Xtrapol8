@@ -304,12 +304,22 @@ refinement{
             .help = phenix map sharpening
             .expert_level = 1
             }
+        additional_reciprocal_space_keywords = None
+            .type = str
+            .multiple = True 
+            .help = Additional phenix.refine keywords which cannot be altered via included options (e.g. ncs_search.enabled=True)
+            .expert_level = 2
         real_space_refine{
             cycles = 5
             .type = int
             .help = Number of refinement cycles for real space refinement
             .expert_level = 0
             }
+        additional_real_space_keywords = None
+            .type = str
+            .multiple = True 
+            .help = Additional phenix_real_space.refine keywords which cannot be altered via included options (e.g. ncs_constraints=False)
+            .expert_level = 2
         density_modification{
             density_modification = False
             .type = bool
@@ -396,6 +406,11 @@ refinement{
             .help = refmac map sharpening
             .expert_level = 1
             }
+        additional_refmac_keywords = None
+            .type = str
+            .multiple = True 
+            .help = Additional refmac keywords which cannot be altered via included options (e.g. ncsr local)
+            .expert_level = 2        
         density_modification{
             density_modification = False
             .type = bool
@@ -1468,6 +1483,8 @@ class Fextrapolate(object):
                                                     sim_annealing_pars = keywords.simulated_annealing,
                                                     map_sharpening     = keywords.map_sharpening.map_sharpening,
                                                     weight_sel_crit    = keywords.target_weights.weight_selection_criteria,
+                                                    additional_reciprocal_keywords = keywords.additional_reciprocal_space_keywords,
+                                                    additional_real_keywords       = keywords.additional_real_space_keywords,
                                                     log                = log)
         
         #print("Refinements:", file=log)
@@ -1599,7 +1616,8 @@ class Fextrapolate(object):
                  map_sharpening        = keywords.map_sharpening.map_sharpening,
                  density_modification  = keywords.density_modification.density_modification,
                  dm_combine            = keywords.density_modification.combine,
-                 dm_ncycle             = keywords.density_modification.cycles)
+                 dm_ncycle             = keywords.density_modification.cycles,
+                 additional_reciprocal_keywords = keywords.additional_refmac_keywords)
 
         print("Refinements:", file=log)
         #print("Refinements:")
@@ -2079,6 +2097,7 @@ def run(args):
     print('-----------------------------------------', file=log)
     print('DATA PREPARATION', file=log)
     print('-----------------------------------------', file=log)
+
 
     DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz)
     
