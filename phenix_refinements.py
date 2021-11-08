@@ -34,19 +34,21 @@ class Phenix_refinements(object):
     def __init__(self,
                  mtz_in,
                  pdb_in,
-                 additional         = '',
-                 F_column_labels    = 'QFEXTR',
-                 strategy           = ['individual_sites','individual_adp'],
-                 rec_cycles         = 5,
-                 real_cycles        = 5,
-                 wxc_scale          = 0.5,
-                 wxu_scale          = 1.0,
-                 solvent            = False,
-                 sim_annealing      = False,
-                 sim_annealing_pars = {},
-                 map_sharpening     = False,
-                 weight_sel_crit    = {},
-                 log                = sys.stdout):
+                 additional                     = '',
+                 F_column_labels                = 'QFEXTR',
+                 strategy                       = ['individual_sites','individual_adp'],
+                 rec_cycles                     = 5,
+                 real_cycles                    = 5,
+                 wxc_scale                      = 0.5,
+                 wxu_scale                      = 1.0,
+                 solvent                        = False,
+                 sim_annealing                  = False,
+                 sim_annealing_pars             = {},
+                 map_sharpening                 = False,
+                 weight_sel_crit                = {},
+                 additional_reciprocal_keywords = [],
+                 additional_real_keywords       = [],
+                 log                            = sys.stdout):
         
         adopt_init_args(self, locals())
         
@@ -66,6 +68,8 @@ class Phenix_refinements(object):
         try:
             if self.F_column_labels.lower().startswith('q'):
                 maptype = "q"+self.F_column_labels.lower()[1:].capitalize()
+            elif self.F_column_labels.lower().startswith('k'):
+                maptype = "k"+self.F_column_labels.lower()[1:].capitalize()
             else:
                 maptype = self.F_column_labels.lower().capitalize()
             outprefix = re.sub(r"%s"%(maptype), "2m%s-DFc_reciprocal_space"%(maptype), self.mtz_name)
@@ -82,6 +86,11 @@ class Phenix_refinements(object):
                     sim_annealing += " simulated_annealing.%s=%s " %(param, str(self.sim_annealing_pars.__dict__[param]))
         else:
             sim_annealing += "simulated_annealing=False"
+            
+        additional_keywords_line = ''
+        if len(self.additional_reciprocal_keywords) > 0:
+            for keyword in self.additional_reciprocal_keywords:
+                additional_keywords_line+= "%s " %(keyword)
             
         weight_selection_criteria = ""
         if self.weight_sel_crit.bonds_rmsd != None:
@@ -104,7 +113,7 @@ class Phenix_refinements(object):
                                "refinement.input.xray_data.r_free_flags.disable_suitability_test=True "
                                "refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True "
                                "refinement.input.xray_data.r_free_flags.label='FreeR_flag' "
-                               "refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+                               "refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
 
 
         #Find output files, automatically
@@ -166,9 +175,16 @@ class Phenix_refinements(object):
             output_prefix = 'output.file_name_prefix=%s'%(mtz_name)
             model_format  = 'output.model_format=pdb'
             # outpdb        = "%s_real_space_refined.pdb"%(mtz_name)
+            
+            
+        additional_keywords_line = ''
+        if len(self.additional_real_keywords) > 0:
+            for keyword in self.additional_real_keywords:
+                additional_keywords_line+= "%s " %(keyword)
+ 
         
         real = os.system("phenix.real_space_refine %s %s %s "
-                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian ramachandran_restraints=False c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s ignore_symmetry_conflicts=True" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints))
+                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian ramachandran_restraints=False c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, additional_keywords_line))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
