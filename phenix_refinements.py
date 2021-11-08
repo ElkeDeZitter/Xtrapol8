@@ -68,6 +68,8 @@ class Phenix_refinements(object):
         try:
             if self.F_column_labels.lower().startswith('q'):
                 maptype = "q"+self.F_column_labels.lower()[1:].capitalize()
+            elif self.F_column_labels.lower().startswith('k'):
+                maptype = "k"+self.F_column_labels.lower()[1:].capitalize()
             else:
                 maptype = self.F_column_labels.lower().capitalize()
             outprefix = re.sub(r"%s"%(maptype), "2m%s-DFc_reciprocal_space"%(maptype), self.mtz_name)
