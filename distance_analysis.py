@@ -59,14 +59,14 @@ def sigmoid_fit(x, L, k, x0):
     add additional term of +1 so that the function starts at alpha of 1
     """
     #print("L, k, x0", L, k, x0)
-    return L / (1 + np.exp(-k*(1+x-x0)))
+    return L / (1 + np.exp(-k*(x-x0)))
 
 def sigmoid_fit_2(fact,x):
     """
     variant of previous function for easier use with np.apply_along_axis
     """
     L, k, x0 = fact
-    return L / (1 + np.exp(-k*(1+x-x0)))
+    return L / (1 + np.exp(-k*(x-x0)))
     
     
 def logfit(x, a, b, c):
