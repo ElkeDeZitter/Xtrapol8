@@ -731,7 +731,6 @@ class Distance_analysis(object):
             b_stdev = np.std(possible_b)
             counts, bins = np.histogram(possible_b)
             peaks = self.find_peaks(counts,bins)
-            print("peaks", peaks)
             if len(peaks)>1:
                 peaks = np.average(peaks)
             mode = scipy.stats.mode(np.round(possible_b,2))[0][0]
@@ -826,6 +825,9 @@ if __name__ == '__main__':
     parser.add_argument('--use_waters', action = 'store_true', help='also use the water molecules in the analysis. This requires that waters have not been removed or added in comparison to the reference model.')
     parser.add_argument('-l' , '--log_file', default=None, help='write results to a file.')
     
+    print("------------------")
+    print("You can safely ignore any SyntaxWarning messages concerning global parameters")
+    print("------------------")
     
     #print help if no arguments provided
     if len(sys.argv) < 2:
