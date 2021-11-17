@@ -2089,10 +2089,6 @@ def run(args):
         print(err_m)
         print("Check input files and rerun")
         sys.exit()
-        
-    #Update the params TODO: add input parameters too
-    params.output.outdir = DH.outdir
-    
             
     #get output name, or take prefix of triggered mtz or take dummy name if name is too long.
     if params.output.outname == None:
@@ -2113,6 +2109,13 @@ def run(args):
     print("----Check additional files----")
     DH.check_additional_files()
     print('---------------------------')
+
+    #change the names so that they appear as absolute path in the Xtrapol8_out:
+    params.input.reference_pdb = DH.pdb_in #This should already be the absolute path
+    params.input.reference_mtz = os.path.abspath(DH.mtz_off)
+    params.input.triggered_mtz = os.path.abspath(DH.mtz_on)
+    params.output.outdir = DH.outdir #This should already be the absolute path
+    params.input.additional_files = list(map(lambda x: os.path.abspath(x), params.input.additional_files))
 
     #change to output directory
     startdir = os.getcwd()

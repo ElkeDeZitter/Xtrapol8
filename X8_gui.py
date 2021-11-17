@@ -185,7 +185,7 @@ class MainFrame(wx.Frame):
     def __init__(self,args):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "XtraPolG8",
+                          "XtrapolG8",
                           size=(1100, 1000)
                           )
 
