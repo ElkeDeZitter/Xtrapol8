@@ -59,14 +59,14 @@ def sigmoid_fit(x, L, k, x0):
     add additional term of +1 so that the function starts at alpha of 1
     """
     #print("L, k, x0", L, k, x0)
-    return L / (1 + np.exp(-k*(x-x0)))
+    return L / (1 + np.exp(-k*(x-x0)-1))
 
 def sigmoid_fit_2(fact,x):
     """
     variant of previous function for easier use with np.apply_along_axis
     """
     L, k, x0 = fact
-    return L / (1 + np.exp(-k*(x-x0)))
+    return L / (1 + np.exp(-k*(x-x0)-1))
     
     
 def logfit(x, a, b, c):
@@ -159,19 +159,25 @@ class Distance_analysis(object):
         print("DISTANCE ANALYSIS", file=self.log)
         alphas = list(map(lambda x: round(1/x, 3), occupancies))
             
-        #Assumes the alpha of the reference still needs to be added and that this will be the first pdb in the list...
-        #in order to force the curvefitting to be as low possible between alpha of 0 and 1 (which is physically impossble), duplicate the reference model pdb at alpha of 1
-        if (0.01 not in alphas and 1.0 not in alphas and len(alphas) != len(pdblst)):
-            pdblst = [pdblst[0]]+pdblst
-            alphas = [0.01,1]+alphas
-        #if alpha of 1 IS present (so occ of 1 is tested):
-        elif (0.01 not in alphas and len(alphas) != len(pdblst)):
-            alphas = [0.01]+alphas
-        #if alpha of 0.01 IS present (so reference model is given), and hence the number of alpha-values and pdbs are equal, still assuming that this is going to be the fist pdb in the list
-        elif (1 not in alphas and len(alphas) == len(pdblst)):
-            pdblst = [pdblst[0]]+pdblst
-            alphas = [1]+alphas #Sorting of alphas will be done below
-        
+        ##Assumes the alpha of the reference still needs to be added and that this will be the first pdb in the list...
+        ##in order to force the curvefitting to be as low possible between alpha of 0 and 1 (which is physically impossble), duplicate the reference model pdb at alpha of 1
+        #if (0.01 not in alphas and 1.0 not in alphas and len(alphas) != len(pdblst)):
+            #pdblst = [pdblst[0]]+pdblst
+            #alphas = [0.01,1]+alphas
+        ##if alpha of 1 IS present (so occ of 1 is tested):
+        #elif (0.01 not in alphas and len(alphas) != len(pdblst)):
+            #alphas = [0.01]+alphas
+        ##if alpha of 0.01 IS present (so reference model is given), and hence the number of alpha-values and pdbs are equal, still assuming that this is going to be the fist pdb in the list
+        #elif (1 not in alphas and len(alphas) == len(pdblst)):
+            #pdblst = [pdblst[0]]+pdblst
+            #alphas = [1]+alphas #Sorting of alphas will be done below
+            
+        if (1.0 not in alphas and len(alphas) != len(pdblst)):
+            alphas = [1]+alphas
+
+        if len(alphas) != len(pdblst):
+            print("Different number of models and occupancies. The distance analysis cannot be carried out.")
+            sys.exit()
             
         #exponential fitting:
         ##Search alpha for 0.95 = 1*(1-np.exp(-b*alpha))
@@ -197,7 +203,10 @@ class Distance_analysis(object):
         #Sigmoidal fitting: plateau_value = 1/ (1+ exp(-k x (alpha - alphainflection))
         #-k x (alpha - alphainflection) = ln[(1/plateau_fraction) -1]
         #k x (alpha - alphainflection) = - ln[(1/plateau_fraction) -1] = val
-        val = -1 * np.log((1/self.plateau_fraction)-1)
+        #To estimate alpha however, we should take into account that alpha between 0 and 1 is impossible, hence the curve should actually start at 1.
+        #   This comes down to shifting the complete sigmoidal to the right. Hence to calcalute alpha, one should use the following formula
+        #   k x (alpha - alphainflection) -1 = val
+        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
         global val
      
         #Sort the pdb files and alphas in order to have alpha from small to large, this is important for fitting
@@ -622,7 +631,7 @@ class Distance_analysis(object):
                 
         #plot the average distance
         ax0.plot(x,fulllist_av, label = "Average distance")
-        xx = np.arange(0,max(self.alphas),0.1)
+        xx = np.arange(1,max(self.alphas),0.1)
         #xx = np.arange(0,100,0.1)
         
         #Plot the fit of the average
@@ -682,7 +691,7 @@ class Distance_analysis(object):
         #exponential fitting:
         #possible_occ = np.round(1/(val/possible_b), decimals=3)
         #sigmoidal fitting:
-        possible_occ = np.round(1/((val/possible_b)+ possible_x0), decimals=3)
+        possible_occ = np.round(1/(((val)/possible_b)+ possible_x0), decimals=3)
         #print(possible_occ)
         counts, bins = np.histogram(possible_occ)
         ax1.hist(bins[:-1], bins, weights=counts)
@@ -771,13 +780,13 @@ class Distance_analysis(object):
                 
                 
                 #sigmoidal fitting:
-                alp_mean = (val/b_mean)+ x0_mean
+                alp_mean = ((val)/b_mean)+ x0_mean
                 occ_mean = 1/alp_mean
                 occ_stdev = 1/(val/b_stdev)
                 
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev), file=self.log)
                 print("Other:", file=self.log)
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/((val/np.asarray(peaks, dtype='float64'))+ np.asarray(peaks_x0, dtype='float64'))), file=self.log)
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(((val)/np.asarray(peaks, dtype='float64'))+ np.asarray(peaks_x0, dtype='float64'))), file=self.log)
                 print("  Occupancy based on most occuring value in histogram: %.3f" %(1/((val/mode)+ mode_x0)), file=self.log)
                 print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev), file=self.log)
                 print("  Occupancy based on fit of average distance: %s" %(1/((val/poptave[1])+ poptave[2])), file=self.log)
