@@ -783,20 +783,30 @@ class Distance_analysis(object):
                 alp_mean = ((val)/b_mean)+ x0_mean
                 occ_mean = 1/alp_mean
                 occ_stdev = 1/(val/b_stdev)
+                occ_interval_max = occ_mean + occ_stdev
+                if occ_interval_max > 1:
+                    occ_interval_max = 1.0
+                occ_interval_min = occ_mean - occ_stdev
+                if occ_interval_min < 0:
+                    occ_interval_min= 0.0
+                
+                occ_histogram = 1/(((val)/np.asarray(peaks, dtype='float64'))+ np.asarray(peaks_x0, dtype='float64'))
+                occ_mode = 1/((val/mode)+ mode_x0)
+                occ_av_distance = 1/((val/poptave[1])+ poptave[2])
                 
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev), file=self.log)
+                print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_interval_max, occ_mean, occ_interval_min), file=self.log)
                 print("Other:", file=self.log)
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/(((val)/np.asarray(peaks, dtype='float64'))+ np.asarray(peaks_x0, dtype='float64'))), file=self.log)
-                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/((val/mode)+ mode_x0)), file=self.log)
-                print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev), file=self.log)
-                print("  Occupancy based on fit of average distance: %s" %(1/((val/poptave[1])+ poptave[2])), file=self.log)
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),occ_histogram), file=self.log)
+                print("  Occupancy based on most occuring value in histogram: %.3f" %(occ_mode), file=self.log)
+                print("  Occupancy based on fit of average distance: %.3f" %(occ_av_distance), file=self.log)
                 
                 print("Occupancy based on average of fit results for %d distances: %.3f +/- %.3f" %(np.sum(counts), occ_mean, occ_stdev))
-                print("Other:", file=self.log)
-                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),1/((val/np.asarray(peaks, dtype='float64'))+ np.asarray(peaks_x0, dtype='float64'))))
-                print("  Occupancy based on most occuring value in histogram: %.3f" %(1/((val/mode)+ mode_x0)))
-                print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_mean + occ_stdev, occ_mean, occ_mean - occ_stdev))
-                print("  Occupancy based on fit of average distance: %s" %(1/((val/poptave[1])+ poptave[2])))
+                print("  Occupancy intervals : %.3f  > %.3f >  %.3f " %(occ_interval_max, occ_mean, occ_interval_min))
+                print("Other:")
+                print("  Occupancy based on histogram of fit results for %d distances: %.3f" %(np.sum(counts),occ_histogram))
+                print("  Occupancy based on most occuring value in histogram: %.3f" %(occ_mode))
+                print("  Occupancy based on fit of average distance: %.3f" %(occ_av_distance))
 
 
             except TypeError:
