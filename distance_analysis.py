@@ -102,7 +102,7 @@ def fitting(sel, x):
             bmax = val #see below for val definition and why bmax=val
             bmin = val/100 #see below for val definition and why bmin=val/100
             popt,_ = curve_fit(logfit, x,sel,sigma=np.sqrt(x),absolute_sigma=False,
-                                bounds=((0.80*np.max(sel), bmin, -0.001), (1.15*np.max(sel), bmax, 0.001)))
+                                bounds=((0.95*np.max(sel), bmin, -0.001), (1.05*np.max(sel), bmax, 0.001)))
         except ValueError: 
             popt = np.array([0.,0.,0.])
         #print(np.array([popt[0], popt[1], popt[2]]))
@@ -122,20 +122,44 @@ def sigmoid_fitting(sel, x):
         return np.array([0.,0.,0.])
     else:
         try:
-            kmax = val
-            kmin = val/maxalpha
+            kmax = val/1 +0.05 #Extend the kmax-kmin range for 0.05 on each side
+            kmin = val/maxalpha -0.05
             if kmax < kmin:
-                kmin = val
-                kmax = val/maxalpha
+                return np.array([0.,0.,0.])
+                #kmin = val
+                #kmax = val/maxalpha
             x0max =maxalpha
             #print("kmax", kmax)
             #print("kmin", kmin)
-            popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False, bounds = ((0.80*np.max(sel), kmin, 1), (1.15*np.max(sel), kmax, x0max)))
+            popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False, bounds = ((0.95*np.max(sel), kmin, 1), (1.05*np.max(sel), kmax, x0max)))
             #popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False)
-            
+                        
         except ValueError: 
             popt = np.array([0.,0.,0.])
             
+        ##Exclude fits with boundary values, which means that the fit isn't done properly.
+        ##Even if we check the R2 and chi2, it is better to throw them out.
+        #if np.round(popt[1],3) == np.round(kmax,3):
+            #print("kmax reached", np.array([popt[0], popt[1], popt[2]]))
+            ##return np.array([0.,0.,0.])
+        #if np.round(popt[1],3) == np.round(kmin,3):
+            #print("kmin reached", np.array([popt[0], popt[1], popt[2]]))
+            ##return np.array([0.,0.,0.])
+        #if np.round(popt[2],3) == np.round(x0max,3):
+            ##return np.array([0.,0.,0.])
+            #print("x0max reached", np.array([popt[0], popt[1], popt[2]]))
+        #if np.round(popt[2],3) == np.round(1,3):
+            ##return np.array([0.,0.,0.])
+            #print("x0min reached", np.array([popt[0], popt[1], popt[2]]))
+            
+        #Excplude based on alpha. 
+        alpha = ((val)/popt[1])+ popt[2]
+        if alpha < 1.0:
+            #print("Minimum alpha reached. alpha and occupancy:", alpha, 1/alpha)
+            return np.array([0.,0.,0.])
+        if alpha > maxalpha:
+            #print("Maximum alpha reached. alpha and occupancy:", alpha, 1/alpha)
+            return np.array([0.,0.,0.])
         #print(np.array([popt[0], popt[1], popt[2]]))
         return np.array(popt)
     
@@ -219,7 +243,6 @@ class Distance_analysis(object):
         
         maxalpha = np.max(self.alphas)
         global maxalpha
-
      
         print("Reference pdb file:", self.pdblst[0], file=log)
         print("Reference pdb file:", self.pdblst[0])
@@ -477,7 +500,7 @@ class Distance_analysis(object):
             print("No distance differences observed", file=self.log)
             print("No distance differences observed")
                 
-    def plot_distance_differences_and_get_possible_b(self, maxdist = 6.0, mindist = 2.0, maxdiff = 1000, mindiff=0.05):
+    def plot_distance_differences_and_get_possible_b(self, maxdist = 6.0, mindist = 2.0, maxdiff = 10, mindiff=0.25):
         
         info_for_print = [[i[0],i[2],i[1].lstrip().rstrip(), '(%s%s)'%(i[4].lstrip().rstrip(), i[3].lstrip().rstrip())] for i in self.info]
         
@@ -599,11 +622,11 @@ class Distance_analysis(object):
         assert fulllist_av.shape[0] == len(self.alphas)
         #print("fulllist_av", fulllist_av)
         
-        #only loop over all distances to plot if less than 40
-        if np.where(np.any(toplot_matrix==1, axis =1))[0].shape[0] < 40:
-            print("Less than 40 atoms involved in distance calculation. Let's plot all distances:", file=self.log)
+        #only loop over all distances to plot if less than 400
+        if np.where(np.any(toplot_matrix==1, axis =1))[0].shape[0] < 400:
+            print("Less than 400 atoms involved in distance calculation. Let's plot all distances:", file=self.log)
             print("     Distance                                  R2   chi2   occupancy", file=self.log)
-            print("Less than 40 atoms involved in distance calculation. Let's plot all distances:")
+            print("Less than 400 atoms involved in distance calculation. Let's plot all distances:")
             print("     Distance                                  R2   chi2   occupancy")
 
             for n in np.where(np.any(toplot_matrix==1, axis =1))[0].astype(int):
@@ -622,8 +645,8 @@ class Distance_analysis(object):
                     #sigmoidal fitting:
                     print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/((val/fitting_matrix[1, n,j])+ fitting_matrix[2, n,j])), file=self.log)
                     print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/((val/fitting_matrix[1, n,j])+ fitting_matrix[2, n,j])))
-                    ax0.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.25, label='Distance')
-                    ax0.plot(x, np.abs(sigmoid_fit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.25, label = 'Exp. fit')
+                    ax0.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.30, label='Distance')
+                    ax0.plot(x, np.abs(sigmoid_fit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.20, label = 'Exp. fit')
                 a+=1
         else:
             print("Too much distances, only plot averages", file=self.log)
@@ -650,7 +673,7 @@ class Distance_analysis(object):
                                         fulllist_av,
                                         sigma=np.sqrt(x)+x,
                                         absolute_sigma=False,
-                                        bounds=((0.8*np.min(fulllist_av), val/maxalpha, 1), (1.25*np.max(fulllist_av),val, maxalpha)))
+                                        bounds=((0.95*np.min(fulllist_av), val/maxalpha -0.05, 1), (1.05*np.max(fulllist_av),val/1 +0.05, maxalpha)))
 
             #exponential fitting:
             #ax0.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit of average fit')
@@ -696,7 +719,17 @@ class Distance_analysis(object):
         counts, bins = np.histogram(possible_occ)
         ax1.hist(bins[:-1], bins, weights=counts)
         ax1.set_xlabel("Occupancy")
-        ax1.set_xlim([0, 1])
+        if min(bins[:-1])-0.05 > 0:
+            xmin = min(bins[:-1])-0.05
+        else:
+            xmin = 0
+            
+        if max(bins[:-1])+0.05 < 1:
+            xmax = max(bins[:-1])+0.05
+        else:
+            xmax = 1
+        ax1.set_xlim(xmin, xmax)
+        #ax1.set_xlim([0, 1])
         ax1.set_ylabel("Occurence")
         ax1.set_title("Occupancy histogram", fontsize = 'medium')
         
@@ -727,7 +760,7 @@ class Distance_analysis(object):
             #exponential fitting:
             #possible_b, poptave = self.plot_distance_differences_and_get_possible_b(maxdist = 5.0, mindist = 2.4, maxdiff = 10, mindiff=0.25)
             #sigmoidal fitting:
-            possible_b, poptave, possible_x0 = self.plot_distance_differences_and_get_possible_b(maxdist = 5.0, mindist = 2.4, maxdiff = 10, mindiff=0.25)
+            possible_b, poptave, possible_x0 = self.plot_distance_differences_and_get_possible_b(maxdist = 6.0, mindist = 2.0, maxdiff = 10, mindiff=0.25)
         else:
             #exponential fitting:
             #possible_b, poptave = self.plot_distance_differences_and_get_possible_b()
