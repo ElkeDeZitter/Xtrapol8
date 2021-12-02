@@ -383,7 +383,7 @@ class Difference_distance_analysis(object):
             
         fig.tight_layout()
         plt.savefig(outname_pdf, dpi=300, transparent=True)
-        plt.savefig(outname_png, dpi=300, transparent=True)
+        plt.savefig(outname_png, dpi=300)
         plt.close()
         
         #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though

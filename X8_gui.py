@@ -450,23 +450,36 @@ class MainFrame(wx.Frame):
         if len(tabIO.files["Triggered mtz"]) == 0:
             message_err += "\n- at least one triggered mtz (mtz or cif)"
 
+        if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
+            tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'XtraPol8')
+        else:
+            path = tabIO.outdir_sizer.TextCtrl.GetValue()
+            if os.path.exists(path):
+                path = self.get_new_path(path)
+
+            tabIO.outdir_sizer.TextCtrl.SetValue(path)
         if err == 1:
-            if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
-                message_err +='\n\n Warning: No output directory specified.'
-            else:
-                message_err += '.'
+            message_err += '.'
             _ = wx.MessageDialog(self, message=message_err, style=wx.OK).ShowModal()
             return False
         else:
-            if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
-                dlg = wx.MessageDialog(self, message="Warning: No output directory specified.\n Do you want to continue and use the current directory instead ?", style=wx.YES_NO).ShowModal()
-                if dlg == wx.ID_YES:
-                    tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd())
-                    return True
-                else:
-                    return False
-            else:
-                return True
+            return True
+
+    def get_new_path(self, path):
+        root = path.split('_')
+        if len(root) == 1:
+            path += '_1'
+        else:
+            try:
+                N = int(root[-1]) + 1
+                path = '_'.join(root[:-1]) + '_%i' % N
+            except ValueError:
+                path += '_1'
+        if os.path.exists(path):
+            return self.get_new_path(path)
+        else:
+            return path
+
 
     def OnStopRun(self):
         self.notebook.StopRun()

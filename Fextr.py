@@ -479,14 +479,13 @@ class DataHandler(object):
     Handle all input file and generate objects to be used in map calculations and analyses.
     """
 
-    def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on, handle_files_dirs=True):
+    def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on):
 
         self.pdb_in            = pdb_in
         self.mtz_off           = mtz_off
         self.mtz_on            = mtz_on
         self.additional        = additional
         self.outdir            = outdir
-        self.handle_files_dirs = handle_files_dirs
         
     def check_outdir(self):
         """
@@ -509,24 +508,22 @@ class DataHandler(object):
             #self.outdir = os.path.abspath(self.outdir)
             
         outdir = self.outdir
-        #If files and dirs will be handled by the GUI
-        if self.handle_files_dirs:
-            i = 1
-            while os.path.exists(outdir):
-                outdir = "%s_%d" %(self.outdir, i)
-                i += 1
-                if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
-                    break
-                
+        i = 1
+        while os.path.exists(outdir):
+            outdir = "%s_%d" %(self.outdir, i)
+            i += 1
+            if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
+                break
+            
+        try:
+            os.mkdir(outdir)
+            print('Output directory being created: %s'%(outdir))
+        except OSError:
             try:
-                os.mkdir(outdir)
+                os.makedirs(outdir)
                 print('Output directory being created: %s'%(outdir))
             except OSError:
-                try:
-                    os.makedirs(outdir)
-                    print('Output directory being created: %s'%(outdir))
-                except OSError:
-                    print("Output directory already exists, this might lead to problems. Consider chosing a new name and rerun")
+                print("Output directory already exists, this might lead to problems. Consider chosing a new name and rerun")
             
         self.outdir = os.path.abspath(outdir)
                 
@@ -2083,12 +2080,8 @@ def run(args):
     print('DATA PREPARATION', file=log)
     print('-----------------------------------------', file=log)
 
-    if params.output.GUI:
-        handle_files_dirs = False
-    else:
-        handle_files_dirs = True
     DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files,
-                     params.output.outdir, params.input.triggered_mtz, handle_files_dirs=handle_files_dirs)
+                     params.output.outdir, params.input.triggered_mtz)
     
     #Check if all input files exists and are of correct type
     err , err_m = DH.check_all_files()
