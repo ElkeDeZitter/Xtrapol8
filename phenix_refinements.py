@@ -28,6 +28,7 @@ from mmtbx.scaling.matthews import p_vm_calculator
 from libtbx import adopt_init_args
 from cctbx import miller
 from Fextr_utils import get_name
+import subprocess
 
 
 class Phenix_refinements(object):
@@ -104,6 +105,14 @@ class Phenix_refinements(object):
         #cmd = "phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing)
         
         #reciprocal = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait()
+        #p = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        #cmd_output,_ = p.communicate() #get the output of the terminal
+        #print(cmd_output)
+
+        #TODO os.system -> subprocess.something (read the docs!)
+        #cmd = "phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing)
+    
+        #reciprocal = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE).wait() 
         #p = subprocess.Popen(cmd, shell=True, executable='/bin/bash', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         #cmd_output,_ = p.communicate() #get the output of the terminal
         #print(cmd_output)

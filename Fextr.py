@@ -454,7 +454,7 @@ output{
         .expert_level = 2
     GUI = False
         .type = bool
-        .help = Xtrapol8 launched from GUI.
+        .help = Xtrapol8 launched from GUI. In order to work correctly, this should never be manually changed.
         .expert_level = 3
     }
 """, process_includes=True)
@@ -496,11 +496,11 @@ class DataHandler(object):
 
     def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on):
 
-        self.pdb_in = pdb_in
-        self.mtz_off = mtz_off
-        self.mtz_on = mtz_on
-        self.additional = additional
-        self.outdir = outdir
+        self.pdb_in            = pdb_in
+        self.mtz_off           = mtz_off
+        self.mtz_on            = mtz_on
+        self.additional        = additional
+        self.outdir            = outdir
         
     def check_outdir(self):
         """
@@ -2098,8 +2098,8 @@ def run(args):
     print('DATA PREPARATION', file=log)
     print('-----------------------------------------', file=log)
 
-
     DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz)
+
     
     #Check if all input files exists and are of correct type
     err , err_m = DH.check_all_files()
@@ -2108,10 +2108,6 @@ def run(args):
         print(err_m)
         print("Check input files and rerun")
         sys.exit()
-        
-    #Update the params TODO: add input parameters too
-    params.output.outdir = DH.outdir
-    
             
     #get output name, or take prefix of triggered mtz or take dummy name if name is too long.
     if params.output.outname == None:
@@ -2132,6 +2128,13 @@ def run(args):
     print("----Check additional files----")
     DH.check_additional_files()
     print('---------------------------')
+
+    #change the names so that they appear as absolute path in the Xtrapol8_out:
+    params.input.reference_pdb = DH.pdb_in #This should already be the absolute path
+    params.input.reference_mtz = os.path.abspath(DH.mtz_off)
+    params.input.triggered_mtz = os.path.abspath(DH.mtz_on)
+    params.output.outdir = DH.outdir #This should already be the absolute path
+    params.input.additional_files = list(map(lambda x: os.path.abspath(x), params.input.additional_files))
 
     #change to output directory
     startdir = os.getcwd()
@@ -2194,6 +2197,7 @@ def run(args):
     #Write all input paramters to a phil file.
     modified_phil.show(out=open("Xtrapol8_in.phil", "w"))
     if params.output.generate_phil_only:
+        params.output.GUI = False
         log.close()
         sys.exit()
     
@@ -2923,7 +2927,7 @@ def run(args):
     pickle.dump(occ_overview, occ_pickle)
     occ_pickle.close()
         
-    
+      
     print("Summary of occupancy determination:", file=log)
     print("Map type       Occupancy", file=log)
     for k in occ_overview:
