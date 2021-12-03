@@ -23,19 +23,18 @@ f_and_maps {
   all_maps = False
   only_qweight = False
   only_kweight = False
-  no_qweight = False
+  only_no_weight = False
   fast_and_furious = False
-  negative_and_missing = foff_and_fill foff_no_fill fcalc_and_fill \
-                         fcalc_no_fill fill_missing no_fill reject_and_fill \
-                         reject_no_fill *truncate_and_fill truncate_no_fill \
-                         massage_and_fill massage_no_fill zero_and_fill \
-                         zero_no_fill
+  negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill \
+                         fref_no_fill fcalc_and_fill fcalc_no_fill \
+                         fill_missing no_fill reject_and_fill reject_no_fill \
+                         zero_and_fill zero_no_fill
 }
 map_explorer {
   threshold = 3.5
-  peak = 4
+  peak = 4.0
   radius = None
-  z_score = 2
+  z_score = 2.0
   use_occupancy_from_distance_analysis = False
 }
 refinement {
@@ -44,7 +43,7 @@ refinement {
   phenix_keywords {
     target_weights {
       wxc_scale = 0.5
-      wxu_scale = 1
+      wxu_scale = 1.0
       weight_selection_criteria {
         bonds_rmsd = None
         angles_rmsd = None
@@ -60,7 +59,7 @@ refinement {
       ordered_solvent = False
       simulated_annealing = False
     }
-    simulated_annealing{
+    simulated_annealing {
       start_temperature = 5000
       final_temperature = 300
       cool_rate = 100
@@ -69,9 +68,11 @@ refinement {
     map_sharpening {
       map_sharpening = False
     }
+    additional_reciprocal_space_keywords = None
     real_space_refine {
       cycles = 5
     }
+    additional_real_space_keywords = None
     density_modification {
       density_modification = False
       combine = *PERT OMIT
@@ -102,14 +103,14 @@ refinement {
     map_sharpening {
       map_sharpening = False
     }
-    density_modification{
+    additional_refmac_keywords = None
+    density_modification {
       density_modification = False
       combine = *PERT OMIT
       cycles = 10
     }
   }
 }
-
 output {
   outdir = fancy_party
   outname = None
