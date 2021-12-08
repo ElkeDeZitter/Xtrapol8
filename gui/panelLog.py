@@ -3,27 +3,30 @@
 
  Created 10/21/2020
 
--------
-authors and contact information
--------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolas Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
--------
-license information
--------
-Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
-see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
--------
+--------
+-authors and contact information
+--------
+-Elke De Zitter - elke.de-zitter@ibs.fr
+-Nicolas Coquelle - nicolas.coquelle@esrf.fr
+-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+--------
+-license information
+--------
+-Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+-see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+--------
 """
+
 import numpy as np
 import wx
 import os
 from wx.lib.scrolledpanel import ScrolledPanel
 from wxtbx import metallicbutton
 from wx.lib.pubsub import pub
+import pickle
 import glob
+
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
 class GradientButton (metallicbutton.MetallicButton):
@@ -428,8 +431,7 @@ class TabOccResults(ScrolledPanel):
         evt.Skip()
 
     def onCoot(self, evt):
-        script_coot = os.path.join(self.coot_scripts[self.fextr], 'coot_all_%s.py' % self.Fextr_png_name)
-        os.system("coot --script %s &" % (script_coot))
+        os.system("coot --script %s &" % self.coot_scripts[self.fextr])
 
     def addImg(self, filepath):
             img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
@@ -449,43 +451,24 @@ class TabOccResults(ScrolledPanel):
             self.FitInside()
 
     def onFinished(self):
+        pickle_fn = os.path.join(self.options.output.outdir,"occupancy_recap.pickle")
+        results = pickle.load(open(pickle_fn, "rb"))
         fextrs = self.options.f_and_maps.f_extrapolated_and_maps
         for fextr in fextrs:
-            if fextr.startswith('q'):
-                paths = glob.glob(os.path.join(self.options.output.outdir,'qweight_occupancy*'))
-                self.best_occ[fextr] = self.get_best_occupancy(paths, fextr)
-            elif fextr.startswith('k'):
-                paths = glob.glob(os.path.join(self.options.output.outdir,'kweight_occupancy*'))
-                self.best_occ[fextr] = self.get_best_occupancy(paths, fextr)
-            else:
-                paths = glob.glob(os.path.join(self.options.output.outdir,'occupancy*'))
-                self.best_occ[fextr] = self.get_best_occupancy(paths, fextr)
+            Fextr=''
+            for s in fextr:
+                if s == 'f':
+                    Fextr+= s.upper()
+                else:
+                    Fextr += s
+            occ, coot, ddm = results[Fextr]
+            self.best_occ[fextr] = occ
+            self.coot_scripts[fextr] = coot
+            self.ddm[fextr] = ddm
         fextr = self.FextrChoice.GetStringSelection()
         self.occNfextrSizer.Show(self.best_occ_Static)
         self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[fextr])
         self.finished = True
-
-    def get_best_occupancy(self, paths, fextr):
-        for path in paths:
-            ddms = glob.glob(os.path.join(path, 'ddm*png'))
-            if len(ddms) > 0:
-                for ddm in ddms:
-                    if '_calc' in fextr:
-                        if fextr[2:] in ddm:
-                            self.ddm[fextr] = ddm
-                            self.coot_scripts[fextr] = os.path.dirname(ddm)
-                            s = ddm.split('occupancy_')[1][0:5].strip()
-                            return s
-                    else:
-                        if fextr[2:] in ddm and 'calc' not in ddm:
-                            self.ddm[fextr] = ddm
-                            self.coot_scripts[fextr] = os.path.dirname(ddm)
-                            s = ddm.split('occupancy_')[1][0:5].strip()
-                            return s
-
-
-                #self.OccChoice.SetString(index, "* %s" %s)
-                        #Add ddm image
 
 
 
