@@ -20,11 +20,12 @@ from __future__ import division, print_function
 import re, sys
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from cctbx import miller
 from Fextr_utils import check_common_indices, make_miller_array
 from cctbx.array_family import flex
+import pickle
 
 def outlier_rejection_only(f_obs_ref, f_obs_2, log=sys.stdout):
     """
@@ -206,6 +207,11 @@ def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
     q_max_lst        = np.asarray(q_max_lst)
     bin_res_cent_lst = np.asarray(bin_res_cent_lst)
     sigmadsq_lst     = np.asarray(sigmadsq_lst)
+    
+    out=open('q_estimation.pickle' ,'wb') #write to pickle for GUI
+    stats = [bin_res_cent_lst, q_max_lst, q_min_lst]
+    pickle.dump(stats,out)
+    out.close()
     
     fig,ax1 = plt.subplots(figsize=(10, 5))
     ax1.set_xlabel('Resolution (A)')

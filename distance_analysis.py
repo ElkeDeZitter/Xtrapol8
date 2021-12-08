@@ -746,7 +746,7 @@ class Distance_analysis(object):
         
         #plt.show()
         plt.savefig("Distance_difference_plot_%s.pdf" %(self.outsuffix), dpi=300, transparent=True)
-        plt.savefig("Distance_difference_plot_%s.png" %(self.outsuffix), dpi=300, transparent=True)
+        plt.savefig("Distance_difference_plot_%s.png" %(self.outsuffix), dpi=300)
         plt.close()
         
         ##exponential fitting:

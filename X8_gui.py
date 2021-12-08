@@ -13,6 +13,13 @@ Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-
 see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
+import matplotlib
+matplotlib.use('WXAgg')
+from matplotlib.backends.backend_wxagg import (
+    FigureCanvasWxAgg as FigureCanvas,
+    NavigationToolbar2WxAgg as NavigationToolbar,
+)
+from matplotlib.figure import Figure
 
 import os.path
 import glob
@@ -119,11 +126,12 @@ class MainNotebook(AuiNotebook):
         pageIdx = self.GetSelection()
         if pageIdx > 0:
             thread = self.threads[pageIdx - 1]
-            if not thread.stopped():
-                thread.stop()
-                print("Run %i stopped" % pageIdx)
-            else:
-                print("Run %i already stopped" % pageIdx)
+            if thread is not None:
+                if not thread.stopped():
+                    thread.stop()
+                    print("Run %i stopped" % pageIdx)
+                else:
+                    print("Run %i already stopped" % pageIdx)
 
 
     def OnUpdateLog(self, Nlog, line):
@@ -250,7 +258,7 @@ class MainFrame(wx.Frame):
         pub.subscribe(self.X8ModeChanged,"X8Mode")
 
         # These variables will be used by the timer callbacks to update the gui accordingly
-        self.pngs = ["Riso_CCiso.png",
+        self.pngs = ["Riso_CCiso.pickle",
                      "q_estimation.png",
                      "k_estimation.png",
                      'summed_difference_peaks.png',
@@ -311,8 +319,13 @@ class MainFrame(wx.Frame):
                     png = self.pngs[self.pngs_idx[run]]
                     
                     filepath = os.path.join(self.inputs[run].output.outdir, png)
+
                     if os.path.isfile(filepath):
-                        self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
+                        if filepath.endswith('pickle'):
+                            self.notebook.ResultsBooks[run].tabImg.addPlot(filepath)
+                        else:
+                            self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
+
                         if self.pngs_idx[run] <= len(self.pngs) - 1:
                             self.pngs_idx[run] += 1
                 else:
@@ -421,8 +434,13 @@ class MainFrame(wx.Frame):
             run = self.notebook.Runs
             self.notebook.ResultsBooks[run].tabLog.LogTextCtrl.WriteText(open(log).read())
             for png in self.pngs:
-                if os.path.isfile(png):
-                    self.notebook.ResultsBooks[run].tabImg.addImg(png)
+                filepath = os.path.join(PathResults, png)
+                if os.path.isfile(filepath):
+                    #print(png)
+                    if filepath.endswith("pickle"):
+                        self.notebook.ResultsBooks[run].tabImg.addPlot(filepath)
+                    else:
+                        self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
             self.notebook.ResultsBooks[run].tabImg.addChoices(self.inputs[run].f_and_maps.f_extrapolated_and_maps)
             self.notebook.ResultsBooks[run].tabImg.FextrSelection.Bind(wx.EVT_CHOICE,
                                                                        self.notebook.ResultsBooks[run].tabImg.Clear)
@@ -467,7 +485,7 @@ class MainFrame(wx.Frame):
             message_err += "\n- at least one triggered mtz (mtz or cif)"
 
         if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
-            tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'XtraPol8')
+            tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'/Xtrapol8')
         else:
             path = tabIO.outdir_sizer.TextCtrl.GetValue()
             if os.path.exists(path):
@@ -1042,4 +1060,5 @@ class MainFrame(wx.Frame):
 if __name__ == "__main__":
     app = wx.App(False)
     frame = MainFrame(sys.argv)
+    frame.Show(True)
     app.MainLoop()

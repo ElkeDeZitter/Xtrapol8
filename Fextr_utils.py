@@ -310,7 +310,7 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     comp_lst         = np.asarray(comp_lst)
     comp_true_lst    = np.asarray(comp_true_lst)
     assert neg_lst.shape==neg_percent_lst.shape==bin_res_cent_lst.shape==comp_lst.shape==comp_true_lst.shape
-        
+                
     plt.close()
     fig, (ax1, ax3) = plt.subplots(1,2, figsize=(10, 5))
     ax1.plot(bin_res_cent_lst[1:], neg_lst[1:], linestyle = '-', label='# Neg. reflections',color = 'red')
@@ -391,6 +391,11 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     plt.savefig("%s.png"%(outname), dpi=300)
     plt.close()
     
+    out=open('%s.pickle'%(outname) ,'wb') #write to pickle for GUI
+    stats = [bin_res_cent_lst,neg_lst,neg_percent_lst,comp_lst, comp_true_lst,s]
+    pickle.dump(stats,out)
+    out.close()
+
     
     #fig, host = plt.subplots()
     #fig.subplots_adjust(right=0.55)
@@ -531,6 +536,12 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
     plt.savefig("%s_FsigF.png" %(prefix), dpi=300)
     plt.close()
     
+    out=open("%s_FsigF.pickle" %(prefix) ,'wb') #write to pickle for GUI
+    stats = [bin_res_cent_lst, f_sigf_lst, s, l, ids, idl]
+    pickle.dump(stats,out)
+    out.close()
+
+    
 def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     """
     Extract R-values from log-file phenix or refmac (Refmac with minimal output) and plot in function of the occupancy.
@@ -581,6 +592,11 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     plt.savefig("%s.pdf"%(pltname), dpi=300, transparent=True)
     plt.savefig("%s.png"%(pltname), dpi=300)
     plt.close()
+    
+    out=open('%s_refinement_R-factors_per_alpha.pickle' %(maptype) ,'wb') #write to pickle for GUI
+    stats = [occ_lst, r_work_lst, r_free_lst, r_diff_lst]
+    pickle.dump(stats,out)
+    out.close()
 
 def get_Fextr_stats(occ, fextr_ms, Fextr_type, fdif_ms, FoFo_type, outdir, log=sys.stdout):
     
@@ -660,7 +676,7 @@ def get_Fextr_stats(occ, fextr_ms, Fextr_type, fdif_ms, FoFo_type, outdir, log=s
     
     stats = [occ, FoFo_type, Fextr_type, bin_res_cent_lst, fextr_data_lst, fextr_sigmas_lst, fdif_data_lst, fdif_sigmas_lst]
     
-    out=open('%s/Fextr_binstats.pickle' %(outdir),'ab') #write to pickle to avoid keeping in memory.
+    out=open('%s/Fextr_binstats.pickle' %(outdir),'ab') #write to pickle to avoid keeping in memory and for GUI
     pickle.dump(stats,out)
     out.close()
     print("Stats saved to %s/Fextr_binstats.pickle" %(outdir))
@@ -1226,6 +1242,12 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
         
     #assert bin_res_cent_lst.size()==r_work_lst.size()==r_free_lst.size()==cc_work_lst.size()==cc_free_lst.size(), 'list sizes to plot Riso and CCiso not equal'
     assert bin_res_cent_lst.size()==r_work_lst.size()==cc_work_lst.size(), 'list sizes to plot Riso and CCiso not equal'
+    
+    out=open('Riso_CCiso.pickle' ,'wb') #write to pickle for GUI
+    stats = [bin_res_cent_lst, r_work_lst, cc_work_lst, r_work, cc_work]
+    pickle.dump(stats,out)
+    out.close()
+
     
     fig,ax1 = plt.subplots(figsize=(10, 5))
     #ax1.plot(bin_res_cent_lst[1:], r_work_lst[1:], marker = '.', color = 'red', label = 'Riso,work; overall %.4f' %(r_work))

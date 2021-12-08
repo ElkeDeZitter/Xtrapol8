@@ -18,6 +18,12 @@
 --------
 """
 
+from matplotlib.backends.backend_wxagg import (
+    FigureCanvasWxAgg as FigureCanvas,
+    NavigationToolbar2WxAgg as NavigationToolbar,
+)
+from matplotlib.figure import Figure
+
 import numpy as np
 import wx
 import os
@@ -26,6 +32,7 @@ from wxtbx import metallicbutton
 from wx.lib.pubsub import pub
 import pickle
 import glob
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -245,6 +252,55 @@ class TabMainImg(ScrolledPanel):
         self.SetSizer(self.mainSizer)
         self.SetAutoLayout(1)
         self.photoMaxSize = 1000
+        self.mapping = {
+            "Riso_CCiso.pickle": self.plot_Riso_CCiso
+        }
+
+    def plot_Riso_CCiso(self, pickle_file):
+        with open(pickle_file, 'rb') as stats_file:
+            bin_res_cent_lst, r_work_lst, cc_work_lst, r_work, cc_work = pickle.load(stats_file)
+
+        self.figure = Figure(figsize=(10, 5), dpi=100)
+        ax1 = self.figure.add_subplot(111)
+        ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax1.set_xlabel('Resolution (A)')
+        ax1.set_ylabel('Riso')
+        ax1.yaxis.label.set_color('red')
+        ax1.plot(bin_res_cent_lst[:], r_work_lst[:], marker='.', color='red', linewidth=2,
+                 label='Riso; overall %.4f' % (r_work_lst[0]))
+
+        ax2 = ax1.twinx()
+        ax2.plot(bin_res_cent_lst[:], cc_work_lst[:], marker='.', color='green', linewidth=2,
+                     label='CCiso; overall %.4f' % (cc_work_lst[0]))
+        ax2.set_ylabel('CCiso')
+        ax2.yaxis.label.set_color('green')
+        lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
+        lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
+        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize='xx-small',
+                       framealpha=0.5)
+        ax1.set_title('Riso and CCiso for high resolution reflections', fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.80, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+    def addPlot(self, pickle_file):
+
+        _, pickle_name = os.path.split(pickle_file)
+        canvas = self.mapping[pickle_name](pickle_file)
+        self.mainSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+
+        toolbar = NavigationToolbar(canvas)
+        toolbar.Realize()
+        # By adding toolbar in sizer, we are able to put it at the bottom
+        # of the frame - so appearance is closer to GTK version.
+        self.mainSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+
+        # update the axes menu on the toolbar
+        toolbar.update()
+        self.mainSizer.AddSpacer(60)
+        #self.SetSizer(self.sizer)
+        self.Fit()
+
 
     def addImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
