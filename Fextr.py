@@ -164,7 +164,7 @@ occupancies{
 scaling{
     b_scaling = no isotropic *anisotropic 
         .type = choice(multi=False)
-        .help = B-factor scaling for scaling triggered data vs reference data. Cannot be used for reference data with fcalc when using mmtbx.fmodel.manager.
+        .help = B-factor scaling for scaling triggered data vs reference data using scaleit.
         .expert_level = 0
     }
 f_and_maps{
@@ -223,7 +223,7 @@ map_explorer{
         .expert_level = 0
     use_occupancy_from_distance_analysis = False
         .type = bool
-        .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the diffreence map analysis.
+        .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis.
         .expert_level = 1
     }
 refinement{
