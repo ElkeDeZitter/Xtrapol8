@@ -1298,7 +1298,7 @@ def run(args):
             if mp in ('qFextr_map','qFgenick_map','qFextr_calc_map'):
                 dir_prefix = 'qweight_occupancy'
             elif mp in ('kFextr_map','kFgenick_map','kFextr_calc_map'):
-                dir_prefix = 'qweight_occupancy'
+                dir_prefix = 'kweight_occupancy'
             else:
                 dir_prefix = 'occupancy'
 
@@ -1397,11 +1397,11 @@ def run(args):
                 model_label='%s_real_space'%(mp_type)
                 ccp4_map_label='%s'%(mp)
             if len(ccp4_list) == len(pymol_pdb_list) == len(Xtrapol8_params.occupancies.list_occ):
-                print("Pymol movie residue list: %s" %(DH.residue_list))
+                #print("Pymol movie residue list: %s" %(DH.residue_list))
                 PM = Pymol_movie(Xtrapol8_params.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list,
                             resids_lst = DH.residue_list, model_label=model_label, ccp4_map_label=ccp4_map_label)
             else:
-                print("Pymol movie residue list: %s" %(DH.residue_list))
+                #print("Pymol movie residue list: %s" %(DH.residue_list))
                 PM = Pymol_movie(Xtrapol8_params.occupancies.list_occ, pdblst=pymol_pdb_list, resids_lst = DH.residue_list,
                             model_label=model_label)
             PM.write_pymol_script(outfile=pymol_script_out)
