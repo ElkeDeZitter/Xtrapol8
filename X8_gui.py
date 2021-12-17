@@ -255,12 +255,12 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
         self.Bind(wx.EVT_TIMER, self.updateFextr, self.timerFextr)
         pub.subscribe(self.updateFextr, "updateFextr")
-        pub.subscribe(self.X8ModeChanged,"X8Mode")
+        pub.subscribe(self.X8ModeChanged, "X8Mode")
 
         # These variables will be used by the timer callbacks to update the gui accordingly
         self.pngs = ["Riso_CCiso.pickle",
-                     "q_estimation.png",
-                     "k_estimation.png",
+                     "q_estimation.pickle",
+                     "k_estimation.pickle",
                      'summed_difference_peaks.png',
                      'qFo-Fo_sigmas.png'] # First set of pngs displayed in the gui (used by the first timer)
         self.png = self.pngs[0]

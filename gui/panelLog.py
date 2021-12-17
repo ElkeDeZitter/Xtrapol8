@@ -253,8 +253,37 @@ class TabMainImg(ScrolledPanel):
         self.SetAutoLayout(1)
         self.photoMaxSize = 1000
         self.mapping = {
-            "Riso_CCiso.pickle": self.plot_Riso_CCiso
+            "Riso_CCiso.pickle": self.plot_Riso_CCiso,
+            "q_estimation.pickle": self.plot_q_estimation,
+            "k_estimation.pickle": self.plot_k_estimation
         }
+
+    def plot_k_estimation(self, pickle_file):
+        with open(pickle_file, 'rb') as stats_file:
+            bin_res_cent_lst, k_av_lst, k_max_lst, k_min_lst = pickle.load(stats_file)
+
+        self.figure = Figure(figsize=(10, 5))
+        ax1 = self.figure.add_subplot(111)
+        ax1.set_xlabel('Resolution (A)')
+        ax1.set_ylabel('Average k-weight in resolution bin')
+        ax1.plot(bin_res_cent_lst[:], k_av_lst[:], marker='.', label='Average k-weight', color='red')
+        ax1.tick_params(axis='y')
+        ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax1.set_ylim(0, np.max(k_max_lst))
+        ax2 = ax1.twinx()
+        ax2.fill_between(bin_res_cent_lst[:], k_max_lst[:], k_min_lst[:], color='red', alpha=0.2, label='k range')
+        ax2.set_ylim(0, np.max(k_max_lst))
+        ax2.tick_params(axis='y')
+        ax2.set_ylabel('k range within resolution bin')
+        lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
+        lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
+
+        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
+                   framealpha=0.5)
+        self.figure.tight_layout()
+        ax1.set_title('Average k for high resolution reflections', fontsize='medium', fontweight="bold")
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
 
     def plot_Riso_CCiso(self, pickle_file):
         with open(pickle_file, 'rb') as stats_file:
@@ -282,6 +311,47 @@ class TabMainImg(ScrolledPanel):
         self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.80, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
+
+    def plot_q_estimation(self, pickle_file="q_estimation.pickle"):
+        """
+        For k_estimation plot
+        Generated only once
+        """
+        if os.path.isfile(pickle_file) == False:
+            return
+
+        try:
+            with open(pickle_file, 'rb') as stats_file:
+                bin_res_cent_lst, q_av_lst, q_max_lst, q_min_lst = pickle.load(stats_file)
+        except:
+            with open(pickle_file, 'rb') as stats_file:
+                bin_res_cent_lst, q_max_lst, q_min_lst = pickle.load(stats_file)
+                q_av_lst = None
+
+
+        self.figure = Figure(figsize=(10, 5))
+        ax1 = self.figure.add_subplot(111)
+        ax1.set_xlabel('Resolution (A)')
+        ax1.set_ylabel('Average q in resolution bin')
+        if q_av_lst is not None: ax1.plot(bin_res_cent_lst[:], q_av_lst[:], marker='.', label='Average q', color='red')
+        ax1.tick_params(axis='y')
+        ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax1.set_ylim(0, 1)
+        ax2 = ax1.twinx()
+        ax2.fill_between(bin_res_cent_lst[:], q_max_lst[:], q_min_lst[:], color='red', alpha=0.2, label='q range')
+        ax2.set_ylim(0, 1)
+        ax2.tick_params(axis='y')
+        ax2.set_ylabel('q range within resolution bin')
+        lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
+        lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
+
+        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
+                   framealpha=0.5)
+        ax1.set_title('Average q for high resolution reflections', fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
 
     def addPlot(self, pickle_file):
 

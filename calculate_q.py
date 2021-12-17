@@ -209,7 +209,7 @@ def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
     sigmadsq_lst     = np.asarray(sigmadsq_lst)
     
     out=open('q_estimation.pickle' ,'wb') #write to pickle for GUI
-    stats = [bin_res_cent_lst, q_max_lst, q_min_lst]
+    stats = [bin_res_cent_lst, q_av_lst, q_max_lst, q_min_lst]
     pickle.dump(stats,out)
     out.close()
     
