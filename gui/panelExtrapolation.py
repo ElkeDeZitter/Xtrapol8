@@ -46,7 +46,8 @@ class TabExtrapolation(wx.Panel):
         #####################
         self.X8Modes = wx.RadioBox(self, 1, "X8 Modes", size=(800, -1),choices=["FoFo only", "Fast N Furious", "Calm N Curious" ])
         self.X8Modes.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
-        self.currentX8Mode = "FoFo"
+        self.X8Modes.SetSelection(2)
+        self.currentX8Mode = "CNC"
 
         #####################
         ###  Occupancies  ###
