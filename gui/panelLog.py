@@ -250,6 +250,8 @@ class TabMainImg(ScrolledPanel):
         self.SetupScrolling()
         self.parent = parent
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
+        self.plotSizer = wx.BoxSizer(wx.VERTICAL)
+        self.mainSizer.Add(self.plotSizer, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
         self.SetSizer(self.mainSizer)
         self.SetAutoLayout(1)
         self.photoMaxSize = 1000
@@ -273,17 +275,17 @@ class TabMainImg(ScrolledPanel):
 
         _, pickle_name = os.path.split(pickle_file)
         canvas = self.mapping[pickle_name](pickle_file)
-        self.mainSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+        self.plotSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
 
         toolbar = NavigationToolbar(canvas)
         toolbar.Realize()
         # By adding toolbar in sizer, we are able to put it at the bottom
         # of the frame - so appearance is closer to GTK version.
-        self.mainSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+        self.plotSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
 
         # update the axes menu on the toolbar
         toolbar.update()
-        self.mainSizer.AddSpacer(60)
+        self.plotSizer.AddSpacer(60)
         #self.SetSizer(self.sizer)
         self.Fit()
 
