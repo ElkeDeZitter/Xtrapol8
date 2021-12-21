@@ -309,7 +309,7 @@ class TabMainImg(ScrolledPanel):
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
 
-        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
+        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.80, -0.05, 0.45, 0.5), fontsize='small',
                    framealpha=0.5)
         self.figure.tight_layout()
         ax1.set_title('Average k for high resolution reflections', fontsize='medium', fontweight="bold")
@@ -336,7 +336,7 @@ class TabMainImg(ScrolledPanel):
         ax2.yaxis.label.set_color('green')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
-        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize='xx-small',
+        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.81, -0.05, 0.45, 0.5), fontsize='small',
                        framealpha=0.5)
         ax1.set_title('Riso and CCiso for high resolution reflections', fontsize='medium', fontweight="bold")
         self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.80, top=0.95)
@@ -375,7 +375,7 @@ class TabMainImg(ScrolledPanel):
         ax2.set_ylabel('q range within resolution bin')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
-        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
+        ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='small',
                    framealpha=0.5)
         ax1.set_title('Average q for high resolution reflections', fontsize='medium', fontweight="bold")
         self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
@@ -466,7 +466,7 @@ class TabMainImg(ScrolledPanel):
         ax1.set_ylabel('R-factor difference')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
-        ax1.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
+        ax1.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='x-small',
                    framealpha=0.5)
 
         ax0.set_title('R-factors after reciprocal space refinement with %s' % (maptype), fontsize='medium',
@@ -649,8 +649,8 @@ class TabMainImg(ScrolledPanel):
         ax0.set_ylim(mn, mx)
         ax1.set_ylim(mn, mx)
 
-        ax0.legend(loc='lower right', bbox_to_anchor=(0.89, -0.05, 0.45, 0.5), fontsize='xx-small', framealpha=0.5)
-        ax1.legend(loc='lower right', bbox_to_anchor=(1.17, -0.05, 0.45, 0.5), fontsize='xx-small', framealpha=0.5)
+        ax0.legend(loc='lower right', bbox_to_anchor=(0.89, -0.05, 0.45, 0.5), fontsize='x-small', framealpha=0.5)
+        ax1.legend(loc='lower right', bbox_to_anchor=(1.17, -0.05, 0.45, 0.5), fontsize='x-small', framealpha=0.5)
         ax1.set_ylabel('sig(Extrapolated structure factors)')  # , fontsize = 'small')
         ax1.yaxis.label.set_color('tab:blue')
 
