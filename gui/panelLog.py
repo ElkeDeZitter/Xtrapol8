@@ -23,6 +23,7 @@ from matplotlib.backends.backend_wxagg import (
     NavigationToolbar2WxAgg as NavigationToolbar,
 )
 from matplotlib.figure import Figure
+import matplotlib.cm as cm
 
 import numpy as np
 import wx
@@ -255,8 +256,36 @@ class TabMainImg(ScrolledPanel):
         self.mapping = {
             "Riso_CCiso.pickle": self.plot_Riso_CCiso,
             "q_estimation.pickle": self.plot_q_estimation,
-            "k_estimation.pickle": self.plot_k_estimation
+            "k_estimation.pickle": self.plot_k_estimation,
+            "Fextr_negative.pickle": self.plot_Neg_Pos_reflections,
+            "Fextr_binstats.pickle": self.plot_sigmas
         }
+        for fextr in ['Fextr',  'qFextr', 'kFextr',
+                      'Fgenick', 'qFgenick', 'kFgenick',
+                      'Fextr_calc', 'qFextr_calc', 'kFextr_calc']:
+            self.mapping["alpha_occupancy_determination_%s.pickle"  % fextr] = self.plot_alpha_occupancy_determination
+            self.mapping["%s_refinement_R-factors_per_alpha.pickle" % fextr] = self.plot_refinement_Rfactors_per_alpha
+
+
+
+
+    def addPlot(self, pickle_file):
+
+        _, pickle_name = os.path.split(pickle_file)
+        canvas = self.mapping[pickle_name](pickle_file)
+        self.mainSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+
+        toolbar = NavigationToolbar(canvas)
+        toolbar.Realize()
+        # By adding toolbar in sizer, we are able to put it at the bottom
+        # of the frame - so appearance is closer to GTK version.
+        self.mainSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+
+        # update the axes menu on the toolbar
+        toolbar.update()
+        self.mainSizer.AddSpacer(60)
+        #self.SetSizer(self.sizer)
+        self.Fit()
 
     def plot_k_estimation(self, pickle_file):
         with open(pickle_file, 'rb') as stats_file:
@@ -344,7 +373,6 @@ class TabMainImg(ScrolledPanel):
         ax2.set_ylabel('q range within resolution bin')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
-
         ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
                    framealpha=0.5)
         ax1.set_title('Average q for high resolution reflections', fontsize='medium', fontweight="bold")
@@ -352,25 +380,158 @@ class TabMainImg(ScrolledPanel):
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
 
+    def plot_Neg_Pos_reflections(self, suffix, pickle_file):
+        """
+        For Neg_Pos_reflections plot.
+        This plot should be prepared for each type of extrapolated structure factor
+        This plot should be updated during run
+        The input pickle file contains information on all types of extrapolation (the name is thus misleading)!!!!
+        In this script, we reed the pickle and search specifically for maptype (qFextr, kFextrm, Fextr, qFgenick, kFgenick, Fgenick, qFextr_calc, kFextr_calc, Fextr_calc) and make the plot. In that sense it differs in the way the plots are generated in the command-line version
+        """
+        # In Fextr_utils, "maptype" is used. In order to keep the plotting code the same, let's use the same name
+        maptype = suffix
+        if os.path.isfile(pickle_file) == False:
+            return
 
-    def addPlot(self, pickle_file):
+        with open(pickle_file, 'rb') as stats_file:
+            while True:
+                try:
+                    stats = np.array(pickle.load(stats_file))
+                    # stats = np.array(tuple(stats), dtype='f8, S32, i4, i4, i4')
+                    try:
+                        alldata = np.vstack([alldata, stats[np.newaxis, ...]])
+                    except NameError:
+                        alldata = stats[np.newaxis, ...]
+                except EOFError:
+                    break
 
-        _, pickle_name = os.path.split(pickle_file)
-        canvas = self.mapping[pickle_name](pickle_file)
-        self.mainSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+        indices = np.where(alldata[:, 1] == maptype)[0]
 
-        toolbar = NavigationToolbar(canvas)
-        toolbar.Realize()
-        # By adding toolbar in sizer, we are able to put it at the bottom
-        # of the frame - so appearance is closer to GTK version.
-        self.mainSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+        self.figure = Figure(figsize=(10, 5))
+        ax0, ax2 = self.figure.subplots(1,2)
+        #fig, (ax0, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+        ax1 = ax0.twinx()
+        ax3 = ax2.twinx()
 
-        # update the axes menu on the toolbar
-        toolbar.update()
-        self.mainSizer.AddSpacer(60)
-        #self.SetSizer(self.sizer)
-        self.Fit()
+        for a in indices:
+            ax0.plot(np.float(alldata[a][0]), np.float(alldata[a][-1]), marker='o', color='red', label=maptype)
+            ax2.plot(np.float(alldata[a][0]), np.float(alldata[a][3]), marker='o', color='red', label=maptype)
 
+        ax0.set_ylim(0, np.float(alldata[a][2]))
+        ax1.set_ylim(0, 100)
+        ax2.set_ylim(0, np.float(alldata[a][2]))
+        ax3.set_ylim(0, 100)
+
+        ax0.set_xlabel('Occupancy')
+        ax0.set_ylabel('Absolute number')
+        ax1.set_ylabel('Percentage of total number of reflections')
+        ax0.set_title('%s: Negative reflections' % (maptype), fontsize='medium', fontweight="bold")
+
+        ax2.set_xlabel('Occupancy')
+        ax2.set_ylabel('Absolute number')
+        ax3.set_ylabel('Percentage of total number of reflections')
+        ax2.set_title('%s: Positive reflections' % (maptype), fontsize='medium', fontweight="bold")
+
+        self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+    def plot_refinement_Rfactors_per_alpha(self, prefix, pickle_file):
+        """
+        For refinement_R-factors_per_alpha plot.
+        This plot should be prepared for each type of extrapolated structure factor
+        prefix can be qFextr, kFextrm, Fextr, qFgenick, kFgenick, Fgenick, qFextr_calc, kFextr_calc, Fextr_calc
+        """
+        # In Fextr_utils, "maptype" is used. In order to keep the plotting code the same, let's use the same name
+        maptype = prefix
+
+        #pickle_file = '%s_refinement_R-factors_per_alpha.pickle' % (prefix)
+        if os.path.isfile(pickle_file) == False:
+            return
+
+        with open(pickle_file, 'rb') as stats_file:
+            occ_lst, r_work_lst, r_free_lst, r_diff_lst = pickle.load(stats_file)
+
+        self.figure = Figure(figsize=(10, 5))
+        ax0 = self.figure.add_subplot(111)
+        ax1 = ax0.twinx()
+
+        ax0.plot(occ_lst, r_work_lst, color='red', marker='o', label='Rwork')
+        ax0.plot(occ_lst, r_free_lst, color='blue', marker='o', label='Rfree')
+        ax1.plot(occ_lst, r_diff_lst, color='green', marker='o', label='Rfree-Rwork')
+        ax0.set_xlabel('Occupancy of triggered state')
+        ax0.set_ylabel('R-factor')
+        ax1.set_ylabel('R-factor difference')
+        lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
+        lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
+        ax1.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='xx-small',
+                   framealpha=0.5)
+
+        ax0.set_title('R-factors after reciprocal space refinement with %s' % (maptype), fontsize='medium',
+                  fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+
+    def plot_alpha_occupancy_determination(self, suffix, pickle_file):
+        """
+        For alpha_occupancy_determination plot.
+        This plot should be prepared for each type of extrapolated structure factor
+        prefix can be qFextr, kFextrm, Fextr, qFgenick, kFgenick, Fgenick, qFextr_calc, kFextr_calc, Fextr_calc
+        """
+        #pickle_file = 'alpha_occupancy_determination_%s.pickle' % (suffix)
+        if not os.path.isfile(pickle_file):
+            return
+
+        with open(pickle_file, 'rb') as stats_file:
+            alphas, occupancies, int1_norm, int2_norm, resids_lst_used, alphafound = pickle.load(stats_file)
+
+        self.figure = Figure(figsize=(10, 5))
+        ax1, ax2 = self.figure.subplots(1, 2)
+
+        if resids_lst_used == False:
+            ax1.plot(alphas, int1_norm, 'bo',
+                     label='All peaks')  # int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+        else:
+            try:
+                ax1.plot(alphas, int1_norm, 'ro', label='Selected residues')
+                ax1.plot(alphas, int2_norm, 'bo', label='All peaks')
+                ax1.plot(alphas, results, 'go', label='Selected residues with enhanced SNR')
+            except:
+                ax1.plot(alphas, int1_norm, 'ro')
+
+        ax1.set_ylim([0., 1.1])
+        ax1.set_xlim([np.min(alphas) * 0.95, np.max(alphas) * 1.05])
+        ax1.set_xlabel('Alpha value = 1/occupancy')
+        ax1.set_ylabel('Normalized ratio between summed absolute values of peaks \n in extrap. and exper. maps')
+
+        if resids_lst_used == False:
+            ax2.plot(occupancies, int1_norm, 'bo',
+                     label='All peaks')  # int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+        else:
+            try:
+                ax2.plot(occupancies, int1_norm, 'ro', label='Selected residues')
+                ax2.plot(occupancies, int2_norm, 'bo', label='All peaks')
+                ax2.plot(occupancies, results, 'go', label='Selected residues with enhanced SNR')
+            except:
+                ax2.plot(occupancies, int1_norm, 'ro')
+
+        ax2.set_ylim([0., 1.1])
+        ax2.set_xlim([np.min(occupancies) * 0.95, np.max(occupancies) * 1.05])
+        ax2.set_xlabel('Triggered state occupancy')
+        ax2.set_ylabel('Normalized ratio between summed absolute values of peaks \n in extrap. and exper. maps')
+        ax2.legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize='x-small', framealpha=0.5)
+
+        if alphafound:
+            ax1.set_title('Alpha determination', fontsize='medium', fontweight="bold")
+            ax2.set_title('Occupancy determination', fontsize='medium', fontweight="bold")
+        else:
+            ax1.set_title('Alpha determination IMPOSSIBLE - no peaks in FoFo', fontsize='medium', fontweight="bold")
+            ax2.set_title('Occupancy determination IMPOSSIBLE - no peaks in FoFo', fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.25, wspace=0.4, left=0.09, right=0.88, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
 
     def addImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
@@ -403,6 +564,149 @@ class TabMainImg(ScrolledPanel):
         index = self.parent.GetSelection()
         pub.sendMessage("updateFextr", evt=None)
 
+    def addFextrPlot(self, fextr, pickle_file):
+        _, pickle_name = os.path.split(pickle_file)
+        canvas = self.mapping[pickle_name](fextr, pickle_file)
+        self.ImgSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+
+        toolbar = NavigationToolbar(canvas)
+        toolbar.Realize()
+        # By adding toolbar in sizer, we are able to put it at the bottom
+        # of the frame - so appearance is closer to GTK version.
+        self.ImgSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+
+        # update the axes menu on the toolbar
+        toolbar.update()
+        self.ImgSizer.AddSpacer(60)
+        #self.SetSizer(self.sizer)
+        self.FitInside()
+
+    def plot_sigmas(self, prefix=None, pickle_file='Fextr_binstats.pickle'):
+        if prefix.endswith('pickle'):
+            return self.plot_FoFosigmas()
+        else:
+            return self.plot_Fextrsigmas(prefix=prefix)
+
+    def plot_Fextrsigmas(self, prefix, pickle_file='Fextr_binstats.pickle'):
+        """
+        For Fextr_sigmas plot.
+        This plot should be prepared for each type of extrapolated structure factor
+        This plot should be updated during run
+        The input pickle file contains information on all types of extrapolation (the name is thus misleading)!!!!
+        In this script, we reed the pickle and search specifically for maptype (qFextr, kFextrm, Fextr, qFgenick, kFgenick, Fgenick, qFextr_calc, kFextr_calc, Fextr_calc) and make the plot. In that sense it differs in the way the plots are generated in the command-line version
+        """
+        # In Fextr_utils, "maptype" is used. In order to keep the plotting code the same, let's use the same name
+        maptype = prefix
+        # Read the pickle file
+        with open(pickle_file, 'rb') as stats_file:
+            while True:
+                try:
+                    stats = np.array(pickle.load(stats_file))
+                    # stats = np.array(tuple(stats), dtype='f8, S32, i4, i4, i4')
+                    try:
+                        alldata = np.vstack([alldata, stats[np.newaxis, ...]])
+                    except NameError:
+                        alldata = stats[np.newaxis, ...]
+                except EOFError:
+                    break
+
+        # extract the occupancies
+        occ_lst = list(set(alldata[:, 0]))
+        # get the indices concerning the specific maptype we are looking at
+        indices = np.where(alldata[:, 2] == maptype)[0]
+
+        mn = 0
+        mx = 0
+        self.figure = Figure(figsize=(10, 5))
+        ax0 = self.figure.add_subplot(111)
+        #fig, ax0 = plt.subplots(1, 1, figsize=(10, 5))
+        ax1 = ax0.twinx()
+        for a in indices:
+            occ, _, _, bin_res_cent_lst, fextr_data_lst, fextr_sigmas_lst, _, _ = alldata[a]
+            color_data = cm.Reds(int((np.log(1 / occ)) * 100))
+            color_sigma = cm.Blues(int((np.log(1 / occ)) * 100))
+            ax0.plot(bin_res_cent_lst[:], fextr_data_lst[:], marker='.', color=color_data,
+                     label='%s, occ = %.3f' % (maptype, occ))
+            ax1.plot(bin_res_cent_lst[:], fextr_sigmas_lst[:], marker='x', linestyle='--', color=color_sigma,
+                     label='sig(%s), occ = %.3f' % (maptype, occ))
+            # Specify the minimum and maximum value
+            if min(fextr_data_lst[1:]) < mn:
+                mn = min(fextr_data_lst[1:])
+            if max(fextr_data_lst[1:]) > mx:
+                mx = max(fextr_data_lst[1:])
+            if min(fextr_sigmas_lst[1:]) < mn:
+                mn = min(fextr_sigmas_lst[1:])
+            if max(fextr_sigmas_lst[1:]) > mx:
+                mx = max(fextr_sigmas_lst[1:])
+
+        ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax0.set_xlabel('Resolution (A)')  # , fontsize = 'small')
+        ax0.set_ylabel('Extrapolated structure factors')  # , fontsize = 'small')
+        ax0.yaxis.label.set_color('tab:red')
+
+        ax0.set_ylim(mn, mx)
+        ax1.set_ylim(mn, mx)
+
+        ax0.legend(loc='lower right', bbox_to_anchor=(0.89, -0.05, 0.45, 0.5), fontsize='xx-small', framealpha=0.5)
+        ax1.legend(loc='lower right', bbox_to_anchor=(1.17, -0.05, 0.45, 0.5), fontsize='xx-small', framealpha=0.5)
+        ax1.set_ylabel('sig(Extrapolated structure factors)')  # , fontsize = 'small')
+        ax1.yaxis.label.set_color('tab:blue')
+
+        ax0.set_title('%s for high resolution reflections' % (maptype), fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.65, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+        #plt.savefig('%s_sigmas.pdf' % (maptype), dpi=300, transparent=True)
+        #plt.savefig('%s_sigmas.png' % (maptype), dpi=300)
+        #plt.close()
+
+    def plot_FoFosigmas(self, pickle_file='Fextr_binstats.pickle'):
+        """
+        For FoFo-sigmas plot.
+        Generated only once
+        In this script, we reed the pickle and search only the info concerning the FoFo. In that sense it differs in the way the plots are generated in the command-line version
+        """
+        if os.path.isfile(pickle_file) == False:
+            return
+
+        with open(pickle_file, 'rb') as stats_file:
+            _, FoFo_type, _, bin_res_cent_lst, _, _, fdif_data_lst, fdif_sigmas_lst = np.array(pickle.load(stats_file))
+
+        mn = 0
+        mx = 0
+        if min(fdif_data_lst[1:]) < mn:
+            mn = min(fdif_data_lst[1:])
+        if max(fdif_data_lst[1:]) > mx:
+            mx = max(fdif_data_lst[1:])
+        if min(fdif_sigmas_lst[1:]) < mn:
+            mn = min(fdif_sigmas_lst[1:])
+        if max(fdif_sigmas_lst[1:]) > mx:
+            mx = max(fdif_sigmas_lst[1:])
+
+        self.figure = Figure(figsize=(10, 5))
+        ax0 = self.figure.add_subplot(111)
+
+        ax1 = ax0.twinx()
+
+        ax0.plot(bin_res_cent_lst[:], fdif_data_lst[:], marker='.', color='tab:red', label='%s' % (FoFo_type))
+        ax1.plot(bin_res_cent_lst[:], fdif_sigmas_lst[:], marker='x', linestyle='--', color='tab:blue',
+                 label='sig(%s)' % (FoFo_type))
+        ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax0.set_xlabel('Resolution (A)')
+        ax0.set_ylabel('%s' % (FoFo_type))
+        ax0.yaxis.label.set_color('tab:red')
+        ax1.set_ylabel('sig(%s)' % (FoFo_type))
+        ax1.yaxis.label.set_color('tab:blue')
+        lines_labels_1 = [ax.get_legend_handles_labels() for ax in [ax0, ax1]]
+        lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
+        ax0.legend(lines_1, labels_1, loc='lower right', bbox_to_anchor=(0.73, -0.05, 0.45, 0.5), fontsize='xx-small',
+                   framealpha=0.5)
+        ax0.set_title('%s for high resolution reflections' % (FoFo_type), fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.85, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
     def addFextrImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
         W = img.GetWidth()
@@ -415,17 +719,19 @@ class TabMainImg(ScrolledPanel):
             NewW = self.photoMaxSize * W / H
         img = img.Scale(NewW, NewH)
 
-        self.newimg = wx.StaticBitmap(self, wx.ID_ANY,
-                                      wx.BitmapFromImage(img))
+        self.newimg = wx.StaticBitmap(self, wx.ID_ANY, wx.BitmapFromImage(img))
         self.ImgSizer.Add(self.newimg, proportion=0,  flag=wx.ALIGN_CENTER_HORIZONTAL | wx.ALL, border=20)
         self.FitInside()
 
     def Clear(self, evt):
         while not self.ImgSizer.IsEmpty():
-            window = self.ImgSizer.GetItem(0).GetWindow()
-            window.Destroy()
+            item = self.ImgSizer.GetItem(0)
+            if item.IsSpacer:
+                self.ImgSizer.Detach(0)
+            else:
+                window = self.ImgSizer.GetItem(0).GetWindow()
+                window.Destroy()
         pub.sendMessage("updateFextr", evt=None)#,tabindex=index)
-
 
 class TabOccResults(ScrolledPanel):
     """
@@ -503,7 +809,7 @@ class TabOccResults(ScrolledPanel):
         self.mainSizer.AddSpacer(30)
         self.mainSizer.Add(self.occNfextrSizer, 0,  wx.ALIGN_CENTER_VERTICAL | wx.ALL, border=5)
         self.mainSizer.AddSpacer(30)
-        self.mainSizer.Add(self.ImgSizer, 0, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
+        self.mainSizer.Add(self.ImgSizer, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
         self.mainSizer.Layout()
         
     def setupBindings(self):
@@ -513,13 +819,14 @@ class TabOccResults(ScrolledPanel):
     def onSelection(self, evt):
         self.occ = self.OccChoice.GetStringSelection()
         self.fextr = self.FextrChoice.GetStringSelection()
-        
+
         while not self.ImgSizer.IsEmpty():
             item = self.ImgSizer.GetItem(0)
-            window = item.GetWindow()
-            try:
+            if item.IsSpacer:
+                self.ImgSizer.Detach(0)
+            else:
+                window = self.ImgSizer.GetItem(0).GetWindow()
                 window.Destroy()
-            except: item.Destroy()
 
         path_occ = ''
         if self.fextr.startswith('q'):
@@ -530,19 +837,19 @@ class TabOccResults(ScrolledPanel):
             Fextr = self.fextr[0] + self.fextr[1].upper() + self.fextr[2:]
         else:
             Fextr =self.fextr[0].upper() + self.fextr[1:]
-	
+
         self.Fextr_png_name = Fextr
         path_occ += 'occupancy_%.3f' % float(self.occ)
         path = os.path.join(self.options.output.outdir, path_occ)
 
 
-        fn_neg = os.path.join(path, '%s_negative_reflections.png' % Fextr)
+        fn_neg = os.path.join(path, '%s_negative_reflections.pickle' % Fextr)
         if os.path.isfile(fn_neg):
-            self.addImg(fn_neg)
+            self.addPlot(fn_neg)
 
-        FsigF = os.path.join(path, '%s_occupancy%.3f.png_FsigF.png' % (Fextr, float(self.occ)))
+        FsigF = os.path.join(path, '%s_FsigF.pickle' % Fextr)
         if os.path.isfile(FsigF):
-            self.addImg(FsigF)
+            self.addPlot(FsigF)
         
         if self.finished:
             self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
@@ -558,6 +865,123 @@ class TabOccResults(ScrolledPanel):
 
     def onCoot(self, evt):
         os.system("coot --script %s &" % self.coot_scripts[self.fextr])
+
+    def plot_FsigF(self, pickle_file):
+        """
+        For FsigF plot.
+        This plot should be placed in the (q/k-weighted)_occupancy directory
+        This plot should be prepared for each type of extrapolated structure factor
+        prefix can be qFextr, kFextrm, Fextr, qFgenick, kFgenick, Fgenick, qFextr_calc, kFextr_calc, Fextr_calc
+        """
+        prefix = pickle_file.strip('_FsigF.pickle')
+        # pickle_file = '%s_FsigF.pickle' % (prefix)
+        if os.path.isfile(pickle_file) == False:
+            return
+
+        with open(pickle_file, 'rb') as stats_file:
+            bin_res_cent_lst, f_sigf_lst, s, l, ids, idl = pickle.load(stats_file)
+
+        #fig, ax1 = plt.subplots(figsize=(10, 5))
+        self.figure = Figure(figsize=(10, 5))
+        ax1 = self.figure.add_subplot(111)
+
+        f_sigf_lst = np.asarray(f_sigf_lst)
+        bin_res_cent_lst = np.asarray(bin_res_cent_lst)
+        s = np.full((len(f_sigf_lst), 1), 0.8)
+        l = np.full((len(f_sigf_lst), 1), 1.2)
+        ax1.plot(bin_res_cent_lst[:], f_sigf_lst[:], '-', label='<F/sig(F)>', color='red')
+        ax1.plot(bin_res_cent_lst[:], s[:], linestyle=':', label='<F/sig(F)> = 0.8', color='blue')  # (<I/sig(I)> = 2)
+        ax1.plot(bin_res_cent_lst[:], l[:], linestyle=':', label='<F/sig(F)> = 1.2',
+                 color='green')  # (<I/sig(I)> = 1.5)
+
+        ax1.plot(np.array([ids]), np.array([0.8]), 'bo', label='estimation: %.2f A' % (ids))
+        ax1.plot(np.array([idl]), np.array([1.2]), 'go', label='estimation: %.2f A' % (idl))
+        ax1.set_xlabel('Resolution of bin center (A)')
+        ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax1.set_ylabel('<F/sig(F)>')
+        ax1.legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize='xx-small', framealpha=0.5)
+        ax1.set_title('%s: <F/sig(F)> for high resolution bins' % (prefix), fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+    def plot_negativereflections(self, pickle_file):
+        """
+        For negative_reflections plot.
+        This plot should be placed in the (q/k-weighted)_occupancy directory. If this script is not launched from the (q/k-weighted)_occupancy directory, an additional argument concerning the directory should be added, or pickle file should be directy provided.
+        This plot should be prepared for each type of extrapolated structure factor
+        prefix can be qFextr, kFextrm, Fextr, qFgenick, kFgenick, Fgenick, qFextr_calc, kFextr_calc, Fextr_calc
+        """
+
+        if os.path.isfile(pickle_file) == False:
+            return
+
+        with open(pickle_file, 'rb') as stats_file:
+            bin_res_cent_lst, neg_lst, neg_percent_lst, comp_lst, comp_true_lst, s = pickle.load(stats_file)
+
+        # In Fextr_utils, "maptype" is used. In order to keep the plotting code the same, let's use the same name
+
+        self.figure = Figure(figsize=(10, 5))
+        ax1, ax3 = self.figure.subplots(1, 2)
+
+        ax1.plot(bin_res_cent_lst[:], neg_lst[:], linestyle='-', label='# Neg. reflections', color='red')
+        ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax1.set_ylim(0, np.max(neg_lst))
+        ax1.set_xlabel('Resolution (A)')
+        ax1.set_ylabel('Number of negative reflections in resolution bin')
+        ax1.yaxis.label.set_color('red')
+        ax1.set_title("Negative reflections for high resolution bins", fontsize='medium', fontweight="bold")
+        ax2 = ax1.twinx()
+        ax2.plot(bin_res_cent_lst[:], neg_percent_lst[:], linestyle='-', label='% Neg. reflections', color='blue')
+        ax2.set_ylim(0, 100)
+        ax2.set_ylabel('Negative reflections in resolution bin (%)')
+        ax2.yaxis.label.set_color('blue')
+        lines_labels_1 = [ax.get_legend_handles_labels() for ax in [self.figure.axes[0], self.figure.axes[2]]]
+        lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
+        ax1.legend(lines_1, labels_1, loc='lower right', bbox_to_anchor=(0.82, -0.05, 0.45, 0.5), fontsize='xx-small',
+                   framealpha=0.5)
+
+        s = np.full((bin_res_cent_lst.shape[0], 1), 90)
+        ax3.plot(bin_res_cent_lst[:], comp_lst[:], '-', label='Completeness', color='red')
+        ax3.plot(bin_res_cent_lst[:], comp_true_lst[:], '-', label='True completeness', color='blue')
+        ax3.plot(bin_res_cent_lst[:], s[:], linestyle=':', label='90 (%) Completeness', color='green')
+        ax3.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
+        ax3.set_ylim(0, 100)
+        ax3.set_xlabel('Resolution (A)')
+        ax3.set_ylabel('Completeness in resolution bin (%)')
+        ax3.set_title("Completeness for high resolution bins", fontsize='medium', fontweight="bold")
+
+        lines_labels_2 = self.figure.axes[1].get_legend_handles_labels()
+        lines_2, labels_2 = [sum(lne, []) for lne in zip(lines_labels_2)]
+        # ax3.legend(lines_2, labels_2, fontsize = 'x-small', framealpha=0.5, loc=3, bbox_to_anchor=(0.05, 0.05, 0.5, 0.5))
+        ax3.legend(lines_2, labels_2, loc='lower right', bbox_to_anchor=(0.82, -0.05, 0.45, 0.5), fontsize='xx-small',
+                   framealpha=0.5)
+        self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+    def addPlot(self, pickle_file):
+
+        _, pickle_name = os.path.split(pickle_file)
+        if 'negative_reflections'in pickle_name:
+            canvas = self.plot_negativereflections(pickle_file)
+        else:
+            canvas = self.plot_FsigF(pickle_file)
+        self.ImgSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+
+        toolbar = NavigationToolbar(canvas)
+        toolbar.Realize()
+        # By adding toolbar in sizer, we are able to put it at the bottom
+        # of the frame - so appearance is closer to GTK version.
+        self.ImgSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+
+        # update the axes menu on the toolbar
+        toolbar.update()
+        self.ImgSizer.AddSpacer(60)
+        # self.SetSizer(self.sizer)
+        self.FitInside()
+
+        return
 
     def addImg(self, filepath):
             img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)

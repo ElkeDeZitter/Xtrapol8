@@ -262,14 +262,14 @@ class MainFrame(wx.Frame):
                      "q_estimation.pickle",
                      "k_estimation.pickle",
                      'summed_difference_peaks.png',
-                     'qFo-Fo_sigmas.png'] # First set of pngs displayed in the gui (used by the first timer)
+                     'Fextr_binstats.pickle'] # First set of pngs displayed in the gui (used by the first timer)
         self.png = self.pngs[0]
         self.pngs_idx = []  # This list will hold a reference for each run tab in the gui
 
-        self.Fextr_pngs = ['tmp_sigmas.png',
-                           'Neg_Pos_reflections_tmp.png',
-                           'alpha_occupancy_determination_tmp.png',
-                           'tmp_refinement_R-factors_per_alpha.png',
+        self.Fextr_pngs = ['Fextr_binstats.pickle',
+                           'Fextr_negative.pickle',
+                           'alpha_occupancy_determination_tmp.pickle',
+                           'tmp_refinement_R-factors_per_alpha.pickle',
                            'Distance_difference_plot_tmp.png'] #Second set of pngs (used by the second timer)
                            # - note the tmp par of the string which will be replaced by the appropriate Fextr type
 
@@ -349,10 +349,14 @@ class MainFrame(wx.Frame):
                         Fextr = Fextr[0].upper() + Fextr[1:]
                     png = self.Fextr_pngs[j].replace('tmp', Fextr)
                     filepath = os.path.join(self.inputs[run].output.outdir, png)
-                    if os.path.isfile(filepath):
-                        tab.addFextrImg(filepath)
 
+                    if os.path.isfile(filepath):
+                        if filepath.endswith('pickle'):
+                            tab.addFextrPlot(Fextr, filepath)
+                        else:
+                            tab.addFextrImg(filepath)
                     else:
+                        return
                         print("%s does not exists" %filepath)
 
     def OnPageClose(self, evt):
@@ -427,7 +431,7 @@ class MainFrame(wx.Frame):
             self.OnOpenPhil(event=None, phil_file=Phil)
             self.input_phil = self.extract_phil()
             self.AddResultsTab()
-            log = glob.glob(os.path.join(PathResults, "*Xtrapol8.log"))[0]
+            log = glob.glob(os.path.join(PathResults, "*Xtrapol8*.log"))[0]
             self.pngs_idx.append(0)
             self.inputs.append(self.input_phil)
             self.notebook.threads.append(None)
@@ -457,8 +461,10 @@ class MainFrame(wx.Frame):
                 png = self.Fextr_pngs[j].replace('tmp', Fextr)
                 filepath = os.path.join(PathResults, png)
                 if os.path.isfile(filepath):
-                    tab.addFextrImg(filepath)
-
+                    if filepath.endswith('pickle'):
+                        tab.addFextrPlot(Fextr, filepath)
+                    else:
+                        tab.addFextrImg(filepath)
                 else:
                     print("%s does not exists" %filepath)
             self.notebook.ResultsBooks[run].tabOcc.onFinished()
@@ -513,7 +519,6 @@ class MainFrame(wx.Frame):
             return self.get_new_path(path)
         else:
             return path
-
 
     def OnStopRun(self):
         self.notebook.StopRun()
