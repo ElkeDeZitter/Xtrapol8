@@ -24,15 +24,17 @@ import wx
 from wx.lib.pubsub import pub
 
 from utils import CharValidator
+from wx.lib.scrolledpanel import ScrolledPanel
 
-class TabExtrapolation(wx.Panel):
+class TabExtrapolation(ScrolledPanel):
     """
     This will be the second notebook tab with settings for extrapolation calculation and analysis
     """
     #----------------------------------------------------------------------
     def __init__(self, parent):
         """"""
-        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
+        ScrolledPanel.__init__(self, parent=parent, style=wx.VSCROLL | wx.HSCROLL)
+        self.SetupScrolling()
         self.createAndLayout()
         self.parent = parent
         
