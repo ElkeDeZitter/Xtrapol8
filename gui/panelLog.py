@@ -745,8 +745,6 @@ class TabOccResults(ScrolledPanel):
         ScrolledPanel.__init__(self, parent=parent, style=wx.VSCROLL | wx.HSCROLL)
         self.SetupScrolling()
         self.mainSizer = wx.BoxSizer(wx.VERTICAL)
-        self.SetSizer(self.mainSizer)
-        self.SetAutoLayout(1)
         self.photoMaxSize = 1000
         self.options = options
         self.finished = False
@@ -812,8 +810,9 @@ class TabOccResults(ScrolledPanel):
         self.mainSizer.Add(self.occNfextrSizer, 0,  wx.ALIGN_CENTER_VERTICAL | wx.ALL, border=5)
         self.mainSizer.AddSpacer(30)
         self.mainSizer.Add(self.ImgSizer, 1, wx.ALIGN_CENTER_HORIZONTAL | wx.ALIGN_CENTER_VERTICAL)
-        self.mainSizer.Layout()
-        
+        self.SetSizer(self.mainSizer)
+        self.SetAutoLayout(1)
+
     def setupBindings(self):
         self.Bind(wx.EVT_CHOICE, self.onSelection, self.OccChoice)
         self.Bind(wx.EVT_CHOICE, self.onSelection, self.FextrChoice)
