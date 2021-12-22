@@ -828,7 +828,8 @@ class TabOccResults(ScrolledPanel):
             else:
                 window = self.ImgSizer.GetItem(0).GetWindow()
                 window.Destroy()
-
+        self.ImgSizer.Layout()
+        self.mainSizer.Layout()
         path_occ = ''
         if self.fextr.startswith('q'):
             path_occ += 'qweight_'
@@ -983,7 +984,9 @@ class TabOccResults(ScrolledPanel):
         # update the axes menu on the toolbar
         toolbar.update()
         self.ImgSizer.AddSpacer(60)
-        # self.SetSizer(self.sizer)
+        # self.SetSizer(self.sizer)]
+        self.ImgSizer.Layout()
+        self.mainSizer.Layout()
         self.FitInside()
 
 
@@ -1006,6 +1009,8 @@ class TabOccResults(ScrolledPanel):
         toolbar.update()
         self.ImgSizer.AddSpacer(60)
         # self.SetSizer(self.sizer)
+        self.ImgSizer.Layout()
+        self.mainSizer.Layout()
         self.FitInside()
 
         return
@@ -1025,6 +1030,8 @@ class TabOccResults(ScrolledPanel):
             self.newimg = wx.StaticBitmap(self, wx.ID_ANY,
                                           wx.BitmapFromImage(img))
             self.ImgSizer.Add(self.newimg, proportion=0, flag=wx.ALIGN_CENTER_HORIZONTAL)
+            self.ImgSizer.Layout()
+            self.mainSizer.Layout()
             self.FitInside()
 
     def onFinished(self):
