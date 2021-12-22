@@ -356,7 +356,7 @@ class MainFrame(wx.Frame):
                         else:
                             tab.addFextrImg(filepath)
                     else:
-                        return
+                        #return
                         print("%s does not exists" %filepath)
 
     def OnPageClose(self, evt):

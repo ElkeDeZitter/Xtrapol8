@@ -585,9 +585,9 @@ class TabMainImg(ScrolledPanel):
 
     def plot_sigmas(self, prefix=None, pickle_file='Fextr_binstats.pickle'):
         if prefix.endswith('pickle'):
-            return self.plot_FoFosigmas()
+            return self.plot_FoFosigmas(pickle_file=prefix)
         else:
-            return self.plot_Fextrsigmas(prefix=prefix)
+            return self.plot_Fextrsigmas(prefix=prefix, pickle_file=pickle_file)
 
     def plot_Fextrsigmas(self, prefix, pickle_file='Fextr_binstats.pickle'):
         """
@@ -763,9 +763,9 @@ class TabOccResults(ScrolledPanel):
             self.occ_list = [str(choice) for choice in self.options.occupancies.list_occ]
 
         except TypeError:
-            self.occ_list = [str(choice) for choice in np.linspace(self.options.occupancies.low_occ,
-                                                              self.options.occupancies.high_occ,
-                                                              self.options.occupancies.steps+1, endpoint=True)]
+            self.occ_list = ['%.3f' %choice for choice in np.linspace(self.options.occupancies.low_occ,
+                                                                      self.options.occupancies.high_occ,
+                                                                      self.options.occupancies.steps+1, endpoint=True)]
         self.OccChoice = wx.Choice(self, wx.ID_ANY, choices=self.occ_list)
         self.OccChoice.SetSelection(0)
         self.occ = self.occ_list[0]
@@ -852,7 +852,7 @@ class TabOccResults(ScrolledPanel):
         FsigF = os.path.join(path, '%s_FsigF.pickle' % Fextr)
         if os.path.isfile(FsigF):
             self.addPlot(FsigF)
-        
+
         if self.finished:
             self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
             if float(self.occ) == float(self.best_occ[self.fextr]):
