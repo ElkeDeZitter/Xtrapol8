@@ -365,17 +365,18 @@ class MainFrame(wx.Frame):
 
         run = self.notebook.GetSelection() - 1
         SelectedThread = self.notebook.threads[run]
-        if SelectedThread.is_alive():
-            Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus',
-                                    wx.YES_NO | wx.NO_DEFAULT).ShowModal()
-            # print Stop
-            if Stop == wx.ID_YES:
-                print("Clicked YES")
-                SelectedThread.stop()
+        if SelectedThread is not None:
+            if SelectedThread.is_alive():
+                Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus',
+                                        wx.YES_NO | wx.NO_DEFAULT).ShowModal()
+                # print Stop
+                if Stop == wx.ID_YES:
+                    print("Clicked YES")
+                    SelectedThread.stop()
 
-            else:
-                evt.Veto()
-                return
+                else:
+                    evt.Veto()
+                    return
         self.notebook.threads.pop(run)
         self.notebook.ResultsBooks.pop(run)
         self.inputs.pop(run)
@@ -427,7 +428,7 @@ class MainFrame(wx.Frame):
         PathResults = self.onBrowseDir(evt=None)
         Phil = os.path.join(PathResults,'Xtrapol8_out.phil')
         if os.path.exists(Phil):
-            
+            print(Phil)
             self.OnOpenPhil(event=None, phil_file=Phil)
             self.input_phil = self.extract_phil()
             self.AddResultsTab()
@@ -468,6 +469,7 @@ class MainFrame(wx.Frame):
                 else:
                     print("%s does not exists" %filepath)
             self.notebook.ResultsBooks[run].tabOcc.onFinished()
+
         return
     
     def check_user_input(self):
