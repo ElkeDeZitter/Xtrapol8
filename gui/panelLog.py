@@ -848,10 +848,14 @@ class TabOccResults(ScrolledPanel):
         fn_neg = os.path.join(path, '%s_negative_reflections.pickle' % Fextr)
         if os.path.isfile(fn_neg):
             self.addPlot(fn_neg)
+        else:
+            self.addEmptyPlot()
 
         FsigF = os.path.join(path, '%s_FsigF.pickle' % Fextr)
         if os.path.isfile(FsigF):
             self.addPlot(FsigF)
+        else:
+            self.addEmptyPlot()
 
         if self.finished:
             self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
@@ -961,6 +965,28 @@ class TabOccResults(ScrolledPanel):
         self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
+
+    def addEmptyPlot(self):
+        self.figure = Figure(figsize=(10, 5))
+        ax1 = self.figure.subplots(1, 1)
+        ax1.text(0.3, 0.5, "Data not available yet")
+        #ax1.set_title("Negative reflections for high resolution bins", fontsize='medium', fontweight="bold")
+        self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
+        canvas = FigureCanvas(self, -1, self.figure)
+        self.ImgSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
+
+        toolbar = NavigationToolbar(canvas)
+        toolbar.Realize()
+        # By adding toolbar in sizer, we are able to put it at the bottom
+        # of the frame - so appearance is closer to GTK version.
+        self.ImgSizer.Add(toolbar, 0, wx.LEFT | wx.EXPAND)
+
+        # update the axes menu on the toolbar
+        toolbar.update()
+        self.ImgSizer.AddSpacer(60)
+        # self.SetSizer(self.sizer)
+        self.FitInside()
+
 
     def addPlot(self, pickle_file):
 
