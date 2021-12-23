@@ -2909,7 +2909,7 @@ def run(args):
                 alpha = 1/occ
             occ_dir = "%s/%s_%.3f" %(outdir, dir_prefix, occ)
             
-        occ_overview[mp_type] = [occ, script_coot, ddm_out]
+        occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
             
         print("------------------------------------")
         print("------------------------------------", file=log)
@@ -3027,7 +3027,7 @@ def run(args):
         print('---------------------------')
         
         #Rewrite the pickle file as to include the ddm_out path
-        occ_overview[mp_type] = [occ, script_coot, ddm_out]
+        occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
         #if os.path.isfile("occupancy_recap.pickle"):
             #os.remove("occupancy_recap.pickle")
         occ_pickle = open("occupancy_recap.pickle", "wb")
