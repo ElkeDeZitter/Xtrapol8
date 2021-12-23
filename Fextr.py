@@ -525,6 +525,14 @@ class DataHandler(object):
         outdir = self.outdir
         i = 1
         while os.path.exists(outdir):
+            #Keep outdir given by user if it is empty
+            if len(os.listdir(self.outdir)) ==0:
+                outdir = self.outdir
+                break
+            #Keep outdir given by user if it only contains Xtrapol8 log-files:
+            if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
+                outdir = self.outdir
+                break
             outdir = "%s_%d" %(self.outdir, i)
             i += 1
             if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
@@ -538,7 +546,7 @@ class DataHandler(object):
                 os.makedirs(outdir)
                 print('Output directory being created: %s'%(outdir))
             except OSError:
-                print("Output directory already exists, this might lead to problems. Consider chosing a new name and rerun")
+                print("Output directory: %s" %(outdir))
             
         self.outdir = os.path.abspath(outdir)
                 
