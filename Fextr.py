@@ -529,10 +529,10 @@ class DataHandler(object):
             if len(os.listdir(self.outdir)) ==0:
                 outdir = self.outdir
                 break
-            #Keep outdir given by user if it only contains Xtrapol8 log-files:
-            if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
-                outdir = self.outdir
-                break
+            ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+            #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
+                #outdir = self.outdir
+                #break
             outdir = "%s_%d" %(self.outdir, i)
             i += 1
             if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
