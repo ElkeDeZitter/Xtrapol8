@@ -13,6 +13,13 @@ Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-
 see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
+import matplotlib
+matplotlib.use('WXAgg')
+from matplotlib.backends.backend_wxagg import (
+    FigureCanvasWxAgg as FigureCanvas,
+    NavigationToolbar2WxAgg as NavigationToolbar,
+)
+from matplotlib.figure import Figure
 
 import os.path
 import glob
@@ -119,11 +126,12 @@ class MainNotebook(AuiNotebook):
         pageIdx = self.GetSelection()
         if pageIdx > 0:
             thread = self.threads[pageIdx - 1]
-            if not thread.stopped():
-                thread.stop()
-                print("Run %i stopped" % pageIdx)
-            else:
-                print("Run %i already stopped" % pageIdx)
+            if thread is not None:
+                if not thread.stopped():
+                    thread.stop()
+                    print("Run %i stopped" % pageIdx)
+                else:
+                    print("Run %i already stopped" % pageIdx)
 
 
     def OnUpdateLog(self, Nlog, line):
@@ -247,21 +255,21 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
         self.Bind(wx.EVT_TIMER, self.updateFextr, self.timerFextr)
         pub.subscribe(self.updateFextr, "updateFextr")
-        pub.subscribe(self.X8ModeChanged,"X8Mode")
+        pub.subscribe(self.X8ModeChanged, "X8Mode")
 
         # These variables will be used by the timer callbacks to update the gui accordingly
-        self.pngs = ["Riso_CCiso.png",
-                     "q_estimation.png",
-                     "k_estimation.png",
+        self.pngs = ["Riso_CCiso.pickle",
+                     "q_estimation.pickle",
+                     "k_estimation.pickle",
                      'summed_difference_peaks.png',
-                     'qFo-Fo_sigmas.png'] # First set of pngs displayed in the gui (used by the first timer)
+                     'Fextr_binstats.pickle'] # First set of pngs displayed in the gui (used by the first timer)
         self.png = self.pngs[0]
         self.pngs_idx = []  # This list will hold a reference for each run tab in the gui
 
-        self.Fextr_pngs = ['tmp_sigmas.png',
-                           'Neg_Pos_reflections_tmp.png',
-                           'alpha_occupancy_determination_tmp.png',
-                           'tmp_refinement_R-factors_per_alpha.png',
+        self.Fextr_pngs = ['Fextr_binstats.pickle',
+                           'Fextr_negative.pickle',
+                           'alpha_occupancy_determination_tmp.pickle',
+                           'tmp_refinement_R-factors_per_alpha.pickle',
                            'Distance_difference_plot_tmp.png'] #Second set of pngs (used by the second timer)
                            # - note the tmp par of the string which will be replaced by the appropriate Fextr type
 
@@ -311,8 +319,13 @@ class MainFrame(wx.Frame):
                     png = self.pngs[self.pngs_idx[run]]
                     
                     filepath = os.path.join(self.inputs[run].output.outdir, png)
+
                     if os.path.isfile(filepath):
-                        self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
+                        if filepath.endswith('pickle'):
+                            self.notebook.ResultsBooks[run].tabImg.addPlot(filepath)
+                        else:
+                            self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
+
                         if self.pngs_idx[run] <= len(self.pngs) - 1:
                             self.pngs_idx[run] += 1
                 else:
@@ -336,10 +349,14 @@ class MainFrame(wx.Frame):
                         Fextr = Fextr[0].upper() + Fextr[1:]
                     png = self.Fextr_pngs[j].replace('tmp', Fextr)
                     filepath = os.path.join(self.inputs[run].output.outdir, png)
-                    if os.path.isfile(filepath):
-                        tab.addFextrImg(filepath)
 
+                    if os.path.isfile(filepath):
+                        if filepath.endswith('pickle'):
+                            tab.addFextrPlot(Fextr, filepath)
+                        else:
+                            tab.addFextrImg(filepath)
                     else:
+                        #return
                         print("%s does not exists" %filepath)
 
     def OnPageClose(self, evt):
@@ -348,17 +365,18 @@ class MainFrame(wx.Frame):
 
         run = self.notebook.GetSelection() - 1
         SelectedThread = self.notebook.threads[run]
-        if SelectedThread.is_alive():
-            Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus',
-                                    wx.YES_NO | wx.NO_DEFAULT).ShowModal()
-            # print Stop
-            if Stop == wx.ID_YES:
-                print("Clicked YES")
-                SelectedThread.stop()
+        if SelectedThread is not None:
+            if SelectedThread.is_alive():
+                Stop = wx.MessageDialog(None, 'Job is not finished!\n Do you want to stop it ?', 'WorkStatus',
+                                        wx.YES_NO | wx.NO_DEFAULT).ShowModal()
+                # print Stop
+                if Stop == wx.ID_YES:
+                    print("Clicked YES")
+                    SelectedThread.stop()
 
-            else:
-                evt.Veto()
-                return
+                else:
+                    evt.Veto()
+                    return
         self.notebook.threads.pop(run)
         self.notebook.ResultsBooks.pop(run)
         self.inputs.pop(run)
@@ -410,19 +428,24 @@ class MainFrame(wx.Frame):
         PathResults = self.onBrowseDir(evt=None)
         Phil = os.path.join(PathResults,'Xtrapol8_out.phil')
         if os.path.exists(Phil):
-            
+            print(Phil)
             self.OnOpenPhil(event=None, phil_file=Phil)
             self.input_phil = self.extract_phil()
             self.AddResultsTab()
-            log = glob.glob(os.path.join(PathResults, "*Xtrapol8.log"))[0]
+            log = glob.glob(os.path.join(PathResults, "*Xtrapol8*.log"))[0]
             self.pngs_idx.append(0)
             self.inputs.append(self.input_phil)
             self.notebook.threads.append(None)
             run = self.notebook.Runs
             self.notebook.ResultsBooks[run].tabLog.LogTextCtrl.WriteText(open(log).read())
             for png in self.pngs:
-                if os.path.isfile(png):
-                    self.notebook.ResultsBooks[run].tabImg.addImg(png)
+                filepath = os.path.join(PathResults, png)
+                if os.path.isfile(filepath):
+                    #print(png)
+                    if filepath.endswith("pickle"):
+                        self.notebook.ResultsBooks[run].tabImg.addPlot(filepath)
+                    else:
+                        self.notebook.ResultsBooks[run].tabImg.addImg(filepath)
             self.notebook.ResultsBooks[run].tabImg.addChoices(self.inputs[run].f_and_maps.f_extrapolated_and_maps)
             self.notebook.ResultsBooks[run].tabImg.FextrSelection.Bind(wx.EVT_CHOICE,
                                                                        self.notebook.ResultsBooks[run].tabImg.Clear)
@@ -439,11 +462,14 @@ class MainFrame(wx.Frame):
                 png = self.Fextr_pngs[j].replace('tmp', Fextr)
                 filepath = os.path.join(PathResults, png)
                 if os.path.isfile(filepath):
-                    tab.addFextrImg(filepath)
-
+                    if filepath.endswith('pickle'):
+                        tab.addFextrPlot(Fextr, filepath)
+                    else:
+                        tab.addFextrImg(filepath)
                 else:
                     print("%s does not exists" %filepath)
             self.notebook.ResultsBooks[run].tabOcc.onFinished()
+
         return
     
     def check_user_input(self):
@@ -467,11 +493,18 @@ class MainFrame(wx.Frame):
             message_err += "\n- at least one triggered mtz (mtz or cif)"
 
         if len(tabIO.outdir_sizer.TextCtrl.GetValue()) == 0:
-            tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'XtraPol8')
+            tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'/Xtrapol8')
         else:
             path = tabIO.outdir_sizer.TextCtrl.GetValue()
             if os.path.exists(path):
-                path = self.get_new_path(path)
+                #Keep outdir given by user if it empty
+                if len(os.listdir(path)) == 0:
+                    path = path
+                ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+                #elif len([fle for fle in os.listdir(path) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(path)):
+                    #path = path
+                else:
+                    path = self.get_new_path(path)
 
             tabIO.outdir_sizer.TextCtrl.SetValue(path)
         if err == 1:
@@ -495,7 +528,6 @@ class MainFrame(wx.Frame):
             return self.get_new_path(path)
         else:
             return path
-
 
     def OnStopRun(self):
         self.notebook.StopRun()
@@ -1042,4 +1074,5 @@ class MainFrame(wx.Frame):
 if __name__ == "__main__":
     app = wx.App(False)
     frame = MainFrame(sys.argv)
+    frame.Show(True)
     app.MainLoop()

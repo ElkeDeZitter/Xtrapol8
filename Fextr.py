@@ -525,6 +525,14 @@ class DataHandler(object):
         outdir = self.outdir
         i = 1
         while os.path.exists(outdir):
+            #Keep outdir given by user if it is empty
+            if len(os.listdir(self.outdir)) ==0:
+                outdir = self.outdir
+                break
+            ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+            #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
+                #outdir = self.outdir
+                #break
             outdir = "%s_%d" %(self.outdir, i)
             i += 1
             if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
@@ -538,7 +546,7 @@ class DataHandler(object):
                 os.makedirs(outdir)
                 print('Output directory being created: %s'%(outdir))
             except OSError:
-                print("Output directory already exists, this might lead to problems. Consider chosing a new name and rerun")
+                print("Output directory: %s" %(outdir))
             
         self.outdir = os.path.abspath(outdir)
                 
@@ -2478,40 +2486,40 @@ def run(args):
             if mp == 'qFextr_map':
                 Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
                 #cc_list.append(plot_F1_F2(DH.fobs_off_scaled,Fextr.fextr_ms, F1_name = "Freference",F2_name = "Fextr"))
             elif mp == 'qFgenick_map':
                 Fextr.fgenick(qweight=True, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fgenick_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fgenick_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'qFextr_calc_map':
                 Fextr.fextr_calc(qweight=True, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             if mp == 'kFextr_map':
                 Fextr.fextr(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'kFgenick_map':
                 Fextr.fgenick(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fgenick_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fgenick_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'kFextr_calc_map':
                 Fextr.fextr_calc(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'Fextr_map':
                 Fextr.fextr(qweight=False, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'Fgenick_map':
                 Fextr.fgenick(qweight=False, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fgenick_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fgenick_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'Fextr_calc_map':
                 Fextr.fextr_calc(qweight=False, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             else:
                 print("%s not recognised as extrapolated map type"%(mp))
                         
@@ -2909,7 +2917,7 @@ def run(args):
                 alpha = 1/occ
             occ_dir = "%s/%s_%.3f" %(outdir, dir_prefix, occ)
             
-        occ_overview[mp_type] = [occ, script_coot, ddm_out]
+        occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
             
         print("------------------------------------")
         print("------------------------------------", file=log)
@@ -3027,7 +3035,7 @@ def run(args):
         print('---------------------------')
         
         #Rewrite the pickle file as to include the ddm_out path
-        occ_overview[mp_type] = [occ, script_coot, ddm_out]
+        occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
         #if os.path.isfile("occupancy_recap.pickle"):
             #os.remove("occupancy_recap.pickle")
         occ_pickle = open("occupancy_recap.pickle", "wb")

@@ -19,9 +19,9 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 import wx
+from wx.lib.scrolledpanel import ScrolledPanel
 
-
-class TabRefinement(wx.Panel):
+class TabRefinement(ScrolledPanel):
     """
     This will be the third notebook tab
     """
@@ -29,8 +29,8 @@ class TabRefinement(wx.Panel):
     # ----------------------------------------------------------------------
     def __init__(self, parent):
         """"""
-        wx.Panel.__init__(self, parent=parent, id=wx.ID_ANY)
-
+        ScrolledPanel.__init__(self, parent=parent, style=wx.VSCROLL | wx.HSCROLL)
+        self.SetupScrolling()
         self.createAndLayout()
 
     def createAndLayout(self):

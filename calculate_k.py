@@ -20,11 +20,12 @@ from __future__ import division, print_function
 import re, sys
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from cctbx import miller
 from Fextr_utils import check_common_indices, make_miller_array
 from cctbx.array_family import flex
+import pickle
 
 def calculate_k(f_obs_ref, f_obs_2, kweight_scale = 0.05, log=sys.stdout):
     """
@@ -124,6 +125,11 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale = 0.05, log=sys.stdout):
     k_min_lst        = np.asarray(k_min_lst)
     k_max_lst        = np.asarray(k_max_lst)
     bin_res_cent_lst = np.asarray(bin_res_cent_lst)
+    
+    out=open('k_estimation.pickle' ,'wb') #write to pickle for GUI
+    stats = [bin_res_cent_lst, k_av_lst, k_max_lst, k_min_lst]
+    pickle.dump(stats,out)
+    out.close()
     
     fig,ax1 = plt.subplots(figsize=(10, 5))
     ax1.set_xlabel('Resolution (A)')
