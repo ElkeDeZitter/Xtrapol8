@@ -487,7 +487,7 @@ class TabMainImg(ScrolledPanel):
             return
 
         with open(pickle_file, 'rb') as stats_file:
-            alphas, occupancies, int1_norm, int2_norm, resids_lst_used, alphafound = pickle.load(stats_file)
+            alphas, occupancies, int1_norm, int2_norm, results, resids_lst_used, alphafound = pickle.load(stats_file)
 
         self.figure = Figure(figsize=(10, 5))
         ax1, ax2 = self.figure.subplots(1, 2)
