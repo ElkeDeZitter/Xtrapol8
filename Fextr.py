@@ -1,18 +1,7 @@
 """
 Main script to run Xtrapol8
 
-authors and contact information
 -------
-Elke De Zitter - elke.de-zitter@ibs.fr
-Nicolac Coquelle - nicolas.coquelle@esrf.fr
-Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
-Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
-Please start your mail with [X8]
-
-licence
--------
-Some free licence
-Xtrapol8 requires a Phenix and CCP4 installation with proper licence.
 
 usage
 -------
@@ -25,9 +14,9 @@ Parameters can be added using an input file or via command line
 example using input file (preferable)
 -------
 1) Change the nano Xtrapol8.phil using your favourite editor, e.g.
->>> nano trapol8.phil
+>>> nano Xtrapol8.phil
 2) Run Xtrapol8
->>> phenix.python <wherever>/Fextr.py trapol8.phil
+>>> phenix.python <wherever>/Fextr.py Xtrapol8.phil
 
 example using command line only
 -------
@@ -43,16 +32,30 @@ example using input file and command line
 
 -------
 
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
+
 TODO:
 - clean up Fextr_utils: remove unnecessary functions
 - Resolve problem with 90% multiplicity estimation
 - option to automatically create cif with phenix.elbow
-- Map explorer analysis: should be working for DNA.
 - GUI: warning message if people want to run crazy stuff that they better run on a powerfull machine in command line mode
 - update example phil and manual
 - Suggest resolution cutoff based on Riso and CCiso, write resolution suggestions based on true completeness and <F/SIG(F)> to logfile
 - add comments to various steps of script (especially the weird steps)
-- nucleic acid compatibility
 - keep anomalous data
 - If model hasen't been refined with the mtz_ref,we should first run a rigid body refinement and use the output pdb from that
 - make an object to store the results in a clean and transparant way and get rid of lists which may mess up the analysis if refinements have failed
@@ -63,6 +66,8 @@ TODO:
 - absolute q-weighting (no normalization by devision of the average)
 - usefullness of the sig(FoFo)_vs_sig(Fextr) plot
 - check scaling no with data from XSCALE
+- plot the F and sig(F) after negative handling
+- ddm with linear scale / sum of differences instead of plotting for each atom
 """
 from __future__ import division, print_function
 import re
@@ -71,6 +76,7 @@ import sys
 import random
 import subprocess
 import shutil
+import pickle
 from select import select
 from datetime import datetime
 import numpy as np
@@ -89,7 +95,6 @@ from mmtbx import utils
 from cctbx import sgtbx
 from iotbx import pdb
 from mmtbx.scaling.matthews import p_vm_calculator
-from scipy import append
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -108,7 +113,7 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
-import Log_file
+from wx.lib.pubsub import pub
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -122,7 +127,7 @@ input{
         .expert_level = 0
     reference_pdb = None
         .type = path
-        .help = Reference coordinates in pdb or mmcif format. (in former versions this was called model_pdb)
+        .help = Reference coordinates in pdb or mmcif format.
         .expert_level = 0
     additional_files = None
         .type = path
@@ -141,35 +146,35 @@ input{
 occupancies{
     low_occ = 0.1
         .type = float(value_min=0, value_max=1)
-        .help = Lowest occupancy to test (fractional)
+        .help = Lowest occupancy to test (fractional).
         .expert_level = 0
     high_occ = 0.5
         .type = float(value_min=0, value_max=1)
-        .help = Highest occupancy to test (fractional)
+        .help = Highest occupancy to test (fractional).
         .expert_level = 0
     steps = 3
         .type = int
-        .help = Amount of equaly spaced occupancies to be tested
+        .help = Amount of equaly spaced occupancies to be tested.
         .expert_level = 0
     list_occ = None
         .type = floats(size_min=1, value_min=0, value_max=1)
-        .help = List of occupancies to test (fractional). Will overwrite low_occ, high_occ and steps if defined
+        .help = List of occupancies to test (fractional). Will overwrite low_occ, high_occ and steps if defined.
         .expert_level = 0
     }
 scaling{
     b_scaling = no isotropic *anisotropic 
         .type = choice(multi=False)
-        .help = B-factor scaling for scaling triggered data vs reference data. Cannot be used for reference data with fcalc when using mmtbx.fmodel.manager.
+        .help = B-factor scaling for scaling triggered data vs reference data using scaleit.
         .expert_level = 0
     }
 f_and_maps{
     fofo_type = *qfofo fofo kfofo
         .type = choice(multi=False)
-        .help = Calculate q-weighted or non-q-weighted Fo-Fo difference map. Q-weighted is highly recommended. K-weighting is under development
+        .help = Calculate q-weighted, non-weighted or k-weighted Fourier difference (Fo-Fo) map.
         .expert_level = 1
     kweight_scale = 0.05
         .type = float(value_min=0, value_max=1)
-        .help = scale factor for structure factor difference in k-weigting scheme (for calculation of kfofo)
+        .help = scale factor for structure factor difference outlier rejection in k-weigting scheme.
         .expert_level = 3
     f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
         .type = choice(multi=True)
@@ -177,48 +182,48 @@ f_and_maps{
         .expert_level = 0
     all_maps = False
         .type = bool
-        .help = Calculate all extrapolated structure factors and maps
+        .help = Calculate all extrapolated structure factors and maps.
         .expert_level = 0
     only_qweight = False
         .type = bool
-        .help = Calculate all extrapolated structure factors and maps with q-weighting
+        .help = Calculate all extrapolated structure factors and maps with q-weighting.
         .expert_level = 0
     only_kweight = False
         .type = bool
-        .help = Calculate all extrapolated structure factors and maps with q-weighting
+        .help = Calculate all extrapolated structure factors and maps with k-weighting.
         .expert_level = 0
     only_no_weight = False
         .type = bool
-        .help = Calculate all extrapolated structure factors and maps without q/k-weighting
+        .help = Calculate all extrapolated structure factors and maps without q/k-weighting.
         .expert_level = 0
     fast_and_furious = False
         .type = bool
-        .help = Run fast and furious (aka without supervision). Will only calculate qFextr and associated maps, use highest peaks for alpha/occupancy determination (alpha/occupancy will be nonsense if map_explorer parameters being bad), run refinement with finally with derived alpha/occupancy, use truncate_and_fill for negative and missing handling. Usefull for a first quick evaluation.
+        .help = Run fast and furious (aka without supervision). Will only calculate qFextr and associated maps and run refinement with finally with derived alpha/occupancy. Default parameters will be used for fofo_type and negative_and_missing. Usefull for a first quick evaluation.
         .expert_level = 0
     negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill fill_missing no_fill reject_and_fill reject_no_fill zero_and_fill zero_no_fill
         .type = choice(multi=False)
-        .help = Handling of negative and missing extrapolated reflections (note that this will not be applied on FoFo difference maps). Please check the manual for more information. This parameters is NOT applicable for (q)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied.
+        .help = Handling of negative and missing extrapolated reflections (note that this will not be applied on the Fourier difference map). Please check the manual for more information. This parameters is NOT applicable for (q/k)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied.
         .expert_level = 2
     }
 map_explorer{
     threshold = 3.5
         .type = float
-        .help = Integration threshold (in sigma) 
+        .help = Integration threshold (in sigma).
         .expert_level = 0
     peak = 4.0
         .type = float
-        .help = Peak detection threshold (sigma)
+        .help = Peak detection threshold (sigma).
     radius = None
         .type = float
         .help = Maximum radius (A) to allocate a density blob to a protein atom in map explorer. Resolution will be used if not specified.
         .expert_level = 0
     z_score = 2.0
         .type = float
-        .help = Z-score to determine residue list with only highest peaks
+        .help = Z-score to determine residue list with only highest peaks.
         .expert_level = 0
     use_occupancy_from_distance_analysis = False
         .type = bool
-        .help = Use occupancy from determination based on the differences between reference_pdb and real-space refined model (only in calm_and_curious mode) instead of map explorer
+        .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis.
         .expert_level = 1
     }
 refinement{
@@ -228,95 +233,105 @@ refinement{
     .expert_level = 1
     use_refmac_instead_of_phenix = False
         .type = bool
-        .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine
+        .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine.
         .expert_level = 0
     phenix_keywords{
         target_weights{
             wxc_scale = 0.5
             .type = float
-            .help = see phenix.refine refinement.target_weights.wxc_scale
+            .help = phenix.refine refinement.target_weights.wxc_scale.
             .expert_level = 2
             wxu_scale = 1.0
             .type = float
-            .help = phenix.refine refinement.target_weights.wxu_scale
+            .help = phenix.refine refinement.target_weights.wxu_scale.
             .expert_level = 2
             weight_selection_criteria{
                 bonds_rmsd = None
                 .type = float
-                .help = phenix.refine refinement.target_weights.weight_selection_criteria.bonds_rmsd
+                .help = phenix.refine refinement.target_weights.weight_selection_criteria.bonds_rmsd.
                 .expert_level = 3
                 angles_rmsd = None
                 .type = float
-                .help = phenix.refine refinement.target_weights.weight_selection_criteria.angles_rmsd
+                .help = phenix.refine refinement.target_weights.weight_selection_criteria.angles_rmsd.
                 .expert_level = 3
                 r_free_minus_r_work = None
                 .type = float
-                .help = phenix.refine refinement.target_weights.weight_selection_criteria.r_free_minus_r_work
+                .help = phenix.refine refinement.target_weights.weight_selection_criteria.r_free_minus_r_work.
                 .expert_level = 3
                 }
             }
         refine{
             strategy = *individual_sites individual_sites_real_space rigid_body *individual_adp group_adp tls occupancies group_anomalous
             .type = choice(multi=True)
-            .help = see phenix.refine refinement.refine.strategy
+            .help = phenix.refine refinement.refine.strategy.
             .expert_level = 1
             }
         main{
             cycles = 5
             .type = int
-            .help = Number of refinement macro cycles for reciprocal space refinement
+            .help = Number of refinement macro cycles for reciprocal space refinement.
             .expert_level = 0
             ordered_solvent = False
             .type = bool
-            .help = Add and remove ordered solvent during reciprocal space refinement
+            .help = Add and remove ordered solvent during reciprocal space refinement (refinement.refine.main.ordered_solvent).
             .expert_level = 0
             simulated_annealing = False
             .type = bool
-            .help = Simulated annealing during refinement
+            .help = Simulated annealing during refinement.
             .expert_level = 1
             }
         simulated_annealing{
             start_temperature = 5000
             .type = float
-            .help = start temperature for simulated annealing
+            .help = start temperature for simulated annealing.
             .expert_level = 2
             final_temperature = 300
             .type = float
-            .help = final temperature for simulated annealing
+            .help = final temperature for simulated annealing.
             .expert_level = 2
             cool_rate = 100
             .type = float
-            .help = cool rate for simulated annealing
+            .help = cool rate for simulated annealing.
             .expert_level = 2
             mode = every_macro_cycle *second_and_before_last once first first_half
             .type = choice(multi=False)
-            .help = simulated annealing mode
+            .help = simulated annealing mode.
             .expert_level = 2
             }
         map_sharpening{
             map_sharpening = False
             .type = bool
-            .help = phenix map sharpening
+            .help = phenix map sharpening.
             .expert_level = 1
             }
+        additional_reciprocal_space_keywords = None
+            .type = str
+            .multiple = True 
+            .help = Additional phenix.refine keywords which cannot be altered via included options (e.g. ncs_search.enabled=True).
+            .expert_level = 2
         real_space_refine{
             cycles = 5
             .type = int
-            .help = Number of refinement cycles for real space refinement
+            .help = Number of refinement cycles for real space refinement.
             .expert_level = 0
             }
+        additional_real_space_keywords = None
+            .type = str
+            .multiple = True 
+            .help = Additional phenix_real_space.refine keywords which cannot be altered via included options (e.g. ncs_constraints=False).
+            .expert_level = 2
         density_modification{
             density_modification = False
             .type = bool
-            .help = use dm (ccp4) for density modification
+            .help = use dm (ccp4) for density modification.
             .expert_level = 2
             combine = *PERT OMIT
             .type = choice(multi=False)
-            .help = dm combine mode
+            .help = dm combine mode.
             .expert_level = 2
             cycles = 10
             .type = int
-            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT
+            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT.
             .expert_level = 2
             }
         }
@@ -324,15 +339,15 @@ refinement{
         target_weights{
             weight = *AUTO MATRIx
             .type = choice(multi=False)
-            .help = refmac WEIGHT
+            .help = refmac WEIGHT.
             .expert_level = 1
             weighting_term = 0.2
             .type = float
-            .help = refmac weighting term in case of weight matrix
+            .help = refmac weighting term in case of weight matrix.
             .expert_level = 2
             experimental_sigmas = *NOEX EXPE
             .type = choice(multi=False)
-            .help = refmac use experimental sigmas to weight Xray terms
+            .help = refmac use experimental sigmas to weight Xray terms.
             .expert_level = 2
             }
         restraints{
@@ -342,67 +357,72 @@ refinement{
             .expert_level = 1
             jelly_body_sigma = 0.03
             .type = float
-            .help = sigma parameter in case of jelly body refinement ('RIDG DIST SIGM' parameter)
+            .help = sigma parameter in case of jelly body refinement ('RIDG DIST SIGM' parameter).
             .expert_level = 2
             jelly_body_additional_restraints = None
             .type = str
             .multiple = True
-            .help = additional jelly body parameters (will be added to keyword 'RIDG')
+            .help = additional jelly body parameters (will be added to keyword 'RIDG').
             .expert_level = 2
             external_restraints = None
             .type = str
             .multiple = True
-            .help = refmac external restraints (will be added to keyword 'external', e.g. 'harmonic residues from 225 A to 250 A atom CA sigma 0.02')
+            .help = refmac external restraints (will be added to keyword 'external', e.g. 'harmonic residues from 225 A to 250 A atom CA sigma 0.02').
             .expert_level = 2
             }
         refine{
             type = *RESTrained UNREstrained RIGId
             .type = choice(multi=False)
-            .help = refmac refinement type refinement
+            .help = refmac refinement type refinement.
             .expert_level = 1
             TLS = False
             .type = bool
-            .help = tls refinement before coordinate and B-factor refinement
+            .help = tls refinement before coordinate and B-factor refinement.
             .expert_level = 1
             TLS_cycles = 20
             .type = int
-            .help = number of TLS cycles in case of TLS refinement
+            .help = number of TLS cycles in case of TLS refinement.
             .expert_level = 2
             bfac_set = 30
             .type = float
-            .help = reset individual B-factors to constant value before running TLS. Will only be applied in case TLS is run
+            .help = reset individual B-factors to constant value before running TLS. Will only be applied in case TLS is run.
             .expert_level = 2
             twinning = False
             .type = bool
-            .help = do refmac twin refinement
+            .help = do refmac twin refinement.
             .expert_level = 1
             Brefinement = OVERall *ISOTropic
             .type = choice(multi=False)
-            .help = refmac B-factor refinement
+            .help = refmac B-factor refinement.
             .expert_level = 1
             cycles = 20
             .type = int
-            .help = Number of refinement cycles for reciprocal space refinement
+            .help = Number of refinement cycles for reciprocal space refinement.
             .expert_level = 0
             }
         map_sharpening{
             map_sharpening = False
             .type = bool
-            .help = refmac map sharpening
+            .help = refmac map sharpening.
             .expert_level = 1
             }
+        additional_refmac_keywords = None
+            .type = str
+            .multiple = True 
+            .help = Additional refmac keywords which cannot be altered via included options (e.g. ncsr local).
+            .expert_level = 2        
         density_modification{
             density_modification = False
             .type = bool
-            .help = use dm for density modification
+            .help = use dm for density modification.
             .expert_level = 2
             combine = *PERT OMIT
             .type = choice(multi=False)
-            .help = dm combine mode
+            .help = dm combine mode.
             .expert_level = 2
             cycles = 10
             .type = int
-            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT
+            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT.
             .expert_level = 2
             }
         }
@@ -410,11 +430,11 @@ refinement{
 output{
     outdir = None
         .type = str
-        .help = Output directory. Current directory directory will be used if not specified.
+        .help = Output directory. 'Xtrapol8' be used if not specified.
         .expert_level = 0
     outname = None
         .type = str
-        .help = Output prefix. Prefix of triggered_mtz will be used if not specified.
+        .help = Prefix or suffix for output files. The prefix of triggered_mtz will be used if not specified.
         .expert_level = 0
     generate_phil_only = False
         .type = bool
@@ -422,7 +442,7 @@ output{
         .expert_level = 0
     generate_fofo_only = False
         .type = bool
-        .help = Stop Xtrapol8 after generation of Fourier Difference map
+        .help = Stop Xtrapol8 after generation of Fourier Difference map.
         .expert_level = 0
     open_coot = True
         .type = bool
@@ -434,7 +454,7 @@ output{
         .expert_level = 2
     GUI = False
         .type = bool
-        .help = Xtrapol8 launched from GUI.
+        .help = Xtrapol8 launched from GUI. In order to work correctly, this should never be manually changed.
         .expert_level = 3
     }
 """, process_includes=True)
@@ -476,48 +496,87 @@ class DataHandler(object):
 
     def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on):
 
-        self.pdb_in = pdb_in
-        self.mtz_off = mtz_off
-        self.mtz_on = mtz_on
-        self.additional = additional
-        self.outdir = outdir
-
-    def extract_fobs(self, reflections_off, reflections_on, low_res, high_res, log):
+        self.pdb_in            = pdb_in
+        self.mtz_off           = mtz_off
+        self.mtz_on            = mtz_on
+        self.additional        = additional
+        self.outdir            = outdir
+        
+    def check_outdir(self):
         """
-        Extract the actual reflections from the data files and cut at resolution limits (if set)
-        For now Friedel pairs will have to be merged.
+        Make output directory:
+        - if no name specified, then it will be called Xtrapol8
+        - if the output directory already exists, then a number will be added
+         This way creates a maximum of 1000 Xtrapol8 output directories
         """
-        self.fobs_off, self.fobs_on = Column_extraction(reflections_off,
-                                                        reflections_on,
-                                                        low_res,
-                                                        high_res,
-                                                        log=log).extract_columns()
+        if self.outdir == None:
+            #self.outdir = os.getcwd()
+            self.outdir = "Xtrapol8"
+            
+        #else:
+            #if os.path.exists(self.outdir) == False:
+                #try:
+                    #os.mkdir(self.outdir)
+                    #print('Output directory not present thus being created: %s'%(self.outdir))
+                #except OSError:
+                    #os.makedirs(self.outdir)
+            #self.outdir = os.path.abspath(self.outdir)
+            
+        outdir = self.outdir
+        i = 1
+        while os.path.exists(outdir):
+            #Keep outdir given by user if it is empty
+            if len(os.listdir(self.outdir)) ==0:
+                outdir = self.outdir
+                break
+            ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+            #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
+                #outdir = self.outdir
+                #break
+            outdir = "%s_%d" %(self.outdir, i)
+            i += 1
+            if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
+                break
+            
+        try:
+            os.mkdir(outdir)
+            print('Output directory being created: %s'%(outdir))
+        except OSError:
+            try:
+                os.makedirs(outdir)
+                print('Output directory being created: %s'%(outdir))
+            except OSError:
+                print("Output directory: %s" %(outdir))
+            
+        self.outdir = os.path.abspath(outdir)
+                
 
-        if self.fobs_off.anomalous_flag():
-            print(
-                "I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.",
-                file=log)
-            print(
-                "I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
-            self.fobs_off = self.fobs_off.average_bijvoet_mates()
-            self.fobs_on = self.fobs_on.average_bijvoet_mates()
-
-        self.fobs_off = self.fobs_off.map_to_asu()
-        # self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
-        self.fobs_on = self.fobs_on.map_to_asu()
-        # self.fobs_on  = self.resolution_cutoff(self.fobs_on, low_res, high_res)
-
-        # self.fobs_off = self.extract_colums(self.reflections_off, low_res, high_res)
-        # self.fobs_on  = self.extract_colums(self.reflections_on, low_res, high_res)
-        # self.fobs_on = []
-        # for on in self.reflections_on:
-        # f_on = self.extract_colums(on, res)
-        # self.fobs_on.append(f_on)
-        return (self.fobs_off, self.fobs_on)
-
-    def open_pdb_or_cif(self):
+    def open_files(self):
+        """
+        check and read input files and output directory
+        """
+        self.check_outdir()
+        self.reflections_off = any_file(self.mtz_off, force_type="hkl", raise_sorry_if_errors=True)
+        self.reflections_on = any_file(self.mtz_on, force_type="hkl", raise_sorry_if_errors=True)
         self.from_cif_create_pdb_file()
         self.model_in = any_file(self.check_and_delete_hydrogen(), force_type="pdb", raise_sorry_if_errors=True)
+
+    def check_all_files(self):
+
+        err = 0
+        err_m = ''
+        for fle in [self.pdb_in, self.mtz_off,self.mtz_on]:
+            if not self.check_single_file(fle):
+                err = 1
+                err_m += '\nFile not found: %s'%fle
+        if err == 0: self.open_files()
+        return err, err_m
+
+    def check_single_file(self, fle):
+        if fle == None:
+            return False
+        else:
+            return os.path.isfile(fle)
 
     def from_cif_create_pdb_file(self):
         """
@@ -552,7 +611,7 @@ class DataHandler(object):
             p.write(pdb_hier.hierarchy.as_pdb_string(crystal_symmetry=pdb_hier.input.crystal_symmetry()))
             # write the columns of the cif file into the pdb file
             p.close()
-            if check_single_file(self.outdir+'/'+ get_name(self.pdb_in)+'.pdb'):
+            if self.check_single_file(self.outdir+'/'+get_name(self.pdb_in)+'.pdb'):
             # check if the created pdb file exists
                 self.pdb_in = os.path.abspath(self.outdir+'/'+get_name(self.pdb_in)+'.pdb')
                 # the input model used is the created pdb file with the info from cif file
@@ -565,12 +624,13 @@ class DataHandler(object):
         pdb_hier = hierarchy.input(file_name=self.pdb_in)
         outname = 'model_edit.pdb'
         if pdb_hier.hierarchy.remove_hd() != 0:
-            Log_file.print_terminal_and_log("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" % (outname))
+            print("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" %(outname))
+            print("Model contains hydrogen atoms. Create a new model without these atoms in the output directory: %s" % (outname), file=log)
             pdb_hier.hierarchy.remove_hd()
             p = open('%s/%s' %(self.outdir, outname), 'w')
             p.write(pdb_hier.hierarchy.as_pdb_string(crystal_symmetry=pdb_hier.input.crystal_symmetry()))
             p.close()
-            if check_single_file('%s/%s' %(self.outdir, outname)):
+            if self.check_single_file('%s/%s' %(self.outdir, outname)):
                 self.pdb_in = os.path.abspath('%s/%s' %(self.outdir, outname))
             else:
                 self.pdb_in = os.path.abspath(self.pdb_in)
@@ -578,6 +638,35 @@ class DataHandler(object):
             self.pdb_in = os.path.abspath(self.pdb_in) #We will need absolute path of pdb file for later refinements in subdirectories
         return self.pdb_in
 
+    def extract_fobs(self, low_res, high_res):
+        """
+        Extract the actual reflections from the data files and cut at resolution limits (if set)
+        For now Friedel pairs will have to be merged.
+        """
+        self.fobs_off, self.fobs_on = Column_extraction(self.reflections_off,
+                                                        self.reflections_on,
+                                                        low_res,
+                                                        high_res,
+                                                        log = log).extract_columns()
+        
+        if self.fobs_off.anomalous_flag():
+            print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.", file=log)
+            print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
+            self.fobs_off = self.fobs_off.average_bijvoet_mates()
+            self.fobs_on  = self.fobs_on.average_bijvoet_mates()
+        
+        self.fobs_off = self.fobs_off.map_to_asu()
+        #self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
+        self.fobs_on  = self.fobs_on.map_to_asu()
+        #self.fobs_on  = self.resolution_cutoff(self.fobs_on, low_res, high_res)
+
+        #self.fobs_off = self.extract_colums(self.reflections_off, low_res, high_res)
+        #self.fobs_on  = self.extract_colums(self.reflections_on, low_res, high_res)
+        #self.fobs_on = []
+        #for on in self.reflections_on:
+            #f_on = self.extract_colums(on, res)
+            #self.fobs_on.append(f_on)
+            
     def get_UC_and_SG(self):
         """
         Extract unit cell and space group from the model.
@@ -598,13 +687,10 @@ class DataHandler(object):
             dmax = low_res
         return f_obs.resolution_filter(dmax, dmin)
         
-    def check_additional_files(self, SG=None, UC=None):
+    def check_additional_files(self):
         """
         Check for all additional files if they exist, if the minimum of additional files is present for phenix.refine and convert to string of additional files to add as an argument to phenix.refine later.
         """
-        if SG!=None: self.SG = SG #give a new space group for the function (used for JK simple refinement)
-        if UC != None: self.UC = UC  # give a new space group for the function (used for JK simple refinement)
-
         self.cif_objects = []
         additional = " "
         if self.additional!= None:
@@ -640,16 +726,26 @@ class DataHandler(object):
         """
         cif_list = []
         for cif in self.cif_objects:
+            normal_cif = False
             for comp in cif[1]:
-                try:
+                try: #This should work for a proper cif file
                     ligand = re.search(r'comp_(.+?)$', comp).group(1)
+                    if len(ligand) == 3 and ligand not in cif_list:
+                        cif_list.append(ligand)
+                    normal_cif == True
+                except AttributeError:
+                    continue
+            if normal_cif: #when multiple ligands are merged into one cif-file
+                for ligand in cif[1]['comp_list']['_chem_comp.id']:
+                    if ligand not in cif_list:
+                        cif_list.append(ligand)
+            else:
+                try: #This is for a raw downloaded cif file (bugs may appear later in Xtrapol8). Requires a single ligand per file for now
+                    ligand = cif[1].keys()[0]
                     if len(ligand) == 3 and ligand not in cif_list:
                         cif_list.append(ligand)
                 except AttributeError:
                     continue
-            for ligand in cif[1]['comp_list']['_chem_comp.id']:
-                if ligand not in cif_list:
-                    cif_list.append(ligand)
         return cif_list
 
     def generate_Rfree(self, array, fraction):
@@ -728,8 +824,9 @@ class DataHandler(object):
                 print("Rfree fraction too low, re-assign Rfree flags")
                 self.rfree = self.fmodel.f_obs().generate_r_free_flags(fraction=0.05) #during the two scaling steps some structure factors might be removed and thus new Rfree reflections have to be chosen
                 self.fmodel.update(r_free_flags = self.rfree)
-
-    def get_common_indices_and_Fobs_off(self, f_obs_on, log):
+        
+            
+    def get_common_indices_and_Fobs_off(self, f_obs_on):
         """
         Ugly function to compare all reflections and only keep those that are common between the datasets
         """
@@ -797,7 +894,7 @@ class DataHandler(object):
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
         
-    def scale_fobss(self, b_scaling, log):
+    def scale_fobss(self, b_scaling):
         """
         Scale triggered mtz with internally scaled reference mtz using scaleit.
         """
@@ -811,21 +908,15 @@ class DataHandler(object):
             #self.fobs_on_scaled = scalef_cnslike(self.fobs_off_scaled, self.fobs_on, self.SG, self.rfree, bscale=b_scaling) #run CNS-like scaling
             self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling) #prepare mtz-file and run scaleit
 
-    def get_mtz(self, mtz_off, mtz_on, log):
-        self.mtz_off=mtz_off
-        self.mtz_on=mtz_on
-        self.log=log
-
 class FobsFobs(object):
     """
     Class for the calculation of weighting difference structure factors and maps.
     """
-    def __init__(self, log, fobs_on, fobs_off):
+    def __init__(self, fobs_on, fobs_off):
         self.fobs_on    = fobs_on
         self.fobs_off   = fobs_off
         self.indices    = fobs_off.indices()
         self.get_UC_and_SG()
-        self.log=log
         
     def get_UC_and_SG(self):
         """
@@ -852,21 +943,21 @@ class FobsFobs(object):
         """
         #q = calculate_q(self.fobs_off, self.fobs_on)
         #q_ms   = make_miller_array(self.fobs_off.data(), q, self.SG, self.UC, self.indices)
-        q_ms, self.q_av = calculate_q(self.fobs_off, self.fobs_on, log=self.log)
+        q_ms, self.q_av = calculate_q(self.fobs_off, self.fobs_on, log=log)
         self.q = q_ms.sigmas()
         
     def k_weighting(self, kweight_scale):
         """
         Calculate k-weight, still under development
         """
-        k_ms, self.k_av = calculate_k(self.fobs_off, self.fobs_on, kweight_scale = kweight_scale, log=self.log)
+        k_ms, self.k_av = calculate_k(self.fobs_off, self.fobs_on, kweight_scale = kweight_scale, log=log)
         self.k = k_ms.sigmas()
         
     def outlier_rejection(self):
         """
         Outlier rejection if no weighting is performed.
         """
-        c_ms = outlier_rejection_only(self.fobs_off, self.fobs_on, log=self.log)
+        c_ms = outlier_rejection_only(self.fobs_off, self.fobs_on, log=log)
         self.c = c_ms.sigmas()
     
     def calculate_fdiff(self, kweight_scale = 0.05):
@@ -876,7 +967,7 @@ class FobsFobs(object):
         self.get_fdif()
         self.get_sigf()
         
-        print("----Calculating weight factors----", file=self.log)
+        print("----Calculating weight factors----", file=log)
         #calculate with qweight
         self.q_weighting()
         weight      = self.q/self.q_av
@@ -901,26 +992,21 @@ class FobsFobs(object):
         Write FoFo maps
         """
         if qweighting:
-            self.maptype = 'qFoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, self.maptype, outname, fmodel).write_FoFo_output()
-            FM=Filesandmaps(self.fdif_q_ms, rfree, self.maptype, outname, fmodel)
+            maptype = 'qFoFo'
+            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
         elif kweighting:
-            self.maptype = 'kFoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, self.maptype, outname, fmodel).write_FoFo_output()
-            FM=Filesandmaps(self.fdif_k_ms, rfree, self.maptype, outname, fmodel)
+            maptype = 'kFoFo'
+            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
         else:
-            self.maptype = 'FoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, self.maptype, outname, fmodel).write_FoFo_output()
-            FM=Filesandmaps(self.fdif_c_ms, rfree, self.maptype, outname, fmodel)
-
-        self.labels = FM.labels
-
+            maptype = 'FoFo'
+            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+        
+       
 class Fextrapolate(object):
     """
     Class for the calculation, analysis and usage of extrapolated structure factors.
     """
     def __init__(self,
-                 log,
                  fdif,
                  fdif_q,
                  fdif_k,
@@ -934,7 +1020,6 @@ class Fextrapolate(object):
                  occ=1,
                  name_out='Fextrapolate',
                  neg_refl_handle='fill_missing'):
-        self.log=log
         self.fdif            = fdif
         self.fdif_q          = fdif_q
         self.fdif_k          = fdif_k
@@ -1046,7 +1131,7 @@ class Fextrapolate(object):
         return ((self.fobs_on.sigmas()*self.alf)**2+(self.fobs_off.sigmas()*(1-self.alf))**2)**(0.5)
     
     def message(self):
-        print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf), file=self.log)
+        print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf), file=log)
         print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf))
         
     #Next come several functions for the handling of negative reflections
@@ -1055,7 +1140,7 @@ class Fextrapolate(object):
         Remove negative reflections. Should be called in case of "reject_and_fill" or "reject_no_fill"
         """
         print("Negative reflections will be removed")
-        print("Negative reflections will be removed",file=self.log)
+        print("Negative reflections will be removed",file=log)
         return ms.select(ms.data()>=0)
         
     def negatives_zero(self, ms):
@@ -1063,7 +1148,7 @@ class Fextrapolate(object):
         Set negative reflections to zero. Should be called in case of "zero_and_fill" or "zero_no_fill"
         """
         print("Negative reflections will be set to 0")
-        print("Negative reflections will be set to 0",file=self.log)
+        print("Negative reflections will be set to 0",file=log)
         data = ms.data().deep_copy()
         data.set_selected(~(ms.data()>=0),0)
         sigmas = ms.sigmas().deep_copy()
@@ -1077,7 +1162,7 @@ class Fextrapolate(object):
         Add the minimum value to all refletcions. This makes no sense
         """
         #print("Add constant to all relfections to avoid negative reflections")
-        #print("Add constant to all relfections to avoid negative reflections",file=self.log)
+        #print("Add constant to all relfections to avoid negative reflections",file=log)        
         #return miller.array(miller_set = ms,
                             #data       = ms.data()-flex.min(ms.data()),
                             #sigmas     = ms.sigmas())
@@ -1087,7 +1172,7 @@ class Fextrapolate(object):
         Replace the negative reflections by fcalc. Should be called in case of "fcalc_and_fill" or "fcalc_no_fill"
         """
         print("Negative reflecitons replaced by Fcalc")
-        print("Negative reflecitons replaced by Fcalc",file=self.log)
+        print("Negative reflecitons replaced by Fcalc",file=log)        
         data = ms.data().deep_copy()
         sel = ms.data()<0
         data.set_selected(sel, self.fmodel_fobs_off.f_model().amplitudes().data())
@@ -1100,7 +1185,7 @@ class Fextrapolate(object):
         Replace the negative reflections by Fobs_reference. Should be called in case of "fref_and_fill" or "fref_no_fill"
         """
         print("Negative reflecitons replaced by Foff")
-        print("Negative reflecitons replaced by Foff",file=self.log)
+        print("Negative reflecitons replaced by Foff",file=log)        
         data = ms.data().deep_copy()
         sel = ms.data()<0
         data.set_selected(sel, self.fmodel_fobs_off.f_obs().data())
@@ -1116,7 +1201,7 @@ class Fextrapolate(object):
         This means that also the values of the possitive reflecions are altered in order to fulfill the Wilson distrubtions
         """
         print("Square Fs to estimate Is, but keep sign of Fs")
-        print("Square Fs to estimate Is, but keep sign of Fs", file=self.log)
+        print("Square Fs to estimate Is, but keep sign of Fs", file=log)
         I_data = ms.data()**2
         I_data.set_selected(ms.data()<0, I_data*(-1))
         I_sigmas = ms.sigmas()*ms.data()
@@ -1136,9 +1221,9 @@ class Fextrapolate(object):
         mtz_dataset.mtz_object().write(outname)
         
         if algorithm == 'truncate':
-            Corrected_Fs = Extrapolated_column_extraction(outname, labels, self.log).get_Fs_from_truncate()
+            Corrected_Fs = Extrapolated_column_extraction(outname, labels, log).get_Fs_from_truncate()
         else:
-            Corrected_Fs = Extrapolated_column_extraction(outname, labels, self.log).get_Fs_from_reflection_file_converter()
+            Corrected_Fs = Extrapolated_column_extraction(outname, labels, log).get_Fs_from_reflection_file_converter()
         
         if Corrected_Fs==None:
             if "no_fill" in self.neg_refl_handle:
@@ -1146,7 +1231,7 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
             print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=self.log)
+            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             Corrected_Fs = self.negatives_reject(ms)
         else:
             Corrected_Fs = Corrected_Fs.map_to_asu()
@@ -1172,15 +1257,15 @@ class Fextrapolate(object):
             self.maptype = 'Fextr'
         self.message()
         
-        neg_neflecions_binning(self.fextr_ms, self.maptype, log=self.log)
+        neg_neflecions_binning(self.fextr_ms, self.maptype, log=log)
         neg_reflections = self.fextr_ms.select(~(self.fextr_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fextr_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
                 %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_ms.data().size() *100))
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
-                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_ms.data().size() *100),file=self.log)
+                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_ms.data().size() *100),file=log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=self.log)
+            print("Negative reflection handling:", file=log)
             print("Negative reflection handling:")
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_ms = self.negatives_reject(self.fextr_ms)
@@ -1200,7 +1285,7 @@ class Fextrapolate(object):
                 fextr_ms = self.negatives_foff(self.fextr_ms)
                 self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
             elif self.neg_refl_handle in ['truncate_and_fill', 'truncate_no_fill']:
-                fextr_ms = self.convert_to_I_then_to_F( self.fextr_ms, self.maptype, algorithm='truncate')
+                fextr_ms = self.convert_to_I_then_to_F(self.fextr_ms, self.maptype, algorithm='truncate')
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
                 self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
             # elif self.neg_refl_handle in ['massage_and_fill', 'massage_no_fill']:
@@ -1220,14 +1305,13 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
             print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=self.log)
+            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             fextr_ms = self.negatives_reject(self.fextr_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
             self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
                   
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
-        self.labels=self.FM.labels
 
     def fgenick(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
         """"
@@ -1252,14 +1336,14 @@ class Fextrapolate(object):
             self.maptype = 'Fgenick'
         self.message()
         
-        neg_neflecions_binning(self.fgenick_ms, self.maptype, log=self.log)
+        neg_neflecions_binning(self.fgenick_ms, self.maptype, log=log)
         neg_reflections = self.fgenick_ms.select(~(self.fgenick_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fgenick_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100))
         print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
-                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100), file=self.log)
+                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100), file=log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=self.log)
+            print("Negative reflection handling:", file=log)
             print("Negative reflection handling:")
             self.fgenick_ms = self.negatives_reject(self.fgenick_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(self.fgenick_ms)
@@ -1268,8 +1352,7 @@ class Fextrapolate(object):
             self.FM = Filesandmaps(self.fgenick_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
         fm = self.FM.write_Fgenick_output()
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
-        self.labels=self.FM.labels
-
+        
     def fextr_calc(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
         """"
         Calculation of (q-weighted) Fextr_calc. Should be called in case extrapolated Fs of type "qFextr_calc" or "Fextr_calc"
@@ -1289,14 +1372,14 @@ class Fextrapolate(object):
             self.maptype = 'Fextr_calc'
         self.message()
             
-        neg_neflecions_binning(self.fextr_calc_ms, self.maptype, log=self.log)
+        neg_neflecions_binning(self.fextr_calc_ms, self.maptype, log=log)
         neg_reflections = self.fextr_calc_ms.select(~(self.fextr_calc_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fextr_calc_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
         print("%d reflections with negative amplitudes (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100))
         print("%d reflections with negative amplitudes (%.2f %% of the data)"
-                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100), file=self.log)
+                %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100), file=log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=self.log)
+            print("Negative reflection handling:", file=log)
             print("Negative reflection handling:")
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
@@ -1336,15 +1419,14 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
             print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=self.log)
+            print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
             self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
 
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
-        self.labels=self.FM.labels
-
+                
     def get_updated_fmodel_fobs_off(self, miller_array):
         """
         Update the Fmodel that is associated with the off-state reflections and model in order to have the same reflections as the extrapolated structure factors.
@@ -1388,7 +1470,7 @@ class Fextrapolate(object):
         3) real space refinement with results reciprocal space refinement (mtz_out and pd_out = output of step 1)
         !!! take care: different definition of column labels as compared to refmac_coot_refinements!!! here: values and phases for 2FoFc kind of map only
         """
-
+        
         if mtz_F == None:
             mtz_F = self.F_name
         if mtz_map == None:
@@ -1409,30 +1491,30 @@ class Fextrapolate(object):
                                                     sim_annealing_pars = keywords.simulated_annealing,
                                                     map_sharpening     = keywords.map_sharpening.map_sharpening,
                                                     weight_sel_crit    = keywords.target_weights.weight_selection_criteria,
-                                                    log                = self.log)
+                                                    additional_reciprocal_keywords = keywords.additional_reciprocal_space_keywords,
+                                                    additional_real_keywords       = keywords.additional_real_space_keywords,
+                                                    log                = log)
         
-        #print("Refinements:", file=self.log)
+        #print("Refinements:", file=log)
         #print("Refinements:")
         
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
         mtz_out_rec, pdb_out_rec = ref.phenix_reciprocal_space_refinement()
-        refinement_rec = False
-        print("Output reciprocal space refinement:", file=self.log)
+        print("Output reciprocal space refinement:", file=log)
         print("----------------")
         print("Output reciprocal space refinement:")
         if os.path.isfile(pdb_out_rec):
-            print("    pdb-file: %s"%(pdb_out_rec), file=self.log)
+            print("    pdb-file: %s"%(pdb_out_rec), file=log)
             print("    pdb-file: %s"%(pdb_out_rec))
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_rec = pdb_in
         if os.path.isfile(mtz_out_rec):
-            print("    mtz-file: %s"%(mtz_out_rec), file=self.log)
+            print("    mtz-file: %s"%(mtz_out_rec), file=log)
             print("    mtz-file: %s"%(mtz_out_rec))
-            refinement_rec='reciprocal'
         else:
-            print("    mtz-file not found. Refinement failed.", file=self.log)
+            print("    mtz-file not found. Refinement failed.", file=log)
             print("    mtz-file not found. Refinement failed.")
         print("----------------")
         
@@ -1440,27 +1522,25 @@ class Fextrapolate(object):
             print("DENSITY MODIFICATION WITH %s AND %s" %(mtz_F, pdb_out_rec))
             # mtz_dm = ref.phenix_density_modification(mtz_out_rec, pdb_out_rec)
             mtz_dm = ref.ccp4_dm(pdb_out_rec, keywords.density_modification.combine, keywords.density_modification.cycles)
-            print("Output density modification:", file=self.log)
+            print("Output density modification:", file=log)
             print("Output density modification:")
             if os.path.isfile(mtz_dm):
-                print("    mtz-file: %s"%(mtz_dm), file=self.log)
+                print("    mtz-file: %s"%(mtz_dm), file=log)
                 print("    mtz-file: %s" % (mtz_dm))
             else:
-                print("    mtz-file not found. Density modification failed.", file=self.log)
+                print("    mtz-file not found. Density modification failed.", file=log)
                 print("    mtz-file not found. Density modification failed.")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
         pdb_out_real = ref.phenix_real_space_refinement(mtz_map, pdb_in, column_labels)
-        refinement_real = False
-        print("Output real space refinement:", file=self.log)
+        print("Output real space refinement:", file=log)
         print("----------------")
         print("Output real space refinement:")
         if os.path.isfile(pdb_out_real):
-            print("    pdb-file: %s"%(pdb_out_real), file=self.log)
+            print("    pdb-file: %s"%(pdb_out_real), file=log)
             print("    pdb-file: %s"%(pdb_out_real))
-            refinement_real = 'real'
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_real = pdb_in
         print("----------------")
@@ -1468,37 +1548,33 @@ class Fextrapolate(object):
         if (keywords.density_modification.density_modification and os.path.isfile(mtz_dm)):
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
             pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
-            refinement_rec_real = False
-            print("Output real space refinement after reciprocal space refinement:", file=self.log)
+            print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
-                refinement_rec_real = 'reciprocal + real'
             else:
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=self.log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
                 pdb_out_rec_real = pdb_out_rec
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
             pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
-            refinement_rec_real=False
-            print("Output real space refinement after reciprocal space refinement:", file=self.log)
+            print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
-                refinement_rec_real = 'reciprocal + real'
             else:
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=self.log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
                 pdb_out_rec_real = pdb_out_rec
             print("----------------")
                
-        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real, refinement_rec, refinement_real, refinement_rec_real
+        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
     
     def refmac_coot_refinements(self,
                                 mtz_F=None,
@@ -1548,102 +1624,94 @@ class Fextrapolate(object):
                  map_sharpening        = keywords.map_sharpening.map_sharpening,
                  density_modification  = keywords.density_modification.density_modification,
                  dm_combine            = keywords.density_modification.combine,
-                 dm_ncycle             = keywords.density_modification.cycles)
+                 dm_ncycle             = keywords.density_modification.cycles,
+                 additional_reciprocal_keywords = keywords.additional_refmac_keywords)
 
-        print("Refinements:", file=self.log)
+        print("Refinements:", file=log)
         #print("Refinements:")
             
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
-        refinement_rec=False
         if keywords.density_modification.density_modification:
             mtz_out_rec, pdb_out_rec, mtz_dm = ref.refmac_reciprocal_space_refinement()
         else:
             mtz_out_rec, pdb_out_rec,_ = ref.refmac_reciprocal_space_refinement()
-        print("output reciprocal space refinement:", file=self.log)
+        print("output reciprocal space refinement:", file=log)
         print("----------------")
         print("output reciprocal space refinement:")
         if os.path.isfile(pdb_out_rec):
-            print("    pdb-file: %s"%(pdb_out_rec), file=self.log)
+            print("    pdb-file: %s"%(pdb_out_rec), file=log)
             print("    pdb-file: %s"%(pdb_out_rec))
-            refinement_rec='reciprocal'
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_rec = pdb_in
         if os.path.isfile(mtz_out_rec):
-            print("    mtz-file: %s"%(mtz_out_rec), file=self.log)
+            print("    mtz-file: %s"%(mtz_out_rec), file=log)
             print("    mtz-file: %s"%(mtz_out_rec))
-            refinement_rec='reciprocal'
         elif mtz_out_rec == mtz_F:
-            print("    mtz-file not found. Refinement failed.", file=self.log)
+            print("    mtz-file not found. Refinement failed.", file=log)
             print("    mtz-file not found. Refinement failed.")
         else:
-            print("    mtz-file not found. Refinement failed.", file=self.log)
+            print("    mtz-file not found. Refinement failed.", file=log)
             print("    mtz-file not found. Refinement failed.")
         if keywords.density_modification.density_modification:
-            print("Output density modification:", file=self.log)
+            print("Output density modification:", file=log)
             print("Output density modification:")
             if mtz_dm == mtz_out_rec:
-                print("    mtz-file not found. Density modification failed.", file=self.log)
+                print("    mtz-file not found. Density modification failed.", file=log)
                 print("    mtz-file not found. Density modification failed.")                
             elif os.path.isfile(mtz_dm):
-                print("    mtz-file: %s" % (mtz_dm), file=self.log)
+                print("    mtz-file: %s" % (mtz_dm), file=log)
                 print("    mtz-file: %s" % (mtz_dm))
             else:
-                print("    mtz-file not found. Density modification failed.", file=self.log)
+                print("    mtz-file not found. Density modification failed.", file=log)
                 print("    mtz-file not found. Density modification failed.")
         print("----------------")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
-        refinement_real=False
         pdb_out_real = ref.coot_real_space_refinement(pdb_in, mtz_map, map_column_labels)
-        print("output real space refinement:", file=self.log)
+        print("output real space refinement:", file=log)
         print("----------------")
         print("output real space refinement:")
         if os.path.isfile(pdb_out_real):
-            print("    pdb-file: %s"%(pdb_out_real), file=self.log)
+            print("    pdb-file: %s"%(pdb_out_real), file=log)
             print("    pdb-file: %s"%(pdb_out_real))
-            refinement_real='real'
         else:
-            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
             print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
             pdb_out_real = pdb_in
         print("----------------")
 
         if keywords.density_modification.density_modification:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
-            refinement_rec_real = False
             pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_dm, 'PHIDM, FOMDM, FOFCWT, PHFOFCWT' )
-            print("output real space refinement after reciprocal space refinement:", file=self.log)
-            print("----------------")
-            print("output real space refinement after reciprocal space refinement:")
-            if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s"%(pdb_out_rec_real), file=self.log)
-                print("    pdb-file: %s"%(pdb_out_rec_real))
-                refinement_rec_real = 'reciprocal + real'
-            else:
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=self.log)
-                print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
-                pdb_out_rec_real = pdb_out_rec
-            print("----------------")
-        else:
-            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            refinement_rec_real=False
-            pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
-            print("output real space refinement after reciprocal space refinement:", file=self.log)
+            print("output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
             if os.path.isfile(pdb_out_rec_real):
                 print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
                 print("    pdb-file: %s"%(pdb_out_rec_real))
-                refinement_rec_real='reciprocal + real'
+            else:
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
+                pdb_out_rec_real = pdb_out_rec
+            print("----------------")
+        else:
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
+            pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
+            print("output real space refinement after reciprocal space refinement:", file=log)
+            print("----------------")
+            print("output real space refinement after reciprocal space refinement:")
+            if os.path.isfile(pdb_out_rec_real):
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
+                print("    pdb-file: %s"%(pdb_out_rec_real))
             else:
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
                 print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
                 pdb_out_rec_real = pdb_out_rec     
             print("----------------")
             
-        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real, refinement_rec, refinement_real, refinement_rec_real
+        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
                
 class Filesandmaps(object):
@@ -1671,7 +1739,7 @@ class Filesandmaps(object):
             symmetry_flags    = maptbx.use_space_group_symmetry,
             resolution_factor = 0.25)
         
-        if self.maptype.lower() == 'qfofo': #Paula labels before refinement
+        if self.maptype.lower() == 'qfofo':
             self.labels = {'data':"QFDIFF", 'map_coefs_diff': "QFOFOWT"}
         elif self.maptype.lower() == 'kfofo':
             self.labels = {'data':"KFDIFF", 'map_coefs_diff': "KFOFOWT"}
@@ -1985,7 +2053,7 @@ def run(args):
     maptypes_zip   = zip(all_maptypes, all_maps)
     final_maptypes = [mp[0] for mp in maptypes_zip if mp[1] == True]
     
-    print("final_maptypes", final_maptypes)
+    #print("final_maptypes", final_maptypes)
     
     if qFoFo_weight:
         params.f_and_maps.fofo_type = 'qfofo'
@@ -2011,8 +2079,6 @@ def run(args):
         params.occupancies.list_occ = None
     else:
         params.occupancies.list_occ = occ_lst
-
-    #Paula occupancy list
     ################################################################
     
     #Add all arguments to log-file
@@ -2041,6 +2107,7 @@ def run(args):
     print('-----------------------------------------', file=log)
 
     DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz)
+
     
     #Check if all input files exists and are of correct type
     err , err_m = DH.check_all_files()
@@ -2070,7 +2137,14 @@ def run(args):
     DH.check_additional_files()
     print('---------------------------')
 
-    #cchange to output directory
+    #change the names so that they appear as absolute path in the Xtrapol8_out:
+    params.input.reference_pdb = DH.pdb_in #This should already be the absolute path
+    params.input.reference_mtz = os.path.abspath(DH.mtz_off)
+    params.input.triggered_mtz = os.path.abspath(DH.mtz_on)
+    params.output.outdir = DH.outdir #This should already be the absolute path
+    params.input.additional_files = list(map(lambda x: os.path.abspath(x), params.input.additional_files))
+
+    #change to output directory
     startdir = os.getcwd()
     outdir = DH.outdir
     os.chdir(outdir)
@@ -2131,6 +2205,7 @@ def run(args):
     #Write all input paramters to a phil file.
     modified_phil.show(out=open("Xtrapol8_in.phil", "w"))
     if params.output.generate_phil_only:
+        params.output.GUI = False
         log.close()
         sys.exit()
     
@@ -2229,10 +2304,6 @@ def run(args):
     FoFo = FobsFobs(DH.fobs_on_scaled, DH.fobs_off_scaled)
     FoFo.calculate_fdiff(kweight_scale = params.f_and_maps.kweight_scale)
     FoFo.write_maps(DH.fmodel, DH.rfree, outname, qweighting=qFoFo_weight, kweighting=kFoFo_weight)
-
-    #Paula ecriture des fichiers FoFo
-    JK_files_table = np.array([None, FobsFobs.maptype, FobsFobs.mtz_name, FobsFobs.labels['map_coefs_diff']])
-
     print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type), file=log)
     #print("------------------------------------", file=log)
     print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type))
@@ -2247,9 +2318,6 @@ def run(args):
         params.map_explorer.radius = dmin
     map_expl_out_FoFo = map_explorer(FoFo.xplor_name, DH.pdb_in, params.map_explorer.radius, params.map_explorer.threshold, params.map_explorer.peak)
     residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=log).residlist_top(Z=params.map_explorer.z_score)
-
-    #Paula residue list du FoFo pour rmsd
-
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
           %(map_expl_out_FoFo, residlist_zscore), file=log)
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
@@ -2408,6 +2476,7 @@ def run(args):
                 os.chdir(new_dirpath_k)
             else:
                 os.chdir(new_dirpath)
+            
             #Depending on maptype, do following steps:
             #1) calculate the structure factors, write out to mtz file, handle negative reflections and generate associated plots or write to pickle file for later usuage
             #   calculate map coefficients and write to mtz, xplor and ccp4 files (latter only for mFo-DFc type)
@@ -2415,48 +2484,45 @@ def run(args):
             #3) compute signal to noise and plot
             #As same steps are repeated, but with a sifferent Fextr-function, I should think of a more clever way to reduce the redundancy here (and in following if clauses)
             if mp == 'qFextr_map':
-                Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats = outdir) #Paula calcul Fextr + fichiers mtz 2FextrFc
+                Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
                 #cc_list.append(plot_F1_F2(DH.fobs_off_scaled,Fextr.fextr_ms, F1_name = "Freference",F2_name = "Fextr"))
             elif mp == 'qFgenick_map':
                 Fextr.fgenick(qweight=True, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fgenick_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fgenick_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'qFextr_calc_map':
                 Fextr.fextr_calc(qweight=True, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             if mp == 'kFextr_map':
                 Fextr.fextr(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'kFgenick_map':
                 Fextr.fgenick(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fgenick_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fgenick_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'kFextr_calc_map':
                 Fextr.fextr_calc(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'Fextr_map':
                 Fextr.fextr(qweight=False, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'Fgenick_map':
                 Fextr.fgenick(qweight=False, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fgenick_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fgenick_ms, '%s' %(Fextr.maptype), log=log)
             elif mp == 'Fextr_calc_map':
                 Fextr.fextr_calc(qweight=False, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
-                compute_f_sigf(Fextr.fextr_calc_ms, '%s_occupancy%.3f.png' %(Fextr.maptype, Fextr.occ), log=log)
+                compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             else:
                 print("%s not recognised as extrapolated map type"%(mp))
-
-            #Paula
-            append(JK_files_table, [occ, mp, Fextr.mtz_name , Filesandmaps.labels['map_coefs_diff'], Filesandmaps.labels['data'], Filesandmaps.labels], axis=0)
-
+                        
             #Use xplor map of type mFo-DFc to find and integrate the peaks, annotate the peaks to residues
             
             print("\n************Map explorer************", file=log)
@@ -2493,7 +2559,7 @@ def run(args):
                 print("\n************Refinements************")
                 print("\n************Refinements************", file=log)
                 if params.refinement.use_refmac_instead_of_phenix:
-                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(pdb_in = DH.pdb_in, #Paula colonne refmac ou phenix
+                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(pdb_in = DH.pdb_in,
                                                                additional        = DH.additional,
                                                                ligands_list      = DH.extract_ligand_codes(),
                                                                F_column_labels   = Fextr.FM.labels['data'],
@@ -2525,7 +2591,7 @@ def run(args):
                     append_if_file_exist(qFextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
                     append_if_file_exist(qFextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
                     append_if_file_exist(qFextr_calc_realref_lst, os.path.abspath(pdb_real))
-                if mp == 'kFextr_map':
+                elif mp == 'kFextr_map':
                     append_if_file_exist(kFextr_recref_mtz_lst, os.path.abspath(mtz_out))
                     append_if_file_exist(kFextr_recref_pdb_lst, os.path.abspath(pdb_rec))
                     append_if_file_exist(kFextr_recrealref_lst, os.path.abspath(pdb_rec_real))
@@ -2571,6 +2637,8 @@ def run(args):
             os.rmdir(new_dirpath_q)
         if len(os.listdir(new_dirpath)) == 0:
             os.rmdir(new_dirpath)
+        if len(os.listdir(new_dirpath_k)) == 0:
+            os.rmdir(new_dirpath_k)
 
         #Go back to output directory and generate the plots from the pickle files
         os.chdir(outdir)
@@ -2600,41 +2668,43 @@ def run(args):
     print("ESTIMATE OPTIMAL OCCUPANCY", file=log)
     print('-----------------------------------------', file=log)
 
-    #To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
-    #In both cases, a file with residues to base the calculation on should be provided
-    #   In case of faf, the Z-score based list will automatically be choses
-    #   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
-    if params.f_and_maps.fast_and_furious:
-        print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
-        residlst = residlist_zscore
-    else:
-        print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
-        if params.map_explorer.use_occupancy_from_distance_analysis:
-            print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-        else:
-            print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
+    ##To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
+    ##In both cases, a file with residues to base the calculation on should be provided
+    ##   In case of faf, the Z-score based list will automatically be choses
+    ##   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
+    #if params.f_and_maps.fast_and_furious:
+        #print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
+        #residlst = residlist_zscore
+    #else:
+        #print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
+        #if params.map_explorer.use_occupancy_from_distance_analysis:
+            #print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
+        #else:
+            #print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
             
-        timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
-        rlist, _, _ = select([sys.stdin], [], [], timeout)
-        if rlist:
-            s = sys.stdin.readline()
-            residlst = s.strip("\n")
-        else:
-            residlst = residlist_zscore
+        #timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
+        #rlist, _, _ = select([sys.stdin], [], [], timeout)
+        #if rlist:
+            #s = sys.stdin.readline()
+            #residlst = s.strip("\n")
+        #else:
+            #residlst = residlist_zscore
             
-        if os.path.isfile(residlst.lstrip().rstrip()):
-            residlst = residlst.lstrip().rstrip()
-        elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
-            residlst = startdir+"/"+residlst.lstrip().rstrip()
-        else:
-            residlst = residlist_zscore
-        try:
-            residlst = os.path.abspath(residlst)
-            if os.path.isfile(residlst) == False:
-                raise IOError
-        except IOError:
-            print("File %s not found. All peaks and residues will be used" %(str(residlst)))
-            residlst = None
+        #if os.path.isfile(residlst.lstrip().rstrip()):
+            #residlst = residlst.lstrip().rstrip()
+        #elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
+            #residlst = startdir+"/"+residlst.lstrip().rstrip()
+        #else:
+            #residlst = residlist_zscore
+        #try:
+            #residlst = os.path.abspath(residlst)
+            #if os.path.isfile(residlst) == False:
+                #raise IOError
+        #except IOError:
+            #print("File %s not found. All peaks and residues will be used" %(str(residlst)))
+            #residlst = None
+    #Avoid waiting and use immediately the Z-score list. The standalone version can be used if a specific residue list needs to be used.
+    residlst = residlist_zscore
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst), file=log)
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst))
     
@@ -2650,6 +2720,8 @@ def run(args):
     #   5) append the refinement models and maps to the Pymol_movie script
     #   6) make ddm plot
     #   7) write coot script
+    ddm_out = None
+    script_coot = None
     reversed_maptypes = final_maptypes[:]
     reversed_maptypes.reverse()
     occ_overview = {}
@@ -2665,12 +2737,12 @@ def run(args):
         else:
             dir_prefix = 'occupancy' 
             
-        if mp == 'qFextr_map': #Paula liste de fichiers
-            recref_mtz_lst = qFextr_recref_mtz_lst #mtz du reciprocal space
-            recref_pdb_lst = qFextr_recref_pdb_lst #pdb
-            recrealref_lst = qFextr_recrealref_lst #pdb
-            realref_lst    = qFextr_realref_lst #pdb
-            map_expl_lst   = qFextr_map_expl_fles #map explorer
+        if mp == 'qFextr_map':
+            recref_mtz_lst = qFextr_recref_mtz_lst
+            recref_pdb_lst = qFextr_recref_pdb_lst
+            recrealref_lst = qFextr_recrealref_lst
+            realref_lst    = qFextr_realref_lst
+            map_expl_lst   = qFextr_map_expl_fles
         elif mp == 'qFgenick_map':
             recref_mtz_lst = qFgenick_recref_mtz_lst
             recref_pdb_lst = qFgenick_recref_pdb_lst
@@ -2683,7 +2755,7 @@ def run(args):
             recrealref_lst = qFextr_calc_recrealref_lst
             realref_lst    = qFextr_calc_realref_lst   
             map_expl_lst   = qFextr_calc_map_expl_fles
-        elif mp == 'kFextr_map':
+        if mp == 'kFextr_map':
             recref_mtz_lst = kFextr_recref_mtz_lst
             recref_pdb_lst = kFextr_recref_pdb_lst
             recrealref_lst = kFextr_recrealref_lst
@@ -2795,7 +2867,7 @@ def run(args):
             #ddm calculation
             pdb_for_ddm = pdb_list[params.occupancies.list_occ.index(occ)+1]
             print("----Generate distance difference plot----")
-            Difference_distance_analysis(DH.pdb_in, pdb_for_ddm, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
+            ddm_out = Difference_distance_analysis(DH.pdb_in, pdb_for_ddm, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
             print('---------------------------')
             
             #Coot script
@@ -2807,7 +2879,8 @@ def run(args):
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
             if params.refinement.phenix_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
+                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
             if params.refinement.refmac_keywords.density_modification.density_modification:
@@ -2844,7 +2917,7 @@ def run(args):
                 alpha = 1/occ
             occ_dir = "%s/%s_%.3f" %(outdir, dir_prefix, occ)
             
-        occ_overview[mp_type] = occ
+        occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
             
         print("------------------------------------")
         print("------------------------------------", file=log)
@@ -2852,17 +2925,27 @@ def run(args):
     #Add final lines to Pymol_script
     if os.path.isfile('%s/pymol_movie.py' %(outdir)):
         Pymol_movie(params.occupancies.list_occ, resids_lst = residlst).write_pymol_appearance('%s/pymol_movie.py' %(outdir))
-    
+        
+    #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
+    #if params.output.GUI:
+        #pub.sendMessage("Best occ", occ_overview=occ_overview)
+        #print("Message sent to GUI")
+    #Write the pickle file always as this will also be used when the GUI is launched as resultsloader
+    occ_pickle = open("occupancy_recap.pickle", "wb")
+    pickle.dump(occ_overview, occ_pickle)
+    occ_pickle.close()
+        
+      
     print("Summary of occupancy determination:", file=log)
     print("Map type       Occupancy", file=log)
     for k in occ_overview:
-        print("{:<15} {:>5.3f}".format(k, occ_overview[k]), file=log)
+        print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]), file=log)
     print("-> Optimal occupancy of triggered state %.3f." %(occ), file=log)
     
     print("OCCUAPNCY DETERMINATION SUMMARY")
     print("Map type       Occupancy")
     for k in occ_overview:
-        print("{:<15} {:>5.3f}".format(k, occ_overview[k]))
+        print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]))
     print("-> Optimal occupancy of triggered state %.3f." %(occ))
 
     
@@ -2948,8 +3031,17 @@ def run(args):
         print("FAST AND FURIOUS REFINEMENT DONE")
         print('-----------------------------------------')
         print("----Generate distance difference plot----")
-        Difference_distance_analysis(DH.pdb_in, pdb_rec_real, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
+        ddm_out = Difference_distance_analysis(DH.pdb_in, pdb_rec_real, ligands = DH.extract_ligand_codes(), outdir=occ_dir, scale=params.output.ddm_scale).ddms()
         print('---------------------------')
+        
+        #Rewrite the pickle file as to include the ddm_out path
+        occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
+        #if os.path.isfile("occupancy_recap.pickle"):
+            #os.remove("occupancy_recap.pickle")
+        occ_pickle = open("occupancy_recap.pickle", "wb")
+        pickle.dump(occ_overview, occ_pickle)
+        occ_pickle.close()
+
         
     ################################################################
     #Make sure we are in the output directory
