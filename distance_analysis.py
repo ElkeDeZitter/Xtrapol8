@@ -130,19 +130,34 @@ def sigmoid_fitting(sel, x):
     else:
         try:
             kmax = val/1 +0.05 #Extend the kmax-kmin range for 0.05 on each side
-            kmin = val/maxalpha -0.05
+            kmin = val/maxalpha - 0.05
             if kmax < kmin:
                 return np.array([0.,0.,0.])
                 #kmin = val
                 #kmax = val/maxalpha
             x0max =maxalpha
-            #print("kmax", kmax)
-            #print("kmin", kmin)
-            popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False, bounds = ((0.95*np.max(sel), kmin, 1), (1.05*np.max(sel), kmax, x0max)))
-            #popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False)
-                        
+            Lmin = 0.95*np.max(sel)
+            Lmax = 1.05*np.max(sel)
+            popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False, bounds = ((Lmin, kmin, 1), (Lmax, kmax, x0max)))
         except ValueError: 
             popt = np.array([0.,0.,0.])
+        except RuntimeError:
+            try:
+                #print("loosen fitting boundaries")
+                kmax = val/1 +0.15 #Extend the kmax-kmin range for 0.15 on each side
+                kmin = val/maxalpha - 0.15
+                if kmax < kmin:
+                    return np.array([0.,0.,0.])
+                    #kmin = val
+                    #kmax = val/maxalpha
+                x0max =maxalpha
+                Lmin = 0.80*np.max(sel)
+                Lmax = 1.20*np.max(sel)
+                popt,_ = curve_fit(sigmoid_fit, x, sel, sigma=np.sqrt(x),absolute_sigma=False, bounds = ((Lmin, kmin, 1), (Lmax, kmax, x0max)))
+            except ValueError: 
+                popt = np.array([0.,0.,0.])
+            except RuntimeError:
+                popt = np.array([0.,0.,0.])
             
         ##Exclude fits with boundary values, which means that the fit isn't done properly.
         ##Even if we check the R2 and chi2, it is better to throw them out.
@@ -159,7 +174,7 @@ def sigmoid_fitting(sel, x):
             ##return np.array([0.,0.,0.])
             #print("x0min reached", np.array([popt[0], popt[1], popt[2]]))
             
-        #Excplude based on alpha. 
+        #Exclude based on alpha. 
         alpha = ((val)/popt[1])+ popt[2]
         if alpha < 1.0:
             #print("Minimum alpha reached. alpha and occupancy:", alpha, 1/alpha)
@@ -674,20 +689,21 @@ class Distance_analysis(object):
                                         #absolute_sigma=False,
                                         #bounds=((0.95*np.min(fulllist_av), val/maxalpha, -0.001), (1.05*np.max(fulllist_av),val, 0.001)))
             #Sigmoidal fitting
-            poptave,pcovave = curve_fit(sigmoid_fit,
-                                        x,
-                                        fulllist_av,
-                                        sigma=np.sqrt(x)+x,
-                                        absolute_sigma=False,
-                                        bounds=((0.95*np.min(fulllist_av), val/maxalpha -0.05, 1), (1.05*np.max(fulllist_av),val/1 +0.05, maxalpha)))
+            #poptave,_ = curve_fit(sigmoid_fit,
+                                        #x,
+                                        #fulllist_av,
+                                        #sigma=np.sqrt(x)+x,
+                                        #absolute_sigma=False,
+                                        #bounds=((0.95*np.min(fulllist_av), val/maxalpha -0.05, 1), (1.05*np.max(fulllist_av),val/1 +0.05, maxalpha)))
+            poptave = sigmoid_fitting(fulllist_av, x)
 
             ##exponential fitting:
             #ax0.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit of average fit')
             #sigmoidal fitting:
             ax0.plot(xx, sigmoid_fit(xx,poptave[0],poptave[1],poptave[2]), 'b-', label='Fit of average distance')
-            
+
         else:
-            poptave = [0,0,0]
+            poptave = p.array([0.,0.,0.])
             
         #Plot the average of all fits
         ##exponential fitting:
@@ -772,6 +788,12 @@ class Distance_analysis(object):
             #possible_b, poptave = self.plot_distance_differences_and_get_possible_b()
             #sigmoidal fitting:
             possible_b, poptave, possible_x0 = self.plot_distance_differences_and_get_possible_b()
+            
+        if np.all(poptave == np.array([0.,0.,0.])):
+            #print("poptave", poptave)
+            print("Distance difference fitting failed", file=self.log)
+            print("Distance difference fitting failed")
+            return 1.0, 1.0
         
         if possible_b.shape[0] > 0:
             #Calculate b statistics
