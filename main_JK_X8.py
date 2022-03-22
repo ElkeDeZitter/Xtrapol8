@@ -676,7 +676,7 @@ def run(args):
 
             if index > 0:
                 logdir, log = Log_file.create_log(P.outdir, global_log=True)  # if there are many triggered stream files create a new log file and get full directory of the log file
-                print_file_content(log_0, logdir, end_line=end_line) #print the common parameters in the new log files
+                print_file_content(log_0, logdir, end_line=end_line) #print the common parameters in the new log files #Note by Elke: should log_0 not be just log here?
                 Log_file.update_log_main(logdir)#update the main log so that when the function print_terminal_and_log is used, the log_main is the new log_main=logdir
 
             P.get_parameters_multiple_JK_X8_output(params, index)  # getting output parameters common to JK and X8: output and outname

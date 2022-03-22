@@ -63,7 +63,7 @@ uniqueify tmp.mtz\n\
 out=`basename %s .mtz` \n\
 mypath=`dirname %s` \n\
 mv tmp-unique.mtz ${mypath}/${out}_FPFREE.mtz\n\
-rm tmp.mtz tmp-unique.log" % (mtz_on, 'P6122', mtz_on, mtz_on))
+rm tmp.mtz tmp-unique.log" % (mtz_on, P.spacegroup_on, mtz_on, mtz_on)) #Elke: replace hardcoded P6122 by P.spacegroup_on
     i.close()
     os.system('bash %s' % (script_out))
     new_mtz_on = (mtz_on.split('.mtz')[0])+ '_FPFREE.mtz'

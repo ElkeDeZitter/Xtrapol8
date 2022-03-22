@@ -111,7 +111,7 @@ class Parameters():
                 nb_spacegroup = crystal.symmetry.space_group_number(symmetry)
                 print('spacegroup number:', nb_spacegroup)
 
-                # 2.  From spacegroup, getting system and pointgroup
+                # 2.  From spacegroup, getting system and pointgroup #Note by Elke: can this be changed to a dictionary which might be less prone to errors and bugs?
                 if nb_spacegroup in [1, 2]:
                     system = 'triclinic'
                     if nb_spacegroup == 1:
@@ -571,7 +571,7 @@ class Parameters():
             self.method_process_hkl = True
             self.other_process_hkl = None
             self.other_partialator = None
-            self.params.JackKnife.Scaling_and_merging.algorithm = 'process_hkl' #return in output phil
+            self.params.JackKnife.Scaling_and_merging.algorithm = 'process_hkl' #return in output phil #note by Elke, should this be ['process_hkl']??
 
         if self.other_process_hkl==None: self.other_process_hkl=''
         if self.other_partialator==None: self.other_partialator=''
@@ -585,7 +585,7 @@ class Parameters():
         self.lowres = self.highres = None
         if self.run_Xtrapol8:
             if self.params.Xtrapol8.input.low_resolution != None: #if low_res given
-                self.lowres = self.params.Common_X8.low_resolution
+                self.lowres = self.params.Common_X8.low_resolution #note by Elke: where is common_X8 defined? Should this be self.params.Xtrapol8.input.low_resolution??
                 if not '--rmin' in self.other_stats_compare_hkl and not '--lowres' in self.other_stats_compare_hkl:#if there is not an other low resolution given in other_stats_compare_hkl
                     self.other_stats_compare_hkl += ' --lowres ' + str(self.lowres) #low resolution added to the other_stats_compare_hkl
                     self.params.JackKnife.Statistics.other_stats_compare_hkl=self.other_stats_compare_hkl#return in output phil
@@ -698,7 +698,7 @@ class Parameters():
             else:
                 self.occ_lst = self.params.Xtrapol8.occupancies.list_occ
             self.occ_lst.sort()
-            if len(self.occ_lst) == 0:
+            if len(self.occ_lst) == 0: #note by Elke: this might to be compared with the current Xtrapol8 version
                 print("No input occupancies found. Xtrapol8 will stop after the FoFo calculation.")
                 self.params.Xtrapol8.output.generate_fofo_only = True
                 self.params.Xtrapol8.occupancies.list_occ = None
@@ -844,23 +844,23 @@ class Parameters():
                 os.makedirs(self.params.output.outdir)
             self.outdir = os.path.abspath(self.params.output.outdir)
         else:
-            self.outdir = os.getcwd()
+            self.outdir = os.getcwd() #note by Elke: this should be changed according to the current Xtrapol8 version
 
         if self.run_JackKnife and not self.run_Xtrapol8:
             outdir_0 = self.outdir + '/' + self.outname
             if self.run_JackKnife:
                 outdir_0 = outdir_0 + '_JackKnife'
-            if self.run_Xtrapol8:
+            if self.run_Xtrapol8: #note by Elke: this cannot happen as we are in a loop which says "and not self.run_Xtrapol8"
                 outdir_0 = outdir_0 + '_Xtrapol8'
 
             outdir_i=outdir_0
             i = 1
-            while os.path.isdir(outdir_i):
+            while os.path.isdir(outdir_i): #note by Elke: need to set a break to avoid unfinite loop
                 outdir_i = outdir_0 + '_' + str(i)
                 i += 1
             self.outdir=outdir_i
 
-        if not os.path.isdir(self.outdir):
+        if not os.path.isdir(self.outdir): #note by Elke: this should be changed according to the current Xtrapol8 version
             os.mkdir(self.outdir)
 
     def get_parameters_multiple_JK_X8_output(self, params, index):
