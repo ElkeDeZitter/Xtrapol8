@@ -203,6 +203,20 @@ class Difference_distance_analysis(object):
             diff = np.array([0,0])
         return diff, seq_info
     
+    def ddm_residue(self, ddm, seq_info):
+        """
+        From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
+        """
+        seq_info_unique, indices = np.unique(np.array(map(lambda x: int(x), seq_info)), return_inverse=True)
+        
+        n_residues = seq_info_unique.shape[0]
+        ddm_residue = np.zeros((n_residues, n_residues))
+        for i in range(n_residues):
+            for j in range(n_residues):
+                ddm_residue[i,j] = np.average(ddm[np.where(indices==i)[0],:][:,np.where(indices==j)[0]])
+                
+        return ddm_residue, seq_info_unique
+    
     def make_colormap(self,seq):
         """Return a LinearSegmentedColormap
         seq: a sequence of floats and RGB-tuples. The floats should be increasing
@@ -244,8 +258,11 @@ class Difference_distance_analysis(object):
         outname = '%s/ddm_%s_vs_%s'%(self.outdir, self.pdb1_name,self.pdb2_name)
         outname_pdf = '%s.pdf'%(outname)
         outname_png = '%s.png'%(outname)
+        
+        #Also write the ddm_residue and seq_info_unique to a pickle file
+        outname_pickle = open("%s.pickle"%(outname), 'ab')
 
-        fig, axs = plt.subplots(n_rows, n_cols, figsize=(10*n_rows, 10*n_cols))#, constrained_layout=True)
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(10*n_rows, 10*n_cols), squeeze=False)#, constrained_layout=True)
         #fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
         c = mcolors.ColorConverter().to_rgb
         rvb = self.make_colormap([c('blue'), c('white'), 0.40, c('white'),  0.60, c('white'), c('red')])
@@ -284,95 +301,119 @@ class Difference_distance_analysis(object):
                     
                     assert n==m, "Difference matrix for chain %s is incorrect"
                     
-                    mask = np.zeros_like(ddm, dtype=np.bool)
-                    mask[np.triu_indices_from(mask)] = True
-                    FINAL2 = np.ma.array(ddm, mask=mask)
+                    #For all atom ddm
+                    #mask = np.zeros_like(ddm, dtype=np.bool)
+                    #mask[np.triu_indices_from(mask)] = True
+                    #FINAL2 = np.ma.array(ddm, mask=mask)
                     
-                    last = self.get_last_residue_number(self.hier1, chain1)
-                    total = last+offset+1
-                    #steps = int(total/10)
-                    seq_info = np.array(list(map(lambda x: int(x), seq_info)))
-                    seq_ticks = seq_info[0::int(len(seq_info)/15)]
-                    tick_pos  = [np.where(seq_info==i)[0][0] for i in seq_ticks]
-                    steps = len(seq_ticks)
-                    if self.scale is None:
-                        scale = max(np.abs(np.min(ddm)), np.abs(np.max(ddm)))
+                    #last = self.get_last_residue_number(self.hier1, chain1)
+                    #total = last+offset+1
+                    ##steps = int(total/10)
+                    #seq_info = np.array(list(map(lambda x: int(x), seq_info)))
+                    #seq_ticks = seq_info[0::int(len(seq_info)/15)]
+                    #tick_pos  = [np.where(seq_info==i)[0][0] for i in seq_ticks]
+                    #steps = len(seq_ticks)
+                    #if self.scale is None:
+                        #scale = max(np.abs(np.min(ddm)), np.abs(np.max(ddm)))
+                    #else:
+                        #scale = self.scale
+                    
+                    #For per residue ddm
+                    ddm_residue, seq_info_unique = self.ddm_residue(ddm, seq_info)
+                    
+                    #write info to pickle file
+                    stats = [chain.id, ddm_residue, seq_info_unique]
+                    pickle.dump(stats, outname_pickle)
+                    
+                    
+                    mask = np.zeros_like(ddm_residue, dtype=np.bool)
+                    mask[np.triu_indices_from(mask)] = True
+                    FINAL2 = np.ma.array(ddm_residue, mask=mask)
+                    
+                    tick_jump = int(np.round(len(seq_info_unique)/15,0)) #we want to add 15 seq_ticks
+                    seq_ticks = seq_info_unique[0::tick_jump] #residues for which we will show tick positions
+                    tick_pos = list(map(lambda x: x*tick_jump, range(len(seq_ticks))))
+
+                    
+                    if self.scale == None:
+                        scale = max(np.abs(np.min(ddm_residue)), np.abs(np.max(ddm_residue)))
                     else:
                         scale = self.scale
-                    if (n_rows > 1 and n_cols > 1):
-                        img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
                         
-                        axs[row, col].set_xticks(tick_pos)
-                        axs[row, col].set_xticklabels(seq_ticks)
-                        plt.setp(axs[row, col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        axs[row, col].set_yticks(tick_pos)
-                        axs[row, col].set_yticklabels(seq_ticks)
-
-                        axs[row, col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        axs[row, col].set_xlabel('Residues')
-                        axs[row, col].set_ylabel('Residues')
-                        
-                        axs[row, col].spines['top'].set_visible(False)
-                        axs[row, col].spines['right'].set_visible(False)
-                        
-                        fig.colorbar(img, ax=axs[row, col], fraction=0.046, pad=0.04)
-                        
-                    elif (n_rows > 1 and n_cols == 1):
-                        img = axs[row].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
-                        
-                        axs[row].set_xticks(tick_pos)
-                        axs[row].set_xticklabels(seq_ticks)
-                        plt.setp(axs[row].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        axs[row].set_yticks(tick_pos)
-                        axs[row].set_yticklabels(seq_ticks)
-
-                        axs[row].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        axs[row].set_xlabel('Residues')
-                        axs[row].set_ylabel('Residues')
-                        
-                        axs[row].spines['top'].set_visible(False)
-                        axs[row].spines['right'].set_visible(False)
-                        
-                        fig.colorbar(img, ax=axs[row], fraction=0.046, pad=0.04)
-                        
-                    elif (n_rows == 1 and n_cols > 1):
-                        img = axs[col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
-                        
-                        axs[col].set_xticks(tick_pos)
-                        axs[col].set_xticklabels(seq_ticks)
-                        plt.setp(axs[col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        axs[col].set_yticks(tick_pos)
-                        axs[col].set_yticklabels(seq_ticks)
-
-                        axs[col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        axs[col].set_xlabel('Residues')
-                        axs[col].set_ylabel('Residues')
-                        
-                        axs[col].spines['top'].set_visible(False)
-                        axs[col].spines['right'].set_visible(False)
-                        
-                        fig.colorbar(img, ax=axs[col], fraction=0.046, pad=0.04)
+                    #if (n_rows > 1 and n_cols > 1):
+                    img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
                     
-                    else: #situation of n_rows == 1 and n_cols ==1
-                        img = axs.imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
-                        axs.set_xticks(tick_pos)
-                        axs.set_xticklabels(seq_ticks)
-                        plt.setp(axs.xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        axs.set_yticks(tick_pos)
-                        axs.set_yticklabels(seq_ticks)
+                    axs[row, col].set_xticks(tick_pos)
+                    axs[row, col].set_xticklabels(seq_ticks)
+                    plt.setp(axs[row, col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
+                    
+                    axs[row, col].set_yticks(tick_pos)
+                    axs[row, col].set_yticklabels(seq_ticks)
 
-                        axs.set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        axs.set_xlabel('Residues')
-                        axs.set_ylabel('Residues')
+                    axs[row, col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+                    axs[row, col].set_xlabel('Residues')
+                    axs[row, col].set_ylabel('Residues')
+                    
+                    axs[row, col].spines['top'].set_visible(False)
+                    axs[row, col].spines['right'].set_visible(False)
+                    
+                    fig.colorbar(img, ax=axs[row, col], fraction=0.046, pad=0.04)
                         
-                        axs.spines['top'].set_visible(False)
-                        axs.spines['right'].set_visible(False)
+                    #elif (n_rows > 1 and n_cols == 1):
+                        #img = axs[row].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
                         
-                        fig.colorbar(img, ax=axs, fraction=0.046, pad=0.04)
+                        #axs[row].set_xticks(tick_pos)
+                        #axs[row].set_xticklabels(seq_ticks)
+                        #plt.setp(axs[row].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
+                        
+                        #axs[row].set_yticks(tick_pos)
+                        #axs[row].set_yticklabels(seq_ticks)
+
+                        #axs[row].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+                        #axs[row].set_xlabel('Residues')
+                        #axs[row].set_ylabel('Residues')
+                        
+                        #axs[row].spines['top'].set_visible(False)
+                        #axs[row].spines['right'].set_visible(False)
+                        
+                        #fig.colorbar(img, ax=axs[row], fraction=0.046, pad=0.04)
+                        
+                    #elif (n_rows == 1 and n_cols > 1):
+                        #img = axs[col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
+                        
+                        #axs[col].set_xticks(tick_pos)
+                        #axs[col].set_xticklabels(seq_ticks)
+                        #plt.setp(axs[col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
+                        
+                        #axs[col].set_yticks(tick_pos)
+                        #axs[col].set_yticklabels(seq_ticks)
+
+                        #axs[col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+                        #axs[col].set_xlabel('Residues')
+                        #axs[col].set_ylabel('Residues')
+                        
+                        #axs[col].spines['top'].set_visible(False)
+                        #axs[col].spines['right'].set_visible(False)
+                        
+                        #fig.colorbar(img, ax=axs[col], fraction=0.046, pad=0.04)
+                    
+                    #else: #situation of n_rows == 1 and n_cols ==1
+                        #img = axs.imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
+                        #axs.set_xticks(tick_pos)
+                        #axs.set_xticklabels(seq_ticks)
+                        #plt.setp(axs.xaxis.get_majorticklabels(), rotation=90, fontsize='small')
+                        
+                        #axs.set_yticks(tick_pos)
+                        #axs.set_yticklabels(seq_ticks)
+
+                        #axs.set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+                        #axs.set_xlabel('Residues')
+                        #axs.set_ylabel('Residues')
+                        
+                        #axs.spines['top'].set_visible(False)
+                        #axs.spines['right'].set_visible(False)
+                        
+                        #fig.colorbar(img, ax=axs, fraction=0.046, pad=0.04)
                         
                     old_chain_id = ID
         
@@ -385,6 +426,8 @@ class Difference_distance_analysis(object):
         plt.savefig(outname_pdf, dpi=300, transparent=True)
         plt.savefig(outname_png, dpi=300)
         plt.close()
+        
+        outname_pickle.close()
         
         #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though
         return outname_png
