@@ -21,7 +21,7 @@ example using input file (preferable)
 example using command line only
 -------
 1) Run Xtrapol8 with all your arguments
->>> phenix.python <wherever>/Fextr.py input.reference_mtz=hiephiep.mtz input.triggered_mtz=hieperdepiep.mtz input.reference_pdb=hoera.pdb input.additional_files=jeej.cif input.additional_files=another.cif occupancies.list_occ=0.1,0.3,0.5 f_and_maps.f_extrapolated_and_maps=qfextr,qfgenick map_explorer.threshold=3.5 map_explorer.peak=4 output.outdir=fancy_party
+>>> phenix.python <wherever>/Fextr.py input.reference_mtz=hiephiep.mtz input.triggered_mtz=hieperdepiep.mtz input.reference_pdb=hoera.pdb input.additional_files=jeej.cif input.additional_files=another.cif occupancies.list_occ=0.1,0.3,0.5 f_and_maps.f_extrapolated_and_maps=qfextr,qfgenick map_explorer.peak_integration_floor=3.5 map_explorer.peak_detection_threshold=4 output.outdir=fancy_party
 
 example using input file and command line
 -------
@@ -206,13 +206,13 @@ f_and_maps{
         .expert_level = 2
     }
 map_explorer{
-    threshold = 3.5
+    peak_integration_floor = 3.5
         .type = float
-        .help = Integration threshold (in sigma).
+        .help = Floor value for peak integration (sigma). Peaks will be integrated from their maximum value towards this lower bound to avoid integration of noise.
         .expert_level = 0
-    peak = 4.0
+    peak_detection_threshold = 4.0
         .type = float
-        .help = Peak detection threshold (sigma).
+        .help = Peak detection threshold (sigma). Only peaks with a maximum equal or above this value will be integrated.
     radius = None
         .type = float
         .help = Maximum radius (A) to allocate a density blob to a protein atom in map explorer. Resolution will be used if not specified.
@@ -2316,7 +2316,7 @@ def run(args):
     print("\n************Map explorer************")
     if params.map_explorer.radius == None:
         params.map_explorer.radius = dmin
-    map_expl_out_FoFo = map_explorer(FoFo.xplor_name, DH.pdb_in, params.map_explorer.radius, params.map_explorer.threshold, params.map_explorer.peak)
+    map_expl_out_FoFo = map_explorer(FoFo.xplor_name, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold)
     residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=log).residlist_top(Z=params.map_explorer.z_score)
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
           %(map_expl_out_FoFo, residlist_zscore), file=log)
@@ -2527,7 +2527,7 @@ def run(args):
             
             print("\n************Map explorer************", file=log)
             print("\n************Map explorer************")
-            map_expl_out = map_explorer(Fextr.xplor_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.threshold, params.map_explorer.peak, maptype=Fextr.maptype)
+            map_expl_out = map_explorer(Fextr.xplor_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
             
             #depending on the map-type, append the output-file of mapexplorer to the correct list
             if mp == 'qFextr_map':

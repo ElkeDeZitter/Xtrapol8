@@ -185,10 +185,10 @@ class TabExtrapolation(ScrolledPanel):
         MapExplorer = wx.StaticBox(self, 1, "Map Explorer", size=(800,250))
 
         self.MES = wx.StaticBoxSizer(MapExplorer,wx.VERTICAL)
-        peak = wx.StaticText(self, wx.ID_ANY, "Peak (sigmas)", size=(90, 20))
-        peak.SetFont(defont)
-        threshold = wx.StaticText(self, wx.ID_ANY, "Threshold (sigmas)", size=(120, 20))
-        threshold.SetFont(defont)
+        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma)", size=(90, 20))
+        peak_detection_threshold.SetFont(defont)
+        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma)", size=(120, 20))
+        peak_integration_floor.SetFont(defont)
         radius = wx.StaticText(self, wx.ID_ANY, "Radius (A)", size=(90, -1))
         radius.SetFont(defont)
         zscore = wx.StaticText(self, wx.ID_ANY, "z-score", size=(60, -1))
@@ -197,9 +197,9 @@ class TabExtrapolation(ScrolledPanel):
         blank2 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
 
         width_TextCtrl = 100
-        self.PeakTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "4.0", style=wx.TE_PROCESS_ENTER,
+        self.peak_detection_thresholdTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "4.0", style=wx.TE_PROCESS_ENTER,
                                     size=(width_TextCtrl, 20))
-        self.ThreshTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3.5", style=wx.TE_PROCESS_ENTER,
+        self.peak_integration_floorTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3.5", style=wx.TE_PROCESS_ENTER,
                                    size=(width_TextCtrl, 20))
 
         ### Should be changed by highest resolution
@@ -209,8 +209,7 @@ class TabExtrapolation(ScrolledPanel):
                                      size=(width_TextCtrl, 20))
 
         MES_fgs = wx.FlexGridSizer(rows=2, cols=5, vgap=10, hgap=10)
-        MES_fgs.AddMany([peak, self.PeakTextCtrl, blank, threshold, self.ThreshTextCtrl,
-                         radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl])
+        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl])
         self.MES.AddSpacer(5)
         self.MES.Add(MES_fgs)
         self.MES.AddSpacer(10)
