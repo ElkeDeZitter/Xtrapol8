@@ -3035,6 +3035,7 @@ def run(args):
         print('---------------------------')
         
         #Rewrite the pickle file as to include the ddm_out path
+        os.chdir(outdir)
         occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
         #if os.path.isfile("occupancy_recap.pickle"):
             #os.remove("occupancy_recap.pickle")

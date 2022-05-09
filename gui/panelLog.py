@@ -864,12 +864,15 @@ class TabOccResults(ScrolledPanel):
         if self.finished:
             self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
             if float(self.occ) == float(self.best_occ[self.fextr]):
-                #fn_ddm = re.sub(".png$", ".pickle", self.ddm[self.fextr]) #get name of pickle file for ddm. Not elegant 
-                fn_ddm = get_name(self.ddm[self.fextr])+".pickle"
-                if os.path.isfile(fn_ddm):
-                    self.addPlot(fn_ddm)
-                else:
-                    self.addImg(self.ddm[self.fextr])
+                #fn_ddm = re.sub(".png$", ".pickle", self.ddm[self.fextr]) #get name of pickle file for ddm. Not elegant
+                try:
+                    fn_ddm = get_name(self.ddm[self.fextr])+".pickle"
+                    if os.path.isfile(fn_ddm):
+                        self.addPlot(fn_ddm)
+                    else:
+                        self.addImg(self.ddm[self.fextr])
+                except AttributeError:
+                    pass
                     
                 if not self.coot_button.IsShown():
                     self.occNfextrSizer.Show(self.coot_button)
@@ -1189,6 +1192,7 @@ class TabOccResults(ScrolledPanel):
             self.best_occ[fextr] = occ
             self.coot_scripts[fextr] = coot
             self.ddm[fextr] = ddm
+            print(occ, coot, ddm)
         fextr = self.FextrChoice.GetStringSelection()
         self.occNfextrSizer.Show(self.best_occ_Static)
         self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[fextr])
