@@ -46,7 +46,7 @@ class TabExtrapolation(ScrolledPanel):
         #####################
         ###   X8 Modes    ###
         #####################
-        self.X8Modes = wx.RadioBox(self, 1, "X8 Modes", size=(800, -1),choices=["FoFo only", "Fast N Furious", "Calm N Curious" ])
+        self.X8Modes = wx.RadioBox(self, 1, "Xtrapol8 Modes", size=(800, -1),choices=["FoFo only ", "Fast and Furious ", "Calm and Curious " ])
         self.X8Modes.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
         self.X8Modes.SetSelection(2)
         self.currentX8Mode = "CNC"
@@ -102,7 +102,7 @@ class TabExtrapolation(ScrolledPanel):
         ########################
         ###  Maps N Scaling  ###
         ########################
-        Maps =  wx.StaticBox(self, 1, "Maps And Scaling", size=(800, 200))
+        Maps =  wx.StaticBox(self, 1, "Maps and Scaling", size=(800, 200))
 
         FoTxt = wx.StaticText(self, wx.ID_ANY, "Type of FoFo Map : ")
         FoTxt.SetFont(defont)
@@ -138,7 +138,7 @@ class TabExtrapolation(ScrolledPanel):
         ##########################
 
 
-        self.ExtSF_box = wx.StaticBox(self, 1, "Extrapolated structure factors", size=(800, 200))
+        self.ExtSF_box = wx.StaticBox(self, 1, "Extrapolated structure factor amplitudes", size=(800, 200))
         self.ExtSF = wx.StaticBoxSizer(self.ExtSF_box, wx.VERTICAL)
 
         fgs = wx.FlexGridSizer(3, 5, 10, 10)
@@ -185,9 +185,9 @@ class TabExtrapolation(ScrolledPanel):
         MapExplorer = wx.StaticBox(self, 1, "Map Explorer", size=(800,250))
 
         self.MES = wx.StaticBoxSizer(MapExplorer,wx.VERTICAL)
-        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma)", size=(90, 20))
+        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma)", size=(180, 20))
         peak_detection_threshold.SetFont(defont)
-        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma)", size=(120, 20))
+        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma)", size=(180, 20))
         peak_integration_floor.SetFont(defont)
         radius = wx.StaticText(self, wx.ID_ANY, "Radius (A)", size=(90, -1))
         radius.SetFont(defont)
