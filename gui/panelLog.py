@@ -364,7 +364,7 @@ class TabMainImg(ScrolledPanel):
                 q_av_lst = None
 
 
-        self.figure = Figure(figsize=(10, 5), tight_layout=True)
+        self.figure = Figure(figsize=(10, 5))
         ax1 = self.figure.add_subplot(111)
         ax1.set_xlabel('Resolution (A)')
         ax1.set_ylabel('Average q in resolution bin')
@@ -864,14 +864,16 @@ class TabOccResults(ScrolledPanel):
         if self.finished:
             self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
             if float(self.occ) == float(self.best_occ[self.fextr]):
-                #fn_ddm = re.sub(".png$", ".pickle", self.ddm[self.fextr]) #get name of pickle file for ddm. Not elegant
                 try:
-                    fn_ddm = get_name(self.ddm[self.fextr])+".pickle"
+                    fn_ddm = re.sub(".png$", ".pickle", self.ddm[self.fextr]) #get name of pickle file for ddm. Not elegant
+                    #fn_ddm = get_name(self.ddm[self.fextr])+".pickle"
                     if os.path.isfile(fn_ddm):
                         self.addPlot(fn_ddm)
                     else:
                         self.addImg(self.ddm[self.fextr])
                 except AttributeError:
+                    pass
+                except TypeError:
                     pass
                     
                 if not self.coot_button.IsShown():
@@ -1045,8 +1047,12 @@ class TabOccResults(ScrolledPanel):
                     scale = np.abs(mn_temp)
         else:
             scale = scale
-        
-        self.figure = Figure(figsize=(10*n_rows, 10*n_cols), tight_layout=True)
+            
+        if n_rows == n_cols == 1:
+            self.figure = Figure(figsize=(10, 10), tight_layout=True)
+        else:
+            self.figure = Figure(figsize=(10*n_rows, 5*n_cols), tight_layout=True)
+        #self.figure = Figure(figsize=(10,5), tight_layout=True)
         axs = self.figure.subplots(n_rows, n_cols, squeeze=False)
         
         #fig, axs = plt.subplots(n_rows, n_cols, figsize=(10*n_rows, 10*n_cols), squeeze=False)#, constrained_layout=True)

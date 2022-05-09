@@ -265,6 +265,7 @@ eof' %(mtz_out, ccp4_map_name))
             script_dm = self.write_density_modification_script(mtz_out, mtz_out_dm, log_file)
             print('Running density modification, output written to %s. Please wait...'%(log_file))
             os.system("./%s" %(script_dm))
+            return mtz_out, pdb_out, mtz_out_dm
         else:
             print("no density modification")
             mtz_out_dm = mtz_out
