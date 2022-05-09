@@ -24,16 +24,20 @@ from matplotlib.backends.backend_wxagg import (
 )
 from matplotlib.figure import Figure
 import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 import numpy as np
 import wx
-import os
+import os, re
 from wx.lib.scrolledpanel import ScrolledPanel
 from wxtbx import metallicbutton
 from wx.lib.pubsub import pub
 import pickle
 import glob
-
+import math
+import sys
+sys.path.append("..")
+from Fextr_utils import get_name
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -293,7 +297,7 @@ class TabMainImg(ScrolledPanel):
         with open(pickle_file, 'rb') as stats_file:
             bin_res_cent_lst, k_av_lst, k_max_lst, k_min_lst = pickle.load(stats_file)
 
-        self.figure = Figure(figsize=(10, 5))
+        self.figure = Figure(figsize=(10, 5), tight_layout=True)
         ax1 = self.figure.add_subplot(111)
         ax1.set_xlabel('Resolution (A)')
         ax1.set_ylabel('Average k-weight in resolution bin')
@@ -311,7 +315,7 @@ class TabMainImg(ScrolledPanel):
 
         ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.80, -0.05, 0.45, 0.5), fontsize='small',
                    framealpha=0.5)
-        self.figure.tight_layout()
+        #self.figure.tight_layout()
         ax1.set_title('Average k for high resolution reflections', fontsize='medium', fontweight="bold")
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
@@ -860,7 +864,13 @@ class TabOccResults(ScrolledPanel):
         if self.finished:
             self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[self.fextr])#    self.OccChoice.FindString(s)
             if float(self.occ) == float(self.best_occ[self.fextr]):
-                self.addImg(self.ddm[self.fextr])
+                #fn_ddm = re.sub(".png$", ".pickle", self.ddm[self.fextr]) #get name of pickle file for ddm. Not elegant 
+                fn_ddm = get_name(self.ddm[self.fextr])+".pickle"
+                if os.path.isfile(fn_ddm):
+                    self.addPlot(fn_ddm)
+                else:
+                    self.addImg(self.ddm[self.fextr])
+                    
                 if not self.coot_button.IsShown():
                     self.occNfextrSizer.Show(self.coot_button)
             else:
@@ -965,6 +975,134 @@ class TabOccResults(ScrolledPanel):
         self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
+    
+    def make_colormap(self,seq):
+        """Return a LinearSegmentedColormap
+        seq: a sequence of floats and RGB-tuples. The floats should be increasing
+        and in the interval (0,1).
+        """
+        seq = [(None,) * 3, 0.0] + list(seq) + [1.0, (None,) * 3]
+        cdict = {'red': [], 'green': [], 'blue': []}
+        for i, item in enumerate(seq):
+            if isinstance(item, float):
+                r1, g1, b1 = seq[i - 1]
+                r2, g2, b2 = seq[i + 1]
+                cdict['red'].append([item, r1, r2])
+                cdict['green'].append([item, g1, g2])
+                cdict['blue'].append([item, b1, b2])
+        return mcolors.LinearSegmentedColormap('CustomMap', cdict)
+
+
+    def plot_ddm(self, pickle_file, scale = None):
+        """
+        For plotting the ddm.
+        This plot should be prepared for each of the Fextr types but only with the model from the best estimated occupancy and should calculated only at the end
+        The input pickle contains information on the chain id, ddm_residue and seq_info_unique
+        The output filename should be the same as of the pickle file
+        """
+        
+        if os.path.isfile(pickle_file) == False:
+            return
+
+        with open(pickle_file,'rb') as stats_file:
+            while True:
+                try:
+                    stats = np.array(pickle.load(stats_file))
+                    try:
+                        alldata = np.vstack([alldata,stats[np.newaxis,...]])
+                    except NameError:
+                        alldata =stats[np.newaxis,...]
+                except EOFError:
+                    break
+        
+        chains = np.unique(alldata[:,0])
+        num_chains = chains.shape[0]
+            
+        if num_chains == 1:
+            n_cols = 1
+        else:
+            n_cols = 2
+            
+        n_rows_prot = int(math.ceil(num_chains/n_cols))
+
+        n_rows = n_rows_prot
+
+        outname = get_name(pickle_file)
+        outname_pdf = '%s.pdf'%(outname)
+        outname_png = '%s.png'%(outname)
+        
+        if scale == None:
+            scale = 0
+            for ddm_residue in alldata[:,1]:
+                mx_temp = np.max(ddm_residue)
+                mn_temp = np.min(ddm_residue)
+                if mx_temp > scale:
+                    scale = mx_temp
+                if np.abs(mn_temp) > scale:
+                    scale = np.abs(mn_temp)
+        else:
+            scale = scale
+        
+        self.figure = Figure(figsize=(10*n_rows, 10*n_cols), tight_layout=True)
+        axs = self.figure.subplots(n_rows, n_cols, squeeze=False)
+        
+        #fig, axs = plt.subplots(n_rows, n_cols, figsize=(10*n_rows, 10*n_cols), squeeze=False)#, constrained_layout=True)
+        c = mcolors.ColorConverter().to_rgb
+        rvb = self.make_colormap([c('blue'), c('white'), 0.40, c('white'),  0.60, c('white'), c('red')])
+
+        col = -1
+        row = -1
+        old_chain_id = ''
+        for chain in alldata:
+            ID, ddm_residue,seq_info_unique = chain
+            if ID != old_chain_id:
+                if col == 0:
+                    col = 1
+                else:
+                    col = 0
+                    row +=1
+                            
+            mask = np.zeros_like(ddm_residue, dtype=np.bool)
+            mask[np.triu_indices_from(mask)] = True
+            FINAL2 = np.ma.array(ddm_residue, mask=mask)
+            
+            tick_jump = int(np.round(len(seq_info_unique)/15,0)) #we want to add 15 seq_ticks
+            seq_ticks = seq_info_unique[0::tick_jump] #residues for which we will show tick positions
+            tick_pos = list(map(lambda x: x*tick_jump, range(len(seq_ticks))))
+            
+                
+            img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
+            
+            axs[row, col].set_xticks(tick_pos)
+            axs[row, col].set_xticklabels(seq_ticks)
+            
+            for tick in axs[row, col].get_xticklabels():
+                tick.set_rotation(90)
+            #self.figure.setp(axs[row, col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
+            
+            axs[row, col].set_yticks(tick_pos)
+            axs[row, col].set_yticklabels(seq_ticks)
+
+            axs[row, col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+            axs[row, col].set_xlabel('Residues')
+            axs[row, col].set_ylabel('Residues')
+            
+            axs[row, col].spines['top'].set_visible(False)
+            axs[row, col].spines['right'].set_visible(False)
+            
+            self.figure.colorbar(img, ax=axs[row, col], fraction=0.046, pad=0.04)
+                
+            old_chain_id = ID
+
+            
+        #fig.tight_layout()
+        #plt.savefig(outname_pdf, dpi=300, transparent=True)
+        #plt.savefig(outname_png, dpi=300)
+        #plt.close()
+        
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
 
     def addEmptyPlot(self):
         self.figure = Figure(figsize=(10, 5))
@@ -995,6 +1133,8 @@ class TabOccResults(ScrolledPanel):
         _, pickle_name = os.path.split(pickle_file)
         if 'negative_reflections'in pickle_name:
             canvas = self.plot_negativereflections(pickle_file)
+        elif pickle_name.startswith("ddm_"):
+            canvas = self.plot_ddm(pickle_file)
         else:
             canvas = self.plot_FsigF(pickle_file)
         self.ImgSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)
