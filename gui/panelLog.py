@@ -331,11 +331,11 @@ class TabMainImg(ScrolledPanel):
         ax1.set_ylabel('Riso')
         ax1.yaxis.label.set_color('red')
         ax1.plot(bin_res_cent_lst[:], r_work_lst[:], marker='.', color='red', linewidth=2,
-                 label='Riso; overall %.4f' % (r_work_lst[0]))
+                 label='Riso; overall %.4f' % (r_work))
 
         ax2 = ax1.twinx()
         ax2.plot(bin_res_cent_lst[:], cc_work_lst[:], marker='.', color='green', linewidth=2,
-                     label='CCiso; overall %.4f' % (cc_work_lst[0]))
+                     label='CCiso; overall %.4f' % (cc_work))
         ax2.set_ylabel('CCiso')
         ax2.yaxis.label.set_color('green')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
@@ -364,7 +364,7 @@ class TabMainImg(ScrolledPanel):
                 q_av_lst = None
 
 
-        self.figure = Figure(figsize=(10, 5))
+        self.figure = Figure(figsize=(10, 5), tight_layout=True)
         ax1 = self.figure.add_subplot(111)
         ax1.set_xlabel('Resolution (A)')
         ax1.set_ylabel('Average q in resolution bin')
@@ -1192,7 +1192,6 @@ class TabOccResults(ScrolledPanel):
             self.best_occ[fextr] = occ
             self.coot_scripts[fextr] = coot
             self.ddm[fextr] = ddm
-            print(occ, coot, ddm)
         fextr = self.FextrChoice.GetStringSelection()
         self.occNfextrSizer.Show(self.best_occ_Static)
         self.best_occ_Static.SetLabel("best estimation @ %s"%self.best_occ[fextr])
