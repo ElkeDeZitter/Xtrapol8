@@ -944,7 +944,7 @@ class MainFrame(wx.Frame):
         missing = self.notebook.Configure.tabExt.missChoice.GetStringSelection()
         if missing == 'fill': missing = 'and_fill'
         if neg == '--':
-            if missing == 'fill':
+            if missing == 'and_fill':
                 neg = 'fill'
                 missing = 'missing'
             else:

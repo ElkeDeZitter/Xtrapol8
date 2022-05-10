@@ -180,6 +180,7 @@ class TabExtrapolation(ScrolledPanel):
 
 
         self.ExpertMode = wx.Button(self, id=wx.ID_ANY,label="Expert Mode ?")
+        self.expert = False
         
         
         MapExplorer = wx.StaticBox(self, 1, "Map Explorer", size=(800,250))
@@ -297,12 +298,22 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Show(self.MES)
             self.FinalSizer.Show(self.NM)
             self.ExpertMode.SetLabel("Expert Mode")
-            self.FinalSizer.Layout()
+            #self.FinalSizer.Layout()
+            self.expert = True
         else:
             self.FinalSizer.Hide(self.MES)
             self.FinalSizer.Hide(self.NM)
             self.ExpertMode.SetLabel("Expert Mode ?")
+            self.expert = False
         self.FinalSizer.Layout()
+        
+        idx = self.X8Modes.GetSelection()
+        if idx == 2:
+            self.onCalmNCurious()
+        elif idx == 1:
+            self.onFastNFurious()
+        elif idx == 0:
+            self.onFoFo()
 
     def onRadioBox(self, evt):
         idx = self.X8Modes.GetSelection()
@@ -324,6 +335,15 @@ class TabExtrapolation(ScrolledPanel):
             checkbox.Enable()
         for btn in self.selectButtons:
             btn.Enable()
+        if self.expert == True:
+            if not self.FinalSizer.IsShown(self.NM):
+                self.FinalSizer.Show(self.NM)
+                self.FinalSizer.Layout()
+        else:
+            self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Layout()
+        self.negChoice.Enable()
+        self.missChoice.Enable()
 
     def onFastNFurious(self):
         if not self.FinalSizer.IsShown(self.ExtSF):
@@ -338,6 +358,17 @@ class TabExtrapolation(ScrolledPanel):
         for btn in self.selectButtons:
             btn.Disable()
         self.qfextr.SetValue(True)
+        if self.expert == True:
+            if not self.FinalSizer.IsShown(self.NM):
+                self.FinalSizer.Show(self.NM)
+                self.FinalSizer.Layout()
+        else:
+            self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Layout()
+        self.negChoice.SetStringSelection("truncate")
+        self.negChoice.Disable()
+        self.missChoice.SetStringSelection("fill")
+        self.missChoice.Disable()
 
     def onFoFo(self):
         if self.FinalSizer.IsShown(self.ExtSF):
@@ -345,6 +376,9 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Layout()
         self.FoChoice.Enable()
         self.updateKScale(None)
+        if self.FinalSizer.IsShown(self.NM):
+            self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Layout()
 
     def updateKScale(self, evt):
         if self.FoChoice.GetStringSelection() == 'kfofo':
