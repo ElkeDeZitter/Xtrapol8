@@ -698,8 +698,20 @@ class MainFrame(wx.Frame):
 
         tabRef.jelly_body_refinement.SetStringSelection(str(user_params.refinement.refmac_keywords.restraints.jelly_body_refinement))
         tabRef.jbs_TextCtrl.SetValue(str(user_params.refinement.refmac_keywords.restraints.jelly_body_sigma))
-        tabRef.jbar_TextCtrl.SetValue(str(user_params.refinement.refmac_keywords.restraints.jelly_body_additional_restraints))
-        tabRef.extr_TextCtrl.SetValue(str(user_params.refinement.refmac_keywords.restraints.external_restraints))
+
+        print(len(user_params.refinement.refmac_keywords.restraints.jelly_body_additional_restraints))
+        jb_add_restraints_lst = user_params.refinement.refmac_keywords.restraints.jelly_body_additional_restraints
+        if len(jb_add_restraints_lst) == 0:
+            jb_add_restraints = "None"
+        else:
+            jb_add_restraints = ' '.join(str(jb_add_restraints_lst))
+        tabRef.jbar_TextCtrl.SetValue(jb_add_restraints)
+        external_res_lst = user_params.refinement.refmac_keywords.restraints.external_restraints
+        if len(external_res_lst) == 0:
+            external_res = "None"
+        else:
+            external_res = ' '.join(str(external_res_lst))
+        tabRef.extr_TextCtrl.SetValue(external_res)
         tabRef.REFType.SetStringSelection(user_params.refinement.refmac_keywords.refine.type)
         tabRef.TLS.SetStringSelection(str(user_params.refinement.refmac_keywords.refine.TLS))
         tabRef.tls_cycles.SetValue(str(user_params.refinement.refmac_keywords.refine.TLS_cycles))
