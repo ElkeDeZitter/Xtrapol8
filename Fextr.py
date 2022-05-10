@@ -1949,9 +1949,10 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    print("Xtrapol8 -- version 0.9.5 -- run date: %s" %(now), file=log)
+    version = "0.9.9"
+    print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
     print('-----------------------------------------')
-    print("Xtrapol8 -- version 0.9.5 -- run date: %s" %(now))
+    print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
