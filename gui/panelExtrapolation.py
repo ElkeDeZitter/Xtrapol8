@@ -344,6 +344,7 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Layout()
         self.negChoice.Enable()
         self.missChoice.Enable()
+        self.DistanceAnalysis.Enable()
 
     def onFastNFurious(self):
         if not self.FinalSizer.IsShown(self.ExtSF):
@@ -369,6 +370,10 @@ class TabExtrapolation(ScrolledPanel):
         self.negChoice.Disable()
         self.missChoice.SetStringSelection("fill")
         self.missChoice.Disable()
+        #if not self.DistanceAnalysis.IsShown():
+            #self.DistanceAnalysis.Show()
+        self.DistanceAnalysis.SetValue(False)
+        self.DistanceAnalysis.Disable()
 
     def onFoFo(self):
         if self.FinalSizer.IsShown(self.ExtSF):
@@ -379,6 +384,9 @@ class TabExtrapolation(ScrolledPanel):
         if self.FinalSizer.IsShown(self.NM):
             self.FinalSizer.Hide(self.NM)
             self.FinalSizer.Layout()
+        self.DistanceAnalysis.SetValue(False)
+        self.DistanceAnalysis.Disable()
+        #self.DistanceAnalysis.Hide()
 
     def updateKScale(self, evt):
         if self.FoChoice.GetStringSelection() == 'kfofo':
