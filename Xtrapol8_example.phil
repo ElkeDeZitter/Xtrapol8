@@ -31,8 +31,8 @@ f_and_maps {
                          zero_and_fill zero_no_fill
 }
 map_explorer {
-  threshold = 3.5
-  peak = 4.0
+  peak_integration_floor = 3.5
+  peak_detection_threshold = 4.0
   radius = None
   z_score = 2.0
   use_occupancy_from_distance_analysis = False

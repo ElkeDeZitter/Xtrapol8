@@ -212,7 +212,7 @@ map_explorer{
         .expert_level = 0
     peak_detection_threshold = 4.0
         .type = float
-        .help = Peak detection threshold (sigma). Only peaks with a maximum equal or above this value will be integrated.
+        .help = Peak detection threshold (sigma). Only peaks with an absolute value equal or above this value will be integrated.
     radius = None
         .type = float
         .help = Maximum radius (A) to allocate a density blob to a protein atom in map explorer. Resolution will be used if not specified.
