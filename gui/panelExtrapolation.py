@@ -317,7 +317,7 @@ class TabExtrapolation(ScrolledPanel):
 
     def onRadioBox(self, evt):
         idx = self.X8Modes.GetSelection()
-        pub.sendMessage("X8Mode", mode=(self.currentX8Mode, idx))
+        #pub.sendMessage("X8Mode", mode=(self.currentX8Mode, idx))
         if idx == 2:
             self.onCalmNCurious()
         elif idx == 1:

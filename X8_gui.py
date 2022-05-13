@@ -255,7 +255,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
         self.Bind(wx.EVT_TIMER, self.updateFextr, self.timerFextr)
         pub.subscribe(self.updateFextr, "updateFextr")
-        pub.subscribe(self.X8ModeChanged, "X8Mode")
+        #pub.subscribe(self.X8ModeChanged, "X8Mode")
 
         # These variables will be used by the timer callbacks to update the gui accordingly
         self.pngs = ["Riso_CCiso.pickle",
@@ -287,22 +287,22 @@ class MainFrame(wx.Frame):
             #    pass
 
 
-    def X8ModeChanged(self ,mode):
-        old, new = mode
-        modes = ["FoFo", "FNF", "CNC"]
-        new_mode = modes[new]
-        # Saving phil for future restauration
-        input_phil = self.extract_phil()
-        modified_phil = master_phil.format(python_object=input_phil)
-        modified_phil.show(out=open(".%s.phil"%old, "w"))
+    #def X8ModeChanged(self ,mode):
+        #old, new = mode
+        #modes = ["FoFo", "FNF", "CNC"]
+        #new_mode = modes[new]
+        ## Saving phil for future restauration
+        #input_phil = self.extract_phil()
+        #modified_phil = master_phil.format(python_object=input_phil)
+        #modified_phil.show(out=open(".%s.phil"%old, "w"))
 
-        # Restauration if possible
-        self.notebook.Configure.tabExt.currentX8Mode = new_mode
-        phil_file = ".%s.phil" % new_mode
-        if os.path.exists(phil_file):
-            user_params = self.extract_debug_phil(open(phil_file).read())
-            self.SetWidgetsTabExt(user_params,SetX8=False)
-            #self
+        ## Restauration if possible
+        #self.notebook.Configure.tabExt.currentX8Mode = new_mode
+        #phil_file = ".%s.phil" % new_mode
+        #if os.path.exists(phil_file):
+            #user_params = self.extract_debug_phil(open(phil_file).read())
+            #self.SetWidgetsTabExt(user_params,SetX8=False)
+            ##self
 
     def update(self, event):
         """
