@@ -564,7 +564,8 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
                 r_work = float([line for line in log if  'R factor' in line][-1].split()[-1])
                 r_free = float([line for line in log if  'R free' in line][-1].split()[-1])
             else: #refinement performed in phenix
-                r_line = log[-1]
+                #r_line = log[-1]
+                r_line = [lne for lne in log if lne.lstrip().startswith("Final R-work")][0]
                 r_work,r_free = re.findall('Final R-work = (.+?), R-free = (.+?)\\n',r_line)[0]
             r_work_lst.append(float(r_work))
             r_free_lst.append(float(r_free))

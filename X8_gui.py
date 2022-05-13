@@ -71,7 +71,7 @@ class NotebookConfigure(AuiNotebook):
 
         # Create and add the second tab
         self.tabExt = panelExtrapolation.TabExtrapolation(self)
-        self.AddPage(self.tabExt, "Extrapolation")
+        self.AddPage(self.tabExt, "FoFo / Extrapolation")
 
         # Create and add the third tab
         self.tabRefine = panelRefinement.TabRefinement(self)
@@ -255,7 +255,7 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
         self.Bind(wx.EVT_TIMER, self.updateFextr, self.timerFextr)
         pub.subscribe(self.updateFextr, "updateFextr")
-        pub.subscribe(self.X8ModeChanged, "X8Mode")
+        #pub.subscribe(self.X8ModeChanged, "X8Mode")
 
         # These variables will be used by the timer callbacks to update the gui accordingly
         self.pngs = ["Riso_CCiso.pickle",
@@ -287,22 +287,22 @@ class MainFrame(wx.Frame):
             #    pass
 
 
-    def X8ModeChanged(self ,mode):
-        old, new = mode
-        modes = ["FoFo", "FNF", "CNC"]
-        new_mode = modes[new]
-        # Saving phil for future restauration
-        input_phil = self.extract_phil()
-        modified_phil = master_phil.format(python_object=input_phil)
-        modified_phil.show(out=open(".%s.phil"%old, "w"))
+    #def X8ModeChanged(self ,mode):
+        #old, new = mode
+        #modes = ["FoFo", "FNF", "CNC"]
+        #new_mode = modes[new]
+        ## Saving phil for future restauration
+        #input_phil = self.extract_phil()
+        #modified_phil = master_phil.format(python_object=input_phil)
+        #modified_phil.show(out=open(".%s.phil"%old, "w"))
 
-        # Restauration if possible
-        self.notebook.Configure.tabExt.currentX8Mode = new_mode
-        phil_file = ".%s.phil" % new_mode
-        if os.path.exists(phil_file):
-            user_params = self.extract_debug_phil(open(phil_file).read())
-            self.SetWidgetsTabExt(user_params,SetX8=False)
-            #self
+        ## Restauration if possible
+        #self.notebook.Configure.tabExt.currentX8Mode = new_mode
+        #phil_file = ".%s.phil" % new_mode
+        #if os.path.exists(phil_file):
+            #user_params = self.extract_debug_phil(open(phil_file).read())
+            #self.SetWidgetsTabExt(user_params,SetX8=False)
+            ##self
 
     def update(self, event):
         """
@@ -648,8 +648,8 @@ class MainFrame(wx.Frame):
         else:
             tabExt.missChoice.SetSelection(0)
 
-        tabExt.ThreshTextCtrl.SetValue(str(user_params.map_explorer.threshold))
-        tabExt.PeakTextCtrl.SetValue(str(user_params.map_explorer.peak))
+        tabExt.peak_detection_thresholdTextCtrl.SetValue(str(user_params.map_explorer.peak_detection_threshold))
+        tabExt.peak_integration_floorTextCtrl.SetValue(str(user_params.map_explorer.peak_integration_floor))
         tabExt.RadiusTextCtrl.SetValue(str(user_params.map_explorer.radius))
         tabExt.ZscoreTextCtrl.SetValue(str(user_params.map_explorer.z_score))
         tabExt.DistanceAnalysis.SetValue(user_params.map_explorer.use_occupancy_from_distance_analysis)
@@ -941,8 +941,8 @@ class MainFrame(wx.Frame):
         ##############################
         ### Map explorer - Ext_tab ###
         ##############################
-        tobeparsed += "map_explorer.threshold = %s\n" % self.get_txtctrl_values(tabExt.ThreshTextCtrl) + \
-                      "map_explorer.peak = %s\n" % self.get_txtctrl_values(tabExt.PeakTextCtrl) + \
+        tobeparsed += "map_explorer.peak_integration_floor = %s\n" % self.get_txtctrl_values(tabExt.peak_integration_floorTextCtrl) + \
+                      "map_explorer.peak_detection_threshold = %s\n" % self.get_txtctrl_values(tabExt.peak_detection_thresholdTextCtrl) + \
                       "map_explorer.radius = %s\n" % self.get_txtctrl_values(tabExt.RadiusTextCtrl) + \
                       "map_explorer.z_score = %s\n" % self.get_txtctrl_values(tabExt.ZscoreTextCtrl) + \
                       "map_explorer.use_occupancy_from_distance_analysis = %s\n" % tabExt.DistanceAnalysis.GetValue()
@@ -956,7 +956,7 @@ class MainFrame(wx.Frame):
         missing = self.notebook.Configure.tabExt.missChoice.GetStringSelection()
         if missing == 'fill': missing = 'and_fill'
         if neg == '--':
-            if missing == 'fill':
+            if missing == 'and_fill':
                 neg = 'fill'
                 missing = 'missing'
             else:

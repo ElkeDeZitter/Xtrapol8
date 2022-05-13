@@ -21,7 +21,6 @@ import sys
 import os
 import numpy as np
 import iotbx.xplor.map
-import argparse
 from scipy import ndimage
 from iotbx.pdb import hierarchy
 
@@ -279,6 +278,10 @@ def do_blob_search(data, threshold, peak, map_param, coord_pdb, radius, info):
         else: return all_atoms
     
 def check_inputs(map, pdb, radius, threshold, peak, log):
+    """
+    peak: peak_detection_threshold (sigma)
+    hreshold: peak_integration_floor (sigma)
+    """
 
     if pdb is not None:
         #pdb = pdb[0]
@@ -336,46 +339,15 @@ def print_results(blobs, out, residlst):
         print("")
         out.write("\n")
 
-#Modified by Elke to be called from Fextr.py and get rid of argparser:
-#if __name__ == '__main__':
-def map_explorer(map, pdb, radius, threshold, peak, maptype='', log=sys.stdout):
+def map_explorer(map, pdb, radius, peak_integration_floor, peak_detection_threshold, maptype='', log=sys.stdout):
     if len(maptype)>0:
         maptype = maptype+'_'
     outname = "%speakintegration.txt" %(maptype)
     out = open(outname, 'w')
     residlst = open("%sresidlist.txt" %(maptype),'w')
-    args  = check_inputs(map, pdb, radius, threshold, peak, log=log)
+    args  = check_inputs(map, pdb, radius, peak_integration_floor, peak_detection_threshold, log=log)
     blobs = blob_detection(out, residlst, *args)
     out.close()
     residlst.close()
     return outname
     
-    #parser = ArgumentParser()
-    #args= check_inputs(parser)
-    #results = np.zeros((10,10))    
-    #i = 20
-    #j = 10
-    #radius = 1.5
-    #peak = 4.0
-    #integration = 3.0
-    #pdb = 'INT_int%i_on%i.pdb'%(i,j)
-    #coord, res, info = get_coord_via_PyMOL(pdb)
-    #map = 'LCLS_399_all_int%i_on%i_Fcalc.map'%(i,j)
-    #xplor = iotbx.xplor.map.reader(file_name=map)
-    #args = (xplor, integration, peak, coord, radius, info)
-    #blobs = blob_detection(*args)
-    #pos, neg = blobs
-    #pos1 = pos[pos[:,0] == 'PIA']
-    #neg1 = neg[neg[:,0] == 'PIA']
-    #for alt in ['A', 'B', 'C', 'D']:
-    #    print 'Alt %s'%alt
-    #    print pos1[pos1[:,3] == alt][:,8].astype(np.float32).sum()    
-    #    print neg1[neg1[:,3] == alt][:,8].astype(np.float32).sum()
-    #if pos1.size == 0: print 'Sum = 0'
-    #else:
-    #s = 0.
-    #s += pos[pos[:,0] == 'PIA'][:,8].astype(np.float32).sum()
-    #s += np.abs(neg[neg[:,0] == 'PIA'][:,8].astype(np.float32).sum())
-    #print '%5i %5i %8.2f'%(i,j,s)
-    #results[i/5,j/5] = s
-    #np.save('3ps_FoFc_LI56.npy',results)        

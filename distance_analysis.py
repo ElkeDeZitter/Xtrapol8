@@ -703,7 +703,7 @@ class Distance_analysis(object):
             ax0.plot(xx, sigmoid_fit(xx,poptave[0],poptave[1],poptave[2]), 'b-', label='Fit of average distance')
 
         else:
-            poptave = p.array([0.,0.,0.])
+            poptave = np.array([0.,0.,0.])
             
         #Plot the average of all fits
         ##exponential fitting:

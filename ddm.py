@@ -26,6 +26,7 @@ import matplotlib.colors as mcolors
 from Fextr_utils import get_name
 from iotbx.pdb import hierarchy
 from cctbx.array_family import flex
+import pickle
 
 class Difference_distance_analysis(object):
     """

@@ -46,7 +46,7 @@ class TabExtrapolation(ScrolledPanel):
         #####################
         ###   X8 Modes    ###
         #####################
-        self.X8Modes = wx.RadioBox(self, 1, "X8 Modes", size=(800, -1),choices=["FoFo only", "Fast N Furious", "Calm N Curious" ])
+        self.X8Modes = wx.RadioBox(self, 1, "Xtrapol8 Modes", size=(800, -1),choices=["FoFo only ", "Fast and Furious ", "Calm and Curious " ])
         self.X8Modes.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
         self.X8Modes.SetSelection(2)
         self.currentX8Mode = "CNC"
@@ -102,7 +102,7 @@ class TabExtrapolation(ScrolledPanel):
         ########################
         ###  Maps N Scaling  ###
         ########################
-        Maps =  wx.StaticBox(self, 1, "Maps And Scaling", size=(800, 200))
+        Maps =  wx.StaticBox(self, 1, "Maps and Scaling", size=(800, 200))
 
         FoTxt = wx.StaticText(self, wx.ID_ANY, "Type of FoFo Map : ")
         FoTxt.SetFont(defont)
@@ -138,7 +138,7 @@ class TabExtrapolation(ScrolledPanel):
         ##########################
 
 
-        self.ExtSF_box = wx.StaticBox(self, 1, "Extrapolated structure factors", size=(800, 200))
+        self.ExtSF_box = wx.StaticBox(self, 1, "Extrapolated structure factor amplitudes", size=(800, 200))
         self.ExtSF = wx.StaticBoxSizer(self.ExtSF_box, wx.VERTICAL)
 
         fgs = wx.FlexGridSizer(3, 5, 10, 10)
@@ -180,15 +180,16 @@ class TabExtrapolation(ScrolledPanel):
 
 
         self.ExpertMode = wx.Button(self, id=wx.ID_ANY,label="Expert Mode ?")
+        self.expert = False
         
         
         MapExplorer = wx.StaticBox(self, 1, "Map Explorer", size=(800,250))
 
         self.MES = wx.StaticBoxSizer(MapExplorer,wx.VERTICAL)
-        peak = wx.StaticText(self, wx.ID_ANY, "Peak (sigmas)", size=(90, 20))
-        peak.SetFont(defont)
-        threshold = wx.StaticText(self, wx.ID_ANY, "Threshold (sigmas)", size=(120, 20))
-        threshold.SetFont(defont)
+        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma)", size=(180, 20))
+        peak_detection_threshold.SetFont(defont)
+        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma)", size=(180, 20))
+        peak_integration_floor.SetFont(defont)
         radius = wx.StaticText(self, wx.ID_ANY, "Radius (A)", size=(90, -1))
         radius.SetFont(defont)
         zscore = wx.StaticText(self, wx.ID_ANY, "z-score", size=(60, -1))
@@ -197,9 +198,9 @@ class TabExtrapolation(ScrolledPanel):
         blank2 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
 
         width_TextCtrl = 100
-        self.PeakTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "4.0", style=wx.TE_PROCESS_ENTER,
+        self.peak_detection_thresholdTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "4.0", style=wx.TE_PROCESS_ENTER,
                                     size=(width_TextCtrl, 20))
-        self.ThreshTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3.5", style=wx.TE_PROCESS_ENTER,
+        self.peak_integration_floorTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3.5", style=wx.TE_PROCESS_ENTER,
                                    size=(width_TextCtrl, 20))
 
         ### Should be changed by highest resolution
@@ -209,8 +210,7 @@ class TabExtrapolation(ScrolledPanel):
                                      size=(width_TextCtrl, 20))
 
         MES_fgs = wx.FlexGridSizer(rows=2, cols=5, vgap=10, hgap=10)
-        MES_fgs.AddMany([peak, self.PeakTextCtrl, blank, threshold, self.ThreshTextCtrl,
-                         radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl])
+        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl])
         self.MES.AddSpacer(5)
         self.MES.Add(MES_fgs)
         self.MES.AddSpacer(10)
@@ -223,7 +223,7 @@ class TabExtrapolation(ScrolledPanel):
         neg.SetFont(defont)
         missing = wx.StaticText(self, wx.ID_ANY, "Missing", size=(60, -1))
         missing.SetFont(defont)
-        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "keep", "reject", "zero", "foff", "fcalc", "--"])
+        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "--"])
         self.negChoice.SetFont(defont)
         self.negChoice.SetSelection(0)
         self.missChoice = wx.Choice(self, wx.ID_ANY, choices=["fill", "no_fill"])
@@ -298,16 +298,26 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Show(self.MES)
             self.FinalSizer.Show(self.NM)
             self.ExpertMode.SetLabel("Expert Mode")
-            self.FinalSizer.Layout()
+            #self.FinalSizer.Layout()
+            self.expert = True
         else:
             self.FinalSizer.Hide(self.MES)
             self.FinalSizer.Hide(self.NM)
             self.ExpertMode.SetLabel("Expert Mode ?")
+            self.expert = False
         self.FinalSizer.Layout()
+        
+        idx = self.X8Modes.GetSelection()
+        if idx == 2:
+            self.onCalmNCurious()
+        elif idx == 1:
+            self.onFastNFurious()
+        elif idx == 0:
+            self.onFoFo()
 
     def onRadioBox(self, evt):
         idx = self.X8Modes.GetSelection()
-        pub.sendMessage("X8Mode", mode=(self.currentX8Mode, idx))
+        #pub.sendMessage("X8Mode", mode=(self.currentX8Mode, idx))
         if idx == 2:
             self.onCalmNCurious()
         elif idx == 1:
@@ -325,6 +335,16 @@ class TabExtrapolation(ScrolledPanel):
             checkbox.Enable()
         for btn in self.selectButtons:
             btn.Enable()
+        if self.expert == True:
+            if not self.FinalSizer.IsShown(self.NM):
+                self.FinalSizer.Show(self.NM)
+                self.FinalSizer.Layout()
+        else:
+            self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Layout()
+        self.negChoice.Enable()
+        self.missChoice.Enable()
+        self.DistanceAnalysis.Enable()
 
     def onFastNFurious(self):
         if not self.FinalSizer.IsShown(self.ExtSF):
@@ -339,6 +359,21 @@ class TabExtrapolation(ScrolledPanel):
         for btn in self.selectButtons:
             btn.Disable()
         self.qfextr.SetValue(True)
+        if self.expert == True:
+            if not self.FinalSizer.IsShown(self.NM):
+                self.FinalSizer.Show(self.NM)
+                self.FinalSizer.Layout()
+        else:
+            self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Layout()
+        self.negChoice.SetStringSelection("truncate")
+        self.negChoice.Disable()
+        self.missChoice.SetStringSelection("fill")
+        self.missChoice.Disable()
+        #if not self.DistanceAnalysis.IsShown():
+            #self.DistanceAnalysis.Show()
+        self.DistanceAnalysis.SetValue(False)
+        self.DistanceAnalysis.Disable()
 
     def onFoFo(self):
         if self.FinalSizer.IsShown(self.ExtSF):
@@ -346,6 +381,12 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Layout()
         self.FoChoice.Enable()
         self.updateKScale(None)
+        if self.FinalSizer.IsShown(self.NM):
+            self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Layout()
+        self.DistanceAnalysis.SetValue(False)
+        self.DistanceAnalysis.Disable()
+        #self.DistanceAnalysis.Hide()
 
     def updateKScale(self, evt):
         if self.FoChoice.GetStringSelection() == 'kfofo':
