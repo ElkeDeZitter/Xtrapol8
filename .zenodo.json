@@ -1,0 +1,29 @@
+{
+    "description": "Xtrapol8", 
+    "license": "MIT license", 
+    "title": "ElkeDeZitter/Xtrapol8: v0.9.5-beta", 
+    "version": "v0.9.5-beta", 
+    "upload_type": "software", 
+    "publication_date": "2022-05-18", 
+    "creators": [
+        {
+            "name": "ElkeDeZitter"
+        }, 
+        {
+            "name": "ChillNPC"
+        }
+    ], 
+    "access_right": "open", 
+    "related_identifiers": [
+        {
+            "scheme": "url", 
+            "identifier": "https://github.com/ElkeDeZitter/Xtrapol8/tree/v0.9.5-beta", 
+            "relation": "isSupplementTo"
+        }, 
+        {
+            "scheme": "doi", 
+            "identifier": "10.5281/zenodo.6560831", 
+            "relation": "isVersionOf"
+        }
+    ]
+}

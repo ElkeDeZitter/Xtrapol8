@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "De Zitter"
+  given-names: "Elke"
+- family-names: "Coquelle"
+  given-names: "Nicolas"
+- family-names: "Oeser"
+  given-names: "Paula"
+- family-names: "Barends"
+  given-names: "Thomas RM"
+- family-names: "Colletier"
+  given-names: "Jacques-Philippe"
+title: "Xtrapol8"
+version:v0.9.5-beta
+doi: 10.5281/zenodo.6560832
+date-released: 2012-05-18
+url: "https://github.com/ElkeDeZitter/Xtrapol8"
