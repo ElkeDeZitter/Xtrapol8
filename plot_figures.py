@@ -35,7 +35,7 @@ def plot_Riso_CCiso(pickle_file='Riso_CCiso.pickle'):
     ax1.set_ylabel('Riso')
     ax1.yaxis.label.set_color('red')
     ax2 = ax1.twinx()
-    ax2.plot(bin_res_cent_lst[:], cc_work_lst[:], marker = '.', color = 'green', label = 'CCiso; overall %.4f' %(cc_work))
+    ax2.plot(bin_res_cent_lst[:], cc_work_lst[:], marker = '^', markersize = 5, color = 'green', label = 'CCiso; overall %.4f' %(cc_work))
     ax2.set_ylabel('CCiso')
     ax2.yaxis.label.set_color('green')
     lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
@@ -68,25 +68,25 @@ def plot_negativereflections(prefix):
     outname = '%s_negative_reflections' %(prefix)
     
     fig, (ax1, ax3) = plt.subplots(1,2, figsize=(10, 5))
-    ax1.plot(bin_res_cent_lst[:], neg_lst[:], linestyle = '-', label='# Neg. reflections',color = 'red')
+    ax1.plot(bin_res_cent_lst[:], neg_lst[:], marker = ".", label='# Neg. ESFAs',color = 'red')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylim(0, np.max(neg_lst))
     ax1.set_xlabel('Resolution (A)')
-    ax1.set_ylabel('Number of negative reflections in resolution bin')
+    ax1.set_ylabel('Absolute number of negative ESFAs')
     ax1.yaxis.label.set_color('red')
-    ax1.set_title("Negative reflections for high resolution bins",fontsize = 'medium',fontweight="bold")
+    ax1.set_title("Negative ESFAs for high resolution bins",fontsize = 'medium',fontweight="bold")
     ax2 = ax1.twinx()
-    ax2.plot(bin_res_cent_lst[:], neg_percent_lst[:], linestyle = '-', label='% Neg. reflections', color = 'blue')
+    ax2.plot(bin_res_cent_lst[:], neg_percent_lst[:],  marker = 's', markersize = 3, label='% Neg. ESFAs', color = 'blue')
     ax2.set_ylim(0,100)
-    ax2.set_ylabel('Negative reflections in resolution bin (%)')
+    ax2.set_ylabel('Negative ESFAs in resolution bin (%)')
     ax2.yaxis.label.set_color('blue')
     lines_labels_1 = [ax.get_legend_handles_labels() for ax in [fig.axes[0],fig.axes[2]]]
     lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
     ax1.legend(lines_1, labels_1, loc='lower right', bbox_to_anchor=(0.82, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     
     s = np.full((bin_res_cent_lst.shape[0],1), 90)
-    ax3.plot(bin_res_cent_lst[:], comp_lst[:],'-', label='Completeness', color = 'red')
-    ax3.plot(bin_res_cent_lst[:], comp_true_lst[:], '-', label='True completeness', color = 'blue')
+    ax3.plot(bin_res_cent_lst[:], comp_lst[:], marker = '.', label='Completeness', color = 'red')
+    ax3.plot(bin_res_cent_lst[:], comp_true_lst[:], marker = 's', markersize=3, label='True completeness', color = 'blue')
     ax3.plot(bin_res_cent_lst[:], s[:], linestyle = ':', label= '90 (%) Completeness', color = 'green')
     ax3.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax3.set_ylim(0,100)
@@ -127,12 +127,12 @@ def plot_FsigF(prefix):
     bin_res_cent_lst = np.asarray(bin_res_cent_lst)
     s = np.full((len(f_sigf_lst),1), 0.8)
     l = np.full((len(f_sigf_lst),1), 1.2)
-    ax1.plot(bin_res_cent_lst[:], f_sigf_lst[:], '-', label='<F/sig(F)>', color = 'red')
+    ax1.plot(bin_res_cent_lst[:], f_sigf_lst[:], marker = '.', label='<F/sig(F)>', color = 'red')
     ax1.plot(bin_res_cent_lst[:], s[:], linestyle = ':', label = '<F/sig(F)> = 0.8', color = 'blue') #(<I/sig(I)> = 2)
     ax1.plot(bin_res_cent_lst[:], l[:], linestyle = ':', label = '<F/sig(F)> = 1.2', color = 'green') #(<I/sig(I)> = 1.5)
     
-    ax1.plot(np.array([ids]), np.array([0.8]), 'bo', label = 'estimation: %.2f A' %(ids))
-    ax1.plot(np.array([idl]), np.array([1.2]), 'go', label = 'estimation: %.2f A' %(idl))
+    ax1.plot(np.array([ids]), np.array([0.8]), marker = 's', markersize=3, color='blue', label = 'estimation: %.2f A' %(ids))
+    ax1.plot(np.array([idl]), np.array([1.2]), marker = '^', markersize=5, color = 'green', label = 'estimation: %.2f A' %(idl))
     ax1.set_xlabel('Resolution of bin center (A)')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylabel('<F/sig(F)>')
@@ -165,8 +165,8 @@ def plot_refinement_Rfactors_per_alpha(prefix):
     ax1 = ax0.twinx()
     
     ax0.plot(occ_lst, r_work_lst, color = 'red', marker = 'o', label = 'Rwork')
-    ax0.plot(occ_lst, r_free_lst, color = 'blue', marker = 'o', label = 'Rfree')
-    ax1.plot(occ_lst, r_diff_lst, color = 'green', marker = 'o', label = 'Rfree-Rwork')
+    ax0.plot(occ_lst, r_free_lst, color = 'blue', marker = 's', markersize = 5, label = 'Rfree')
+    ax1.plot(occ_lst, r_diff_lst, color = 'green', marker = '^', label = 'Rfree-Rwork')
     ax0.set_xlabel('Occupancy of triggered state')
     ax0.set_ylabel('R-factor')
     ax1.set_ylabel('R-factor difference')
@@ -197,7 +197,7 @@ def plot_k_estimation(pickle_file="k_estimation.pickle"):
     fig,ax1 = plt.subplots(figsize=(10, 5))
     ax1.set_xlabel('Resolution (A)')
     ax1.set_ylabel('Average k-weight in resolution bin')
-    ax1.plot(bin_res_cent_lst[:], k_av_lst[:], marker = '.', label='Average k-weight', color = 'red')
+    ax1.plot(bin_res_cent_lst[:], k_av_lst[:], marker = '.', label='Average k', color = 'red')
     ax1.tick_params(axis='y')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylim(0,np.max(k_max_lst))
@@ -210,7 +210,8 @@ def plot_k_estimation(pickle_file="k_estimation.pickle"):
     lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
 
     ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-    fig.tight_layout()
+    #fig.tight_layout()
+    plt.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top = 0.95)
     plt.title('Average k for high resolution reflections',fontsize = 'medium',fontweight="bold")
     plt.savefig('k_estimation.pdf', dpi=300, transparent=True)
     plt.savefig('k_estimation.png', dpi=300)
@@ -318,42 +319,44 @@ def plot_alpha_occupancy_determination(suffix):
         alphas, occupancies, int1_norm, int2_norm, resids_lst_used, alphafound = pickle.load(stats_file)
         
     if resids_lst_used == False:
-        ax1.plot(alphas, int1, 'bo', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+        ax1.plot(alphas, int1, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
     else:
         try:
-            ax1.plot(alphas, int1_norm, 'ro', label='Selected residues')      
-            ax1.plot(alphas, int2_norm, 'bo', label='All peaks')
-            ax1.plot(alphas, results, 'go', label='Selected residues with enhanced SNR')
+            ax1.plot(alphas, int1_norm, 'o', color = 'red', label='Selected residues')      
+            ax1.plot(alphas, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')
+            ax1.plot(alphas, results, '^', color="green", label='Selected residues with enhanced SNR')
         except: 
-            ax1.plot(alphas, int1_norm, 'ro')
+            ax1.plot(alphas, int1_norm, 'o', color = 'red')
 
     ax1.set_ylim([0.,1.1])
     ax1.set_xlim([np.min(alphas)*0.95,np.max(alphas)*1.05])
     ax1.set_xlabel('Alpha value = 1/occupancy')
-    ax1.set_ylabel('Normalized ratio between summed absolute values of peaks \n in extrap. and exper. maps')
+    ax1.set_ylabel('Normalized difference map ratio')
 
     if resids_lst_used == False:
-        ax2.plot(occupancies, int1_norm, 'bo', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+        ax2.plot(occupancies, int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
     else:
         try:
-            ax2.plot(occupancies, int1_norm, 'ro', label='Selected residues') 
-            ax2.plot(occupancies, int2_norm, 'bo', label='All peaks')     
-            ax2.plot(occupancies, results, 'go', label='Selected residues with enhanced SNR')
+            ax2.plot(occupancies, int1_norm, 'o', color = 'red', label='Selected residues') 
+            ax2.plot(occupancies, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')     
+            ax2.plot(occupancies, results, '^', color="green", label='Selected residues with enhanced SNR')
         except:
-            ax2.plot(alphas,int1, 'ro')
+            ax2.plot(alphas,int1, 'o', color = 'red')
             
     ax2.set_ylim([0.,1.1])
     ax2.set_xlim([np.min(occupancies)*0.95,np.max(occupancies)*1.05])
     ax2.set_xlabel('Triggered state occupancy')
-    ax2.set_ylabel('Normalized ratio between summed absolute values of peaks \n in extrap. and exper. maps')
+    ax2.set_ylabel('Normalized difference map ratio')
     ax2.legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
 
     if alphafound:
         ax1.set_title('Alpha determination', fontsize = 'medium',fontweight="bold")
         ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
     else:
-        ax1.set_title('Alpha determination IMPOSSIBLE - no peaks in FoFo', fontsize = 'medium',fontweight="bold")
-        ax2.set_title('Occupancy determination IMPOSSIBLE - no peaks in FoFo', fontsize = 'medium',fontweight="bold")
+        ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+        ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps')
+        ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+        ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps')
     plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
     plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
     plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
@@ -452,7 +455,7 @@ def plot_Fextrsigmas(prefix, pickle_file='Fextr_binstats.pickle'):
     
     ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax0.set_xlabel('Resolution (A)')#, fontsize = 'small')
-    ax0.set_ylabel('Extrapolated structure factors')#, fontsize = 'small')
+    ax0.set_ylabel('ESFAs')#, fontsize = 'small')
     ax0.yaxis.label.set_color('tab:red')
         
     ax0.set_ylim(mn, mx)
@@ -460,7 +463,7 @@ def plot_Fextrsigmas(prefix, pickle_file='Fextr_binstats.pickle'):
 
     ax0.legend(loc='lower right', bbox_to_anchor=(0.89, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     ax1.legend(loc='lower right', bbox_to_anchor=(1.17, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-    ax1.set_ylabel('sig(Extrapolated structure factors)')#, fontsize = 'small')
+    ax1.set_ylabel('sig(ESFAs)')#, fontsize = 'small')
     ax1.yaxis.label.set_color('tab:blue')
 
     ax0.set_title('%s for high resolution reflections' %(maptype), fontsize = 'medium',fontweight="bold")

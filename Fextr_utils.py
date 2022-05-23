@@ -266,7 +266,6 @@ def make_patch_spines_invisible(ax):
 def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     """
     print and plot the number of negative reflections per bin.
-    This is only for diagnostics (investigation of negative reflection handling) and should not be part of standard output
     """
     outname = '%s_negative_reflections' %(prefix)
     bin_res_cent_lst = []
@@ -313,25 +312,27 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
                 
     plt.close()
     fig, (ax1, ax3) = plt.subplots(1,2, figsize=(10, 5))
-    ax1.plot(bin_res_cent_lst[1:], neg_lst[1:], linestyle = '-', label='# Neg. reflections',color = 'red')
+    #ax1.plot(bin_res_cent_lst[1:], neg_lst[1:], linestyle = '-', label='# Neg. reflections',color = 'red')
+    ax1.plot(bin_res_cent_lst[1:], neg_lst[1:], marker = ".", label='# Neg. ESFAs',color = 'red')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylim(0, np.max(neg_lst))
     ax1.set_xlabel('Resolution (A)')
-    ax1.set_ylabel('Number of negative reflections in resolution bin')
+    ax1.set_ylabel('Absolute number of negative ESFAs')
     ax1.yaxis.label.set_color('red')
-    ax1.set_title("Negative reflections for high resolution bins",fontsize = 'medium',fontweight="bold")
+    ax1.set_title("Negative ESFAs for high resolution bins",fontsize = 'medium',fontweight="bold")
     ax2 = ax1.twinx()
-    ax2.plot(bin_res_cent_lst[1:], neg_percent_lst[1:], linestyle = '-', label='% Neg. reflections', color = 'blue')
+    #ax2.plot(bin_res_cent_lst[1:], neg_percent_lst[1:], linestyle = '-', label='% Neg. reflections', color = 'blue')
+    ax2.plot(bin_res_cent_lst[1:], neg_percent_lst[1:], marker = 's', markersize = 3, label='% Neg. ESFAs', color = 'blue')
     ax2.set_ylim(0,100)
-    ax2.set_ylabel('Negative reflections in resolution bin (%)')
+    ax2.set_ylabel('Negative ESFAs in resolution bin (%)')
     ax2.yaxis.label.set_color('blue')
     lines_labels_1 = [ax.get_legend_handles_labels() for ax in [fig.axes[0],fig.axes[2]]]
     lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
     ax1.legend(lines_1, labels_1, loc='lower right', bbox_to_anchor=(0.82, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     
     s = np.full((bin_res_cent_lst.shape[0],1), 90)
-    ax3.plot(bin_res_cent_lst[1:], comp_lst[1:],'-', label='Completeness', color = 'red')
-    ax3.plot(bin_res_cent_lst[1:], comp_true_lst[1:], '-', label='True completeness', color = 'blue')
+    ax3.plot(bin_res_cent_lst[1:], comp_lst[1:], marker = '.', label='Completeness', color = 'red')
+    ax3.plot(bin_res_cent_lst[1:], comp_true_lst[1:], marker = 's', markersize=3, label='True completeness', color = 'blue')
     ax3.plot(bin_res_cent_lst[1:], s[1:], linestyle = ':', label= '90 (%) Completeness', color = 'green')
     ax3.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax3.set_ylim(0,100)
@@ -481,7 +482,7 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
     bin_res_cent_lst = np.asarray(bin_res_cent_lst)
     s = np.full((len(f_sigf_lst),1), 0.8)
     l = np.full((len(f_sigf_lst),1), 1.2)
-    ax1.plot(bin_res_cent_lst[1:], f_sigf_lst[1:], '-', label='<F/sig(F)>', color = 'red')
+    ax1.plot(bin_res_cent_lst[1:], f_sigf_lst[1:], marker = '.', label='<F/sig(F)>', color = 'red')
     ax1.plot(bin_res_cent_lst[1:], s[1:], linestyle = ':', label = '<F/sig(F)> = 0.8', color = 'blue') #(<I/sig(I)> = 2)
     ax1.plot(bin_res_cent_lst[1:], l[1:], linestyle = ':', label = '<F/sig(F)> = 1.2', color = 'green') #(<I/sig(I)> = 1.5)
     
@@ -523,8 +524,8 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
     except IndexError:
         idl = x1
     
-    ax1.plot(np.array([ids]), np.array([0.8]), 'bo', label = 'estimation: %.2f A' %(ids))
-    ax1.plot(np.array([idl]), np.array([1.2]), 'go', label = 'estimation: %.2f A' %(idl))
+    ax1.plot(np.array([ids]), np.array([0.8]), marker = 's', markersize=3, color='blue', label = 'estimation: %.2f A' %(ids))
+    ax1.plot(np.array([idl]), np.array([1.2]), marker = '^', markersize=5, color = 'green', label = 'estimation: %.2f A' %(idl))
     ax1.set_xlabel('Resolution of bin center (A)')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylabel('<F/sig(F)>')
@@ -575,8 +576,8 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     r_free_lst = r_free_lst.select(srt)
     r_diff_lst = r_free_lst - r_work_lst
     ax0.plot(occ_lst, r_work_lst, color = 'red', marker = 'o', label = 'Rwork')
-    ax0.plot(occ_lst, r_free_lst, color = 'blue', marker = 'o', label = 'Rfree')
-    ax1.plot(occ_lst, r_diff_lst, color = 'green', marker = 'o', label = 'Rfree-Rwork')
+    ax0.plot(occ_lst, r_free_lst, color = 'blue', marker = 's', markersize = 5, label = 'Rfree')
+    ax1.plot(occ_lst, r_diff_lst, color = 'green', marker = '^', label = 'Rfree-Rwork')
     ax0.set_xlabel('Occupancy of triggered state')
     ax0.set_ylabel('R-factor')
     #ax0.legend(fontsize = 'xx-small', framealpha=0.5, loc='lower left', bbox_to_anchor=(0.0, 0., 0.5, 0.5))
@@ -732,7 +733,7 @@ def plot_Fextr_sigmas(pickle_file='Fextr_binstats.pickle'):
         
         ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
         ax0.set_xlabel('Resolution (A)')#, fontsize = 'small')
-        ax0.set_ylabel('Extrapolated structure factors')#, fontsize = 'small')
+        ax0.set_ylabel('ESFAs')#, fontsize = 'small')
         ax0.yaxis.label.set_color('tab:red')
         #ax0.tick_params(labelsize='x-small')
           
@@ -742,7 +743,7 @@ def plot_Fextr_sigmas(pickle_file='Fextr_binstats.pickle'):
         #ax0.legend(loc='lower right', bbox_to_anchor=(-0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         ax0.legend(loc='lower right', bbox_to_anchor=(0.89, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         ax1.legend(loc='lower right', bbox_to_anchor=(1.17, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        ax1.set_ylabel('sig(Extrapolated structure factors)')#, fontsize = 'small')
+        ax1.set_ylabel('sig(ESFAs)')#, fontsize = 'small')
         ax1.yaxis.label.set_color('tab:blue')
         #ax1.tick_params(labelsize='x-small')
         #ax1.legend(loc='lower right', bbox_to_anchor=(1.2, 0.05, 0.45, 2.5), fontsize = 'xx-small', framealpha=0.5)
@@ -1251,8 +1252,6 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
 
     
     fig,ax1 = plt.subplots(figsize=(10, 5))
-    #ax1.plot(bin_res_cent_lst[1:], r_work_lst[1:], marker = '.', color = 'red', label = 'Riso,work; overall %.4f' %(r_work))
-    #ax1.plot(bin_res_cent_lst[1:], r_free_lst[1:], marker = '.', color = 'blue', label = 'Riso,free; overall %.4f' %(r_free))
     ax1.plot(bin_res_cent_lst[1:], r_work_lst[1:], marker = '.', color = 'red', label = 'Riso; overall %.4f' %(r_work))
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_xlabel('Resolution (A)')
@@ -1262,7 +1261,7 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
     ax2 = ax1.twinx()
     #ax2.plot(bin_res_cent_lst[1:], cc_work_lst[1:], marker = '.', color = 'green', label = 'CCiso,work; overall %.4f' %(cc_work))
     #ax2.plot(bin_res_cent_lst[1:], cc_free_lst[1:], marker = '.', color = 'yellow', label = 'CCiso,free; overall %.4f' %(cc_free))
-    ax2.plot(bin_res_cent_lst[1:], cc_work_lst[1:], marker = '.', color = 'green', label = 'CCiso; overall %.4f' %(cc_work))
+    ax2.plot(bin_res_cent_lst[1:], cc_work_lst[1:], marker = '^', markersize = 5, color = 'green', label = 'CCiso; overall %.4f' %(cc_work))
     ax2.set_ylabel('CCiso')
     ax2.yaxis.label.set_color('green')
     #ax2.legend(fontsize = 'xx-small', framealpha=0.5, loc=0)
@@ -1315,10 +1314,10 @@ def plot_F1_F2(F1, F2, F1_name = "Data_set_1", F2_name = "Data_set_2", log = sys
         mx = np.max([np.max(F1.data()), np.max(F2.data())])
         #plot the data
         fig,ax1 = plt.subplots(figsize=(10, 5))
-        ax1.scatter(F1.data(), F2.data(), marker = '.', color = 'blue', label = "Pearson correlation\n coefficient: %.4f" %(cc))
+        ax1.scatter(F1.data(), F2.data(), marker = '.', color = 'red', label = "Pearson correlation\n coefficient: %.4f" %(cc))
         #plot the linear fit, we only need two values for plotting a line
         lst = np.array([np.min(F1.data()), np.max(F1.data())])
-        ax1.plot(lst, lst * b + a,  color = 'red', label = "linear fit: y = %.2f x + %.2f" %(b, a))
+        ax1.plot(lst, lst * b + a,  color = 'blue', label = "linear fit: y = %.2f x + %.2f" %(b, a))
         ax1.set_xlim(mn,mx)
         ax1.set_ylim(mn,mx)
         ax1.set_xlabel(F1_name)
@@ -1342,12 +1341,12 @@ def plot_correlations(occ_lst, correlation_list):
         
     plt.close()
     fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10, 5))
-    ax1.plot(occ_lst, correlation_list, marker = 'o', color = 'blue', label = "Correlation")
+    ax1.plot(occ_lst, correlation_list, marker = 'o', color = 'red', label = "Correlation")
     #plot the linear fit, we only need two values for plotting a line
     ax1.set_xlabel("Occupancy")
     ax1.set_ylabel("Pearson correlalation coefficient")
     
-    ax2.plot(alphas, correlation_list, marker = 'o', color = 'blue', label = "Correlation")
+    ax2.plot(alphas, correlation_list, marker = 'o', color = 'red', label = "Correlation")
     #plot the linear fit, we only need two values for plotting a line
     ax2.set_xlabel("Alpha")
     ax2.set_ylabel("Pearson correlalation coefficient")    
