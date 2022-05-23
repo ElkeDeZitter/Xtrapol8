@@ -90,10 +90,10 @@ class TabExtrapolation(ScrolledPanel):
         list_occ_sizer.Add(ListTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         list_occ_sizer.Add(self.ListTextCtrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
-        occ_sizer_final = wx.StaticBoxSizer(Occ, wx.VERTICAL)
-        occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
-        #occ_sizer_final.AddSpacer(20)
-        occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        self.occ_sizer_final = wx.StaticBoxSizer(Occ, wx.VERTICAL)
+        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        #self.occ_sizer_final.AddSpacer(20)
+        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
         #######################
         ###  \Occupancies\  ###
         #######################
@@ -236,7 +236,7 @@ class TabExtrapolation(ScrolledPanel):
 
         self.FinalSizer = wx.BoxSizer(wx.VERTICAL)
         self.FinalSizer.Add(self.X8Modes, 0, wx.ALL, 10)
-        self.FinalSizer.Add(occ_sizer_final, 0, wx.ALL, 10)
+        self.FinalSizer.Add(self.occ_sizer_final, 0, wx.ALL, 10)
         self.FinalSizer.Add(MNS_final, 0, wx.ALL, 10)
         self.FinalSizer.Add(self.ExtSF, 0, wx.ALL, 10)
         self.FinalSizer.Add(self.ExpertMode, 0, wx.ALL, 10)
@@ -255,6 +255,7 @@ class TabExtrapolation(ScrolledPanel):
         self.ExpertMode.Bind(wx.EVT_BUTTON, self.OnExpertMode)
         self.FoChoice.Bind(wx.EVT_CHOICE, self.updateKScale)
         self.kscale.Disable()
+        
 
     def onSelectFextr(self, evt):
         id = evt.GetId()
@@ -345,6 +346,9 @@ class TabExtrapolation(ScrolledPanel):
         self.negChoice.Enable()
         self.missChoice.Enable()
         self.DistanceAnalysis.Enable()
+        if not self.FinalSizer.IsShown(self.occ_sizer_final):
+            self.FinalSizer.Show(self.occ_sizer_final)
+            self.FinalSizer.Layout()
 
     def onFastNFurious(self):
         if not self.FinalSizer.IsShown(self.ExtSF):
@@ -374,6 +378,9 @@ class TabExtrapolation(ScrolledPanel):
             #self.DistanceAnalysis.Show()
         self.DistanceAnalysis.SetValue(False)
         self.DistanceAnalysis.Disable()
+        if not self.FinalSizer.IsShown(self.occ_sizer_final):
+            self.FinalSizer.Show(self.occ_sizer_final)
+            self.FinalSizer.Layout()
 
     def onFoFo(self):
         if self.FinalSizer.IsShown(self.ExtSF):
@@ -387,6 +394,10 @@ class TabExtrapolation(ScrolledPanel):
         self.DistanceAnalysis.SetValue(False)
         self.DistanceAnalysis.Disable()
         #self.DistanceAnalysis.Hide()
+        
+        if self.FinalSizer.IsShown(self.occ_sizer_final):
+            self.FinalSizer.Hide(self.occ_sizer_final)
+            self.FinalSizer.Layout()
 
     def updateKScale(self, evt):
         if self.FoChoice.GetStringSelection() == 'kfofo':
