@@ -525,10 +525,10 @@ class DataHandler(object):
         outdir = self.outdir
         i = 1
         while os.path.exists(outdir):
-            #Keep outdir given by user if it is empty
-            if len(os.listdir(self.outdir)) ==0:
-                outdir = self.outdir
-                break
+            if os.path.isdir(outdir):
+                if len(os.listdir(outdir)) ==0:
+                    #outdir = self.outdir
+                    break
             ##Keep outdir given by user if it only contains Xtrapol8 log-files:
             #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
                 #outdir = self.outdir
