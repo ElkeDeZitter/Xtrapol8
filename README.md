@@ -27,8 +27,8 @@
     </li>
       <a href="#Usage">Usage</a></li>
       <ul>
-        <li><a href="#Command line usage">Command line usage</a></li>
-        <li><a href="#Graphical User Interface usage">Graphical User Interface usage</a></li>
+        <li><a href="#Command-line-usage">Command line usage</a></li>
+        <li><a href="#Graphical-User-Interface-usage">Graphical User Interface usage</a></li>
       </ul>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
@@ -144,10 +144,10 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
   ```sh
   phenix.python <folder/to/Xtrapol8>X8_gui.py Xtrapol8.phil
   ```
-  * or the input file can be loaded from within XtrapolG8 via the File menu:
+  * or the input file can be loaded from within XtrapolG8 via the File menu:<br />
   "File" -> "Open Phil"
   
-* XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:\\
+* XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:<br />
   "File" -> "Load Results"
   
 
