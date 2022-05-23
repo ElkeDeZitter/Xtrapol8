@@ -25,7 +25,11 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-    <li><a href="#usage">Usage</a></li>
+      <a href="#Usage">Usage</a></li>
+      <ul>
+        <li><a href="#Command line usage">Command line usage</a></li>
+        <li><a href="#Graphical User Interface usage">Graphical User Interface usage</a></li>
+      </ul>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
@@ -40,7 +44,7 @@
 
 Xtrapol8 is software for the calculation of Fourier difference maps, extrapolated structure factors and estimation of the occupancy of at triggered state that occupies the crystal at low occupancy. It is based on the cctbx toolbox and uses some CCP4 programs. In order to run Xtrapol8, you will need to have a proper licence for Phenix and CCP4 and have both software suites installed. Please use Phenix 1.19 or higher.
 
-An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4] (https://www.youtube.com/watch?v=H21L3-M_ge4)
+An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4](https://www.youtube.com/watch?v=H21L3-M_ge4)
 
 If Xtrapol8 was useful in your project, please cite us: publication pending, I'll add a link once it is published!
 
@@ -82,7 +86,8 @@ Clone or download the Xtrapol8 repository. Take care that all files are stored i
 Or click on "Code" -> "Download ZIP" on the top.
 
 <!-- USAGE EXAMPLES -->
-## Command line usage
+## Usage
+### Command line usage
 
 Upon running Xtrapol8 without arguments, you get the full list of arguments that can be added using an input file or via command line arguments:
    ```sh
@@ -122,7 +127,7 @@ An example input file with all changeable parameters can be found in the [exampl
   
 _For more information, please refer to the [Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_Command_Line_Manual.pdf)_
 
-## Graphical User Interface (GUI) usage
+### Graphical User Interface usage
 
 Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launched via the command line:
   ```sh
@@ -140,10 +145,10 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
   phenix.python <folder/to/Xtrapol8>X8_gui.py Xtrapol8.phil
   ```
   * or the input file can be loaded from within XtrapolG8 via the File menu:
-  File -> Open Phil
+  "File" -> "Open Phil"
   
-* XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:
-  File -> Load Results
+* XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:\\
+  "File" -> "Load Results"
   
 
 <!-- LICENSE -->
