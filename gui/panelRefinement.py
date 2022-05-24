@@ -371,6 +371,15 @@ class TabRefinement(ScrolledPanel):
                 evt.Skip()
             except AttributeError:
                 pass
+        else:
+            self.FinalSizer.Hide(self.FinalRefmacSizer)
+            self.FinalSizer.Hide(self.FinalPhenixSizer)
+            self.Layout()
+            try:
+                evt.Skip()
+            except AttributeError:
+                pass
+            
 
     def onRefChanged(self, evt):
         if self.RunRef.GetValue() == False:
