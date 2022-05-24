@@ -358,18 +358,19 @@ class TabRefinement(ScrolledPanel):
         self.RunRef.Bind(wx.EVT_CHECKBOX, self.onRefChanged)
 
     def onSoftChanged(self, evt):
-        choice = self.SoftChoice.GetSelection()
-        if choice == 0:
-            self.FinalSizer.Hide(self.FinalRefmacSizer)
-            self.FinalSizer.Show(self.FinalPhenixSizer)
-        if choice == 1:
-            self.FinalSizer.Show(self.FinalRefmacSizer)
-            self.FinalSizer.Hide(self.FinalPhenixSizer)
-        self.Layout()
-        try:
-            evt.Skip()
-        except AttributeError:
-            pass
+        if self.RunRef.GetValue()==True:
+            choice = self.SoftChoice.GetSelection()
+            if choice == 0:
+                self.FinalSizer.Hide(self.FinalRefmacSizer)
+                self.FinalSizer.Show(self.FinalPhenixSizer)
+            if choice == 1:
+                self.FinalSizer.Show(self.FinalRefmacSizer)
+                self.FinalSizer.Hide(self.FinalPhenixSizer)
+            self.Layout()
+            try:
+                evt.Skip()
+            except AttributeError:
+                pass
 
     def onRefChanged(self, evt):
         if self.RunRef.GetValue() == False:
