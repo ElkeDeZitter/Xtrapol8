@@ -535,9 +535,9 @@ class TabMainImg(ScrolledPanel):
             ax2.set_title('Occupancy determination', fontsize='medium', fontweight="bold")
         else:
             ax1.set_title('Alpha determination IMPOSSIBLE', fontsize='medium', fontweight="bold")
-            ax1.text(np.min(alphas), 0.5, 'no peaks found in at least one of the maps')
+            ax1.text(np.min(alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
             ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize='medium', fontweight="bold")
-            ax2.text(np.min(occupancies), 0.5, 'no peaks found in at least one of the maps')
+            ax2.text(np.min(occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
         self.figure.subplots_adjust(hspace=0.25, wspace=0.4, left=0.09, right=0.88, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas

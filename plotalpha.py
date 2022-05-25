@@ -121,8 +121,8 @@ class plotalpha(object):
                 try:
                     noise = np.sqrt(intnoise)
                     #Devision by noise to do some kind of normalization, usefull when map_explorer parameters were not superwill chosen
-                    self.exp1[0]  = tmp / noise #'experimental' peak-height = sum(all selected)/average(all peaks)
-                    self.exp2[0]  = tmp2 / noise #'experimental' peak-height = sum(all)/average(all peaks)
+                    self.exp1[0]  = tmp / noise #'experimental' peak-height = sum(all selected)/sqrt(all peaks)
+                    self.exp2[0]  = tmp2 / noise #'experimental' peak-height = sum(all)/sqrt(all peaks)
                 except: #exception in which case?
                     self.exp1[0] = tmp
                     self.exp2[0] = tmp2
@@ -130,12 +130,12 @@ class plotalpha(object):
             else: #i > 0 means that expl_fle is from the extrapolated difference maps
                 try: 
                     noise = np.sqrt(intnoise)
-                    self.int1[i-1] = tmp / noise #'integrated' peak-height = sum(all selected)/average(all peaks)
-                    self.int2[i-1] = tmp2 / noise #''integrated' peak-height = sum(all)/average(all peaks)
+                    self.int1[i-1] = tmp / noise #'integrated' peak-height = sum(all selected)/sqrt(all peaks)
+                    self.int2[i-1] = tmp2 / noise #''integrated' peak-height = sum(all)/sqrt(all peaks)
                 except: #exception in which case? ZeroDivisionError?
                     self.int1[i-1] = tmp 
                     self.int2[i-1] = tmp2
-                print("occ: %.3f alpha:%.3f integrated peak area selected: %.3f integrated peak area all%.3f" %(self.occupancies [i-1], self.alphas[i-1], self.int1[i-1], self.int2[i-1]))
+                print("occ: %.3f alpha:%.3f integrated peak area selected: %.3f integrated peak area all: %.3f" %(self.occupancies [i-1], self.alphas[i-1], self.int1[i-1], self.int2[i-1]))
                 
         self.int1_norm = self.normalize_array(self.int1)
         self.int2_norm = self.normalize_array(self.int2)
@@ -150,7 +150,7 @@ class plotalpha(object):
             results = self.int1_norm * self.normalize_array(1 - np.sqrt(((self.int1_norm - self.exp1_norm)/(self.int1_norm+self.exp1_norm))**2))
             self.results = self.normalize_array(results) #normalization
         except ZeroDivisionError:
-            print("no signal in Fobs-Fobs map")
+            print("no peaks found in at least one of the maps")
             self.results = self.int1_norm 
         gooda = np.where(self.results==np.max(self.results))
             
@@ -175,13 +175,14 @@ class plotalpha(object):
             results = self.int1_norm * self.int2_norm
             self.results = self.normalize_array(results)
         except ZeroDivisionError:
-            print("no signal in Fobs-Fobs map")
+            print("no peaks found in at least one of the maps")
             self.results = self.int1_norm
-        gooda = np.where(self.results==np.max(self.results))
+        gooda = np.where(self.results==np.nanmax(self.results)) #ignore nan if present
         
         try:
             a = np.max(self.alphas[gooda])
             o = np.max(self.occupancies[gooda])
+            self.alphafound = True
         except:
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.", file=self.log)
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.")
@@ -198,13 +199,14 @@ class plotalpha(object):
             results = (self.int1 / self.exp1) + np.average(self.int1)
             self.results = self.normalize_array(results)
         except ZeroDivisionError:
-            print("no signal in Fobs-Fobs map")
+            print("no peaks found in at least one of the maps")
             self.results = self.int1_norm
-        gooda = np.where(self.results==np.max(self.results))
+        gooda = np.where(self.results==np.nanmax(self.results))
         
         try:
             a = np.max(self.alphas[gooda])
             o = np.max(self.occupancies[gooda])
+            self.alphafound = True
         except:
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.", file=self.log)
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.")
@@ -221,13 +223,14 @@ class plotalpha(object):
         try:
             self.results = self.normalize_array_double(results)
         except ZeroDivisionError:
-            print("no signal in Fobs-Fobs map")
+            print("no peaks found in at least one of the maps")
             self.results = self.int1_norm
-        gooda = np.where(self.results==np.max(self.results))
+        gooda = np.where(self.results==np.nanmax(self.results))
         
         try:
             a = np.max(self.alphas[gooda])
             o = np.max(self.occupancies[gooda])
+            self.alphafound = True
         except:
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.", file=self.log)
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.")
@@ -290,26 +293,26 @@ class plotalpha(object):
             ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
         else:
             ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-            ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps')
+            ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
             ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-            ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps')
+            ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
         plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
         plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
         plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
     
     def estimate_alpha(self):
         self.get_integration_lists()
-        print("mFext-DFc maps       Sum of integrated peaks", file=self.log)
-        print("Occupancy    alpha    absolute    normalized", file=self.log)
-        print("mFext-DFc maps       Sum of integrated peaks")
-        print("Occupancy    alpha    absolute    normalized")
+        print("mFext-DFc maps          | Sum of all integrated peaks | Sum of selected integrated peaks", file=self.log)
+        print("Occupancy       alpha         absolute   normalized         absolute   normalized", file=self.log)
+        print("mFext-DFc maps          | Sum of all integrated peaks | Sum of selected integrated peaks")
+        print("Occupancy       alpha         absolute   normalized         absolute   normalized")
 
         for i in range(self.alphas.shape[0]):
-            print("%.3f      %.3f      %.3f       %.3f"%(self.occupancies[i],self.alphas[i], self.int1[i], self.int1_norm[i]), file=self.log)
-            print("%.3f      %.3f      %.3f       %.3f"%(self.occupancies[i],self.alphas[i], self.int1[i], self.int1_norm[i]))
+            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.occupancies[i],self.alphas[i], self.int2[i], self.int2_norm[i], self.int1[i], self.int1_norm[i]), file=self.log)
+            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.occupancies[i],self.alphas[i], self.int2[i], self.int2_norm[i], self.int1[i], self.int1_norm[i]))
 
-        print("Fobs-Fobs map         %.3f       %.3f"%(self.exp1[0], self.exp1_norm[0]), file=self.log)
-        print("Fobs-Fobs map         %.3f       %.3f"%(self.exp1[0], self.exp1_norm[0]))
+        print("Fobs-Fobs map {:>23.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.exp2[0], self.exp2_norm[0], self.exp1[0], self.exp1_norm[0]), file=self.log)
+        print("Fobs-Fobs map {:>23.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.exp2[0], self.exp2_norm[0], self.exp1[0], self.exp1_norm[0]))
 
         #print("Standard alphadetermination", file=self.log)
         self.alpha, self.occ = self.alphadetermination()

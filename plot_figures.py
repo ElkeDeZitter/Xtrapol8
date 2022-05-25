@@ -354,9 +354,9 @@ def plot_alpha_occupancy_determination(suffix):
         ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
     else:
         ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-        ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps')
+        ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
         ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-        ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps')
+        ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
     plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
     plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
     plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
