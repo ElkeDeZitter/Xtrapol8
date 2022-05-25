@@ -263,8 +263,8 @@ if __name__ == "__main__":
     #map_explorer parameters
     parser.add_argument('-rl', '--residue_list', default = None, help='list with residues to take into account for the occupancy estimation in same style as the output from map-explorer (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.')
     parser.add_argument('-r', '--radius', default = 2.0, type=float, help="maximum radius in Angstrom to allocate a density blob to a protein atom (e.g. the resolution of the extrapolated maps)")
-    parser.add_argument('-t', '--threshold', default = 3.5, type=float,  help="integration threshold in sigma")
-    parser.add_argument('-p', '--peak', default = 4.0, type=float, help="Peak detection threshold in sigma")
+    parser.add_argument('-t', '--peak_integration_floor', default = 3.5, type=float,  help="integration threshold in sigma")
+    parser.add_argument('-p', '--peak_detection_threshold', default = 4.0, type=float, help="Peak detection threshold in sigma")
     parser.add_argument('-z', '--z_score', default = 2.0, type=float, help='Z-score to determine residue list with only highest peaks')
 
     #auxiliary paramters
@@ -291,8 +291,8 @@ if __name__ == "__main__":
         
     residue_list = args.residue_list
     radius       = args.radius
-    threshold    = args.threshold
-    peak         = args.peak
+    threshold    = args.peak_integration_floor
+    peak         = args.peak_detection_threshold
     z_score      = args.z_score
     suffix       = args.suffix
     
