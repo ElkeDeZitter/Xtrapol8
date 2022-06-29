@@ -46,7 +46,7 @@ Xtrapol8 is software for the calculation of Fourier difference maps, extrapolate
 
 An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4](https://www.youtube.com/watch?v=H21L3-M_ge4)
 
-If Xtrapol8 was useful in your project, please cite us: publication pending, I'll add a link once it is published!
+If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies, Communications Biology, accepted, https://doi.org/10.1038/s42003-022-03575-7.
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -125,7 +125,7 @@ An example input file with all changeable parameters can be found in the [exampl
   phenix.python <folder/to/Xtrapol8>/Fextr.py Xtrapol8.phil refinement.phenix_keywords.refine.cycles=3
   ```
   
-_For more information, please refer to the [Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_Command_Line_Manual.pdf)_
+_For more information, please have a look into the [Command line Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_Command_Line_Manual.pdf)_
 
 ### Graphical User Interface usage
 
@@ -150,6 +150,7 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
 * XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:<br />
   "File" -> "Load Results"
   
+_For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/XtrapolG8.pdf)_
 
 <!-- LICENSE -->
 ## License
