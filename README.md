@@ -150,7 +150,7 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
 * XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:<br />
   "File" -> "Load Results"
   
-_For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/XtrapolG8.pdf)_
+_For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/XtrapolG8_Manual.pdf)_
 
 <!-- LICENSE -->
 ## License
