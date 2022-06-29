@@ -100,7 +100,7 @@ Upon running Xtrapol8 without arguments, you get the full list of arguments that
    alias 'X8=phenix.python <folder/to/Xtrapol8>/Fextr.py'
    ```
    
-An example input file with all changeable parameters can be found in the [example](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_example.phil) or in the [minimal_input](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_minimal.phil)
+An example input file with all changeable parameters can be found in the [example](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/Xtrapol8_example.phil) or in the [minimal_input](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/Xtrapol8_minimal.phil)
 
 * Example using input file:
   1. Change the Xtrapol8.phil using your favorite text editor:
@@ -125,7 +125,7 @@ An example input file with all changeable parameters can be found in the [exampl
   phenix.python <folder/to/Xtrapol8>/Fextr.py Xtrapol8.phil refinement.phenix_keywords.refine.cycles=3
   ```
   
-_For more information, please have a look into the [Command line Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/Xtrapol8_Command_Line_Manual.pdf)_
+_For more information, please have a look into the [Command line Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/Xtrapol8_Command_Line_Manual.pdf)_
 
 ### Graphical User Interface usage
 
@@ -150,7 +150,7 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
 * XtrapolG8 can also be used to inspect results from a former run, independent on whether it was run via the GUI or the command line:<br />
   "File" -> "Load Results"
   
-_For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/master/XtrapolG8_Manual.pdf)_
+_For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/XtrapolG8_Manual.pdf)_
 
 <!-- LICENSE -->
 ## License
