@@ -180,11 +180,12 @@ class Phenix_refinements(object):
             output_prefix = 'output.prefix=%s'%(mtz_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_real_space_refined_000.pdb"%(mtz_name)
+            ramachandran_restraints = 'ramachandran_plot_restraints.enable=False'
         else:
             output_prefix = 'output.file_name_prefix=%s'%(mtz_name)
             model_format  = 'output.model_format=pdb'
             # outpdb        = "%s_real_space_refined.pdb"%(mtz_name)
-            
+            ramachandran_restraints = 'ramachandran_restraints=False'
             
         additional_keywords_line = ''
         if len(self.additional_real_keywords) > 0:
@@ -193,7 +194,7 @@ class Phenix_refinements(object):
  
         
         real = os.system("phenix.real_space_refine %s %s %s "
-                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian ramachandran_restraints=False c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, additional_keywords_line))
+                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, ramachandran_restraints, additional_keywords_line))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
