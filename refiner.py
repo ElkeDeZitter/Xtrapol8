@@ -168,11 +168,11 @@ f_and_maps{
         .expert_level = 2
     }
 map_explorer{
-    threshold = 3.5
+    peak_integration_floor = 3.5
         .type = float
         .help = Integration threshold (in sigma) 
         .expert_level = 0
-    peak = 4.0
+    peak_detection_threshold = 4.0
         .type = float
         .help = Peak detection threshold (sigma)
     radius = None
