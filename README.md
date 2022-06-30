@@ -46,7 +46,7 @@ Xtrapol8 is software for the calculation of Fourier difference maps, extrapolate
 
 An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4](https://www.youtube.com/watch?v=H21L3-M_ge4)
 
-If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies, Communications Biology, accepted, https://doi.org/10.1038/s42003-022-03575-7.
+If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1):640, 2022. 
 
 <!-- GETTING STARTED -->
 ## Getting Started
