@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Run phenix for reciprocal and real space refinement.
 

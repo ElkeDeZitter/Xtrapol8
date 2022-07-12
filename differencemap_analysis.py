@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Script to calculate the occupancy based on the Fourier difference map (FoFo) and extrapolated difference maps (mFextr-DFcalc).
 This is automatically run in Xtrapol8 routine but can be run on a standalone basis using this script.

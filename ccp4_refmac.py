@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 write bash script to run refmac and coot for reciprocal and real space refinement.
 

@@ -1,3 +1,28 @@
+# -*- coding: utf-8 -*-
+"""
+This file concerns plotting the Xtrapol8 figures from their respective pickle files.
+Function names were given so that they are distinct from the function names in other Xtrapol8 scripts.
+A return is called when the file does not exist. This might be replaced by an empty figure or so.
+TODO: add the functionalities for the summed_difference_map and distance_analysis
+
+-------
+
+authors and contact information
+-------
+Elke De Zitter - elke.de-zitter@ibs.fr
+Nicolas Coquelle - nicolas.coquelle@esrf.fr
+Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de
+Jacques Philippe Colletier - jacques-Philippe.colletier@ibs.fr
+
+-------
+
+license information
+-------
+Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-Philippe Colletier
+see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
+
+-------
+"""
 from __future__ import division, print_function
 import re, sys
 import os
@@ -8,13 +33,6 @@ from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from Fextr_utils import get_name
 import math
-
-"""
-This file concerns plotting the Xtrapol8 figures from their respective pickle files.
-Function names were given so that they are distinct from the function names in other Xtrapol8 scripts.
-A return is called when the file does not exist. This might be replaced by an empty figure or so.
-TODO: add the functionalities for the summed_difference_map, ddm and distance_analysis
-"""
 
 
 def plot_Riso_CCiso(pickle_file='Riso_CCiso.pickle'):

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Script to perform the last steps of Xtrapol8 independently:
 - refinement (using phenix.refine and phenix.real_space_refine -- Refmac and Coot are not implemented yet)

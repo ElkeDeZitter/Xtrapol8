@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 authors and contact information
 -------
