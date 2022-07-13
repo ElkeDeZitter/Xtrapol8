@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Use truncate from CCP4 for converting intensities to structure factors
 

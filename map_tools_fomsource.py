@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Adapted mmtbx.map_tools in order to calculate extrapolated maps according to Genick method in which D-correction shoudl be taken from fmodel with Fextr while fom should be taken from fmodel with Fobs_reference. The two models are supposed to have the same reflections (and order), a check is done but no solution if this is not the case. No special cases.
 

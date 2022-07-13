@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Script to calculate the occupancy based on the real space refined models of a reference model in Extrapolated map
 coefficients calculated with different occupancy (alpha).

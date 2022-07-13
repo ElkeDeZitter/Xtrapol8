@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Adapted mmtbx.map_tools in order to calculate Fo-Fo difference maps with fom and centric/acentric correction. fobs_in is supposed to be the Miller set containing the Fo-Fo data and needs to be pre-calculated (and q-weighted). The reference fmodel, from which fom will be taken and centric/acentric correction is supposed to have the same reflections (and order), a check is done but no solution if this is not the case. No special cases.
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Use scaleit from CCP4 for scaling instead of scale_cnslike
 
