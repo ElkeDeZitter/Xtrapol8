@@ -1950,7 +1950,7 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    version = "1.0"
+    version = "1.0.1"
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
     print('-----------------------------------------')
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
