@@ -382,6 +382,7 @@ class MainFrame(wx.Frame):
         self.notebook.ResultsBooks.pop(run)
         self.inputs.pop(run)
         self.pngs_idx.pop(run)
+        self.notebook.Runs -= 1
 
 
     def OnClose(self, event):
