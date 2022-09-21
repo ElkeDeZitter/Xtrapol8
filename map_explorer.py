@@ -200,7 +200,7 @@ def blob_detection(out, residlst, xplor, threshold, peak, coord, radius,info):
       grid = np.array(xplor.unit_cell_grid, dtype=np.float32)
       first = np.array(xplor.data.as_double().origin(), dtype=np.float32)
       unit_cell = np.array(xplor.unit_cell_parameters, dtype=np.float32) 
-      data = map_data(xplor)
+      data = xplor.data.as_numpy_array()
     map_param = (grid, first, unit_cell)
     pos.append(do_blob_search(data, threshold, peak, map_param, coord, radius,info))
     print_results(pos, out, residlst)
