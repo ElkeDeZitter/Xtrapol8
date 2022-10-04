@@ -71,17 +71,6 @@ def blob_detection(out, residlst, map_object, threshold, peak, coord, radius,inf
     pos = []
     neg = []
     map_object.open_map()
-    #try:
-    #  grid  = np.array(xplor.gridding.n, dtype=np.float32)
-    #  first = np.array(xplor.gridding.first, dtype=np.float32)
-    #  unit_cell = np.array(xplor.unit_cell.parameters(), dtype=np.float32)
-    #  data = xplor.data.as_numpy_array()
-    #except:
-    #  grid = np.array(xplor.unit_cell_grid, dtype=np.float32)
-    #  first = np.array(xplor.data.as_double().origin(), dtype=np.float32)
-    #  unit_cell = np.array(xplor.unit_cell_parameters, dtype=np.float32)
-    #  data = xplor.data.as_numpy_array()
-    #map_param = (grid, first, unit_cell)
     pos.append(do_blob_search(map_object, threshold, peak, coord, radius, info))
     print_results(pos, out, residlst)
     neg.append(do_blob_search(map_object, -threshold, peak, coord, radius, info))
@@ -259,11 +248,7 @@ class Maps(object):
         self.alpha = np.deg2rad(self.alpha)
         self.beta = np.deg2rad(self.beta)
         self.gamma = np.deg2rad(self.gamma)
-        print(self.a)
         self.cosa_star = (np.cos(self.beta) * np.cos(self.gamma) - np.cos(self.alpha)) / (np.sin(self.beta) * np.sin(self.gamma))
-        print(self.cosa_star)
-        print(self.c)
-        print(self.beta)
 
         self.sina_star = np.sqrt(1 - self.cosa_star ** 2)
         self.transfo_matrix = np.array([[ self.a, self.b * np.cos(self.gamma), self.c * np.cos(self.beta)],
@@ -311,10 +296,10 @@ class XPLOR_Maps(Maps):
         super(XPLOR_Maps, self).__init__(map_name)
 
     def open_map(self):
-        self.map_object = ccp4_map.map_reader(file_name=self.map_name)
-        self.grid = np.array(self.map_object.unit_cell_grid, dtype=np.float32)
-        self.origin = np.array(self.map_object.data.as_double().origin(), dtype=np.float32)
-        self.unit_cell = np.array(self.map_object.unit_cell_parameters, dtype=np.float32)
+        self.map_object = iotbx.xplor.map.reader(file_name=self.map_name)
+        self.grid = np.array(self.map_object.gridding.n, dtype=np.float32)
+        self.origin = np.array(self.map_object.gridding.first, dtype=np.float32)
+        self.unit_cell = np.array(self.map_object.unit_cell_parameters(), dtype=np.float32)
         self.data = self.map_object.data.as_numpy_array()
         self.coord_transform_setup()
 
