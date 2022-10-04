@@ -59,3 +59,43 @@ z_scores = scipy.stats.zscore(data)
 print(z_scores.shape)
 print(z_scores.max())
 print(data.size)
+
+
+##################################
+xplor_1 = iotbx.xplor.map.reader(file_name=map_name_1) #map_name_1 is FoFo
+xplor_2 = iotbx.xplor.map.reader(file_name=map_name_2) #map_name_2 is Fextr-Fc
+grid_1 = np.array(xplor_1.gridding.n, dtype=np.float32)
+grid_2 = np.array(xplor_2.gridding.n, dtype=np.float32)
+first_1 = np.array(xplor_1.gridding.first, dtype=np.float32)
+first_2 = np.array(xplor_2.gridding.first, dtype=np.float32)
+unit_cell_1 = np.array(xplor_1.unit_cell.parameters(), dtype=np.float32)
+unit_cell_2 = np.array(xplor_2.unit_cell.parameters(), dtype=np.float32)
+data_1 = xplor_1.data.as_numpy_array()
+data_2 = xplor_2.data.as_numpy_array()
+
+#Since maps are sigma-scaled, the value of the map and the z-score should be very similar.
+#Therefore we can work directly with maps instead of mapping the z-score on the maps
+#generate the mask
+mask = np.where(np.abs(data_1) >= 3, 1, 0)
+
+#Write mask to pickle as to avoid opening the FoFo map the whole time
+out=open('map_mask.pickle' ,'wb')
+pickle.dump(mask,out)
+out.close()
+
+#To open the mask file from the pickle
+with open("map_mask.pickle","r") as mask_file:
+    mask_test=pickle.load(mask_file)
+    
+#Use the mask to only keep the peaks in the Fextr-Fc map that are also observed in the Fo-Fo maps
+if np.all(grid_1 != grid_2):
+    print("Cannot apply the mask")
+elif np.all(first_1 != first_2):
+    print("Cannot apply the mask")
+elif np.all(unit_cell_1 != unit_cell_1):
+    print("Cannot apply the mask")
+else:
+    data_2_masked = np.multiply(data_2, mask)
+
+        
+
