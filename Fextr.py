@@ -2451,6 +2451,7 @@ def run(args):
         os.remove('%s/pymol_movie.py' %(outdir))
 
     from iotbx import ccp4_map
+    from scipy.stats import pearsonr
     fofo_data = ccp4_map.map_reader(file_name=FoFo.ccp4_name).data.as_numpy_array()
     ################################################################
     #Loop over occupancies and calculate extrapolated structure factors
@@ -2531,7 +2532,7 @@ def run(args):
             print("\n************Map explorer************", file=log)
             print("\n************Map explorer************")
             #map_expl_out = map_explorer(Fextr.xplor_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
-            data = ccp4_map.map_reader(file_name=Fextr.ccp4_name_FoFc)
+            data = ccp4_map.map_reader(file_name=Fextr.ccp4_name_FoFc).data.as_numpy_array()
             pos = 0
             neg = 0
             for i in range(mask.shape[1]):
