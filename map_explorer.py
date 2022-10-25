@@ -25,7 +25,7 @@ import iotbx.xplor.map
 from iotbx import ccp4_map
 from scipy import ndimage
 from iotbx.pdb import hierarchy
-
+import scipy.stats
 
 # TODO: convert to usage of iotbx instead of reading pdb as text file
 def get_atom_info(pdb):
@@ -68,16 +68,18 @@ def get_d(P1, P2, axis=0):
 
 
 def blob_detection(out, residlst, map_object, threshold, peak, coord, radius,info):
-    pos = []
-    neg = []
+    #pos = []
+    #neg = []
     map_object.open_map()
-    pos.append(do_blob_search(map_object, threshold, peak, coord, radius, info))
-    print_results(pos, out, residlst)
-    neg.append(do_blob_search(map_object, -threshold, peak, coord, radius, info))
-    print_results(neg, out, residlst)
-    return pos+neg
+    arr_pos = do_blob_search(map_object, threshold, peak, coord, radius, info)
+    print_results([arr_pos], out, residlst)
+    arr_neg = do_blob_search(map_object, -threshold, peak, coord, radius, info)
+    print_results([arr_neg], out, residlst)
+    #print(arr_pos.shape, arr_neg.shape)
+    return np.concatenate((arr_pos, arr_neg), axis=0)
 
 def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
+
 
         s = ndimage.morphology.generate_binary_structure(3,3)
         if threshold < 0:
@@ -93,6 +95,8 @@ def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
         labeled_array_peak, num_features_peak = ndimage.label(copy_peak, structure=s)
 
         all_atoms = []
+        mask_indices = []
+        blobs = []
         bla = (num_features_peak,) + bla
         print('Found  %i %s blobs %s peak threshold... Now integrating and allocating them.'%bla)
 
@@ -102,10 +106,10 @@ def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
             feature_to_integrate = labeled_array[np.nonzero(labeled_array_peak == i)][0]
             indices = np.nonzero(labeled_array == feature_to_integrate)
             blob = map_object.data[indices]
-
-            if np.abs(blob).max() < peak or blob.size < 2:
+            #print(any([np.array_equal(blob, y) for y in blobs]))
+            if np.abs(blob).max() < peak or blob.size < 2 or any([np.array_equal(blob, y) for y in blobs]):
                 continue
-
+            blobs.append(blob)
             sum = blob.sum()
             size = blob.size
             if threshold < 0.:
@@ -114,27 +118,30 @@ def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
             else:
                 max = blob.max()
                 argmax = blob.argmax()
-            indices = np.transpose(np.nonzero(labeled_array == feature_to_integrate))[argmax]
-            coord_map = map_object.get_coord_from_map_indices(indices)
+            index_max = np.transpose(np.nonzero(labeled_array == feature_to_integrate))[argmax]
+            coord_map = map_object.get_coord_from_map_indices(index_max)
 
             D = get_d(coord_pdb, coord_map, axis=1)
 
             if coord_pdb is not None:
                 if (radius is not None and D.min() <= radius) or radius is None:
                     atom.extend(info[D.argmin()])
-                    print(info[D.argmin()], indices)
-                    atom.extend([D.min(), max, sum, size])
+                    atom.extend([D.min(), max, sum, size, indices])
             else:
                 atom.extend((max, sum, size))
 
             if atom:
-                if coord_pdb is not None and len(atom) == 10: all_atoms.append(tuple(atom))
+
+                if coord_pdb is not None and len(atom) == 10 and atom not in all_atoms: all_atoms.append(tuple(atom))
                 else: all_atoms.append(tuple(atom))
 
         del copy
         del copy_peak
+        #print("done")
         # Nasty but remove duplicate / Use of a decorator ?
-        all_atoms = np.array(list(set(tuple(all_atoms))))
+        #arr_all_atoms = np.array(list(set(tuple(all_atoms))))
+        all_atoms = np.array(all_atoms)
+
         if all_atoms.size > 0:
             sorted_indices = np.argsort(all_atoms[:, 8].astype(np.float32))
             if threshold < 0:
@@ -191,7 +198,7 @@ def check_inputs(map_name, pdb, radius, threshold, peak, log):
 def print_results(blobs, out, residlst):
     residIDlst = []
     for blob in blobs:
-        out.write("%4s %4s %4s %3s %4s %4s %7s %7s %7s %6s" %("Resn", "Resv", "Chain" ,"Alt", "Atom", "ID", "d" ,"Peak" ,"Int" ,"#Voxels\n"))
+        out.write("%4s %4s %4s %3s %4s %4s %7s %7s %8s %6s" %("Resn", "Resv", "Chain" ,"Alt", "Atom", "ID", "d" ,"Peak" ,"Int" ,"#Voxels\n"))
         residlst.write("%4s %4s %4s %3s\n" %("Resn", "Resv", "Chain" ,"Alt"))
         print("%4s %4s %4s %3s %4s %4s %7s %7s %7s %6s" %("Resn", "Resv", "Chain" ,"Alt", "Atom", "ID", "d" ,"Peak" ,"Int" ,"#Voxels"))
         for b in blob:
@@ -200,26 +207,50 @@ def print_results(blobs, out, residlst):
             b[7] = float(b[7])
             b[8] = float(b[8])
 
-            out.write('%4s %4s %4s %3s %4s  %4s %7.3f %7.3f %7.3f %6s\n'%tuple(b))
-            print('%4s %4s %4s %3s %4s  %4s %7.3f %7.3f %7.3f %6s'%tuple(b))
-            residID = '%4s %4s %4s %3s\n' %(b[0],b[1],b[2],b[3])
+            out.write('%4s %4s %4s %3s %4s  %4s %7.3f %7.3f %8.2f %6s\n'%tuple(b[:-1]))
+            print('%4s %4s %4s %3s %4s  %4s %7.3f %7.3f %8.2f %6s'%tuple(b[:-1]))
+            residID = '%4s %4s %4s %3s\n' %(b[0], b[1], b[2], b[3])
             if residID not in residIDlst:
                 residIDlst.append(residID)
                 residlst.write(residID)
         print("")
         out.write("\n")
 
-def map_explorer(map, pdb, radius, peak_integration_floor, peak_detection_threshold, maptype='', log=sys.stdout):
-    if len(maptype)>0:
+def map_explorer(map, pdb, radius, peak_integration_floor, peak_detection_threshold, zscore= 2, maptype='', log=sys.stdout):
+    if len(maptype)> 0:
         maptype = maptype+'_'
+    print("Zscore: %4.2f" % zscore)
     outname = "%speakintegration.txt" %(maptype)
     out = open(outname, 'w')
     residlst = open("%sresidlist.txt" %(maptype),'w')
     args  = check_inputs(map, pdb, radius, peak_integration_floor, peak_detection_threshold, log=log)
     blobs = blob_detection(out, residlst, *args)
+    peaks = blobs[:, 8].astype(np.float32)
+    peaks_corr = np.where(peaks < 0, peaks - (np.max(np.where(peaks > 0, -np.infty, peaks))), peaks - (np.min(
+        np.where(peaks < 0, np.infty,
+                 peaks))))
+
+
+    idx = np.where(scipy.stats.zscore(np.abs(peaks_corr)) > zscore)
+    mask = blobs[idx, -1]
     out.close()
     residlst.close()
-    return outname
+    outname_zscore = "%speakintegration_Zscore%4.2f.txt" % (maptype, zscore)
+    out_zscore = open(outname_zscore, 'w')
+    residlst_zscore = open("%sresidlist_Zscore%4.2f.txt" % (maptype, zscore), 'w')
+
+    print("Peaks kept after Z-scoring")
+    print_results(blobs[idx, :], out_zscore, residlst_zscore)
+    out_zscore.close()
+    residlst_zscore.close()
+    pos = 0
+    neg = 0
+    for peak in blobs[idx, 8][0]:
+
+        if peak > 0: pos += peak
+        else:
+            neg -= peak
+    return outname, outname_zscore, mask, [pos, neg, pos+neg]
     
 class Maps(object):
 
@@ -296,10 +327,11 @@ class XPLOR_Maps(Maps):
         super(XPLOR_Maps, self).__init__(map_name)
 
     def open_map(self):
+        print(self.map_name)
         self.map_object = iotbx.xplor.map.reader(file_name=self.map_name)
         self.grid = np.array(self.map_object.gridding.n, dtype=np.float32)
         self.origin = np.array(self.map_object.gridding.first, dtype=np.float32)
-        self.unit_cell = np.array(self.map_object.unit_cell_parameters(), dtype=np.float32)
+        self.unit_cell = np.array(self.map_object.unit_cell.parameters(), dtype=np.float32)
         self.data = self.map_object.data.as_numpy_array()
         self.coord_transform_setup()
 

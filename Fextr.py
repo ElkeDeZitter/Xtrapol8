@@ -2318,8 +2318,8 @@ def run(args):
     print("\n************Map explorer************")
     if params.map_explorer.radius == None:
         params.map_explorer.radius = dmin
-    map_expl_out_FoFo = map_explorer(FoFo.xplor_name, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold)
-    residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=log).residlist_top(Z=params.map_explorer.z_score)
+    map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref = map_explorer(FoFo.ccp4_name, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, params.map_explorer.z_score)
+    #residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=log).residlist_top(Z=params.map_explorer.z_score)
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
           %(map_expl_out_FoFo, residlist_zscore), file=log)
     print("FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
@@ -2449,7 +2449,9 @@ def run(args):
     #Remove python movie movie because otherwise old files will be shown in the pymol session
     if os.path.isfile('%s/pymol_movie.py' %(outdir)):
         os.remove('%s/pymol_movie.py' %(outdir))
-        
+
+    from iotbx import ccp4_map
+    fofo_data = ccp4_map.map_reader(file_name=FoFo.ccp4_name).data.as_numpy_array()
     ################################################################
     #Loop over occupancies and calculate extrapolated structure factors
     for occ in params.occupancies.list_occ:
@@ -2526,35 +2528,51 @@ def run(args):
                 print("%s not recognised as extrapolated map type"%(mp))
                         
             #Use xplor map of type mFo-DFc to find and integrate the peaks, annotate the peaks to residues
-            
             print("\n************Map explorer************", file=log)
             print("\n************Map explorer************")
-            map_expl_out = map_explorer(Fextr.xplor_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
-            
+            #map_expl_out = map_explorer(Fextr.xplor_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
+            data = ccp4_map.map_reader(file_name=Fextr.ccp4_name_FoFc)
+            pos = 0
+            neg = 0
+            for i in range(mask.shape[1]):
+                tmp = data[mask[0, i]].sum()
+                if tmp > 0: pos+= tmp
+                else: neg -= tmp
+            #integrated_values.append([pos, neg, pos+neg])
+            CC = scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0]
+            #pearsonCC.append(scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0])
+
             #depending on the map-type, append the output-file of mapexplorer to the correct list
             if mp == 'qFextr_map':
-                append_if_file_exist(qFextr_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(qFextr_map_expl_fles, os.path.abspath(map_expl_out))
+                qFextr_map_expl_fles.append([CC, pos, neg, pos+neg])
             elif mp == 'qFgenick_map':
-                append_if_file_exist(qFgenick_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(qFgenick_map_expl_fles, os.path.abspath(map_expl_out))
+                qFgenick_map_expl_fles.append([CC, pos, neg, pos+neg])
             elif mp == 'qFextr_calc_map':
-                append_if_file_exist(qFextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(qFextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
+                qFextr_calc_map_expl_fles.append([CC, pos, neg, pos+neg])
             elif mp == 'kFextr_map':
-                append_if_file_exist(kFextr_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(kFextr_map_expl_fles, os.path.abspath(map_expl_out))
+                kFextr_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'kFgenick_map':
-                append_if_file_exist(kFgenick_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(kFgenick_map_expl_fles, os.path.abspath(map_expl_out))
+                kFgenick_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'kFextr_calc_map':
-                append_if_file_exist(kFextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(kFextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
+                kFextr_calc_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'Fextr_map':
-                append_if_file_exist(Fextr_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(Fextr_map_expl_fles, os.path.abspath(map_expl_out))
+                Fextr_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'Fgenick_map':
-                append_if_file_exist(Fgenick_map_expl_fles, os.path.abspath(map_expl_out))
+                #append_if_file_exist(Fgenick_map_expl_fles, os.path.abspath(map_expl_out))
+                Fgenick_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'Fextr_calc_map':
-                append_if_file_exist(Fextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
-            print("m%s-DFcalc map explored. Results in %s and residue list in associated residlist"
-                  %(Fextr.maptype, map_expl_out),file=log)
-            print("m%s-DFcalc map explored. Results in %s and residue list in associated residlist"
-                  %(Fextr.maptype, map_expl_out))
-            
+                #append_if_file_exist(Fextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
+                Fextr_calc_map_expl_fles.append([CC, pos, neg, pos + neg])
+            print("m%s-DFcalc map explored",file=log)
+            print("m%s-DFcalc map explored")
+
             #In case of running in slow_and_rigorous / slow_and_curious (whatever you like to call the full way mode):
             #run refinement with phenix or refmac/coot
             if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
@@ -2795,11 +2813,11 @@ def run(args):
             map_expl_lst   = Fextr_calc_map_expl_fles 
 
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
-        alpha, occ = plotalpha(map_expl_lst, residlst, mp_type, log=log).estimate_alpha()
+        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst, residlst, mp_type, log=log).estimate_alpha()
         
         if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
-            #If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
-            #   therefore keeping them during the distance analysis would make no sense
+            # If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
+            # therefore keeping them during the distance analysis would make no sense
             if params.refinement.phenix_keywords.main.ordered_solvent:
                 distance_use_waters = False
             else:

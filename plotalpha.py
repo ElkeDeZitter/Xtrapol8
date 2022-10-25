@@ -28,23 +28,16 @@ class plotalpha(object):
     """
     Calculation of the alpha and occupancy based on the integrated difference maps peaks stored in map_explorer output files.
     """
-    def __init__(self, map_expl_files, resids_lst=None, outsuffix = 'qFextr', log=sys.stdout):
-        self.map_expl_files = map_expl_files
-        self.resids_lst     = resids_lst
-        self.outsuffix      = outsuffix
-        self.log            = log
-        self.alphafound     = False
-        
-        occupanies = [(re.search(r'occupancy\_(.+?)\/',map_expl_fle).group(1)) for map_expl_fle in self.map_expl_files[1:]]
-        occupancies = map(lambda x: float(x), occupanies)
+    def __init__(self, occupancies, extrapolation_results, reference, outsuffix='qFextr', log=sys.stdout):
+
         self.occupancies = np.array(occupancies)
         self.alphas = np.reciprocal(occupancies)
+        self.pearsonCC, self.pos, self.neg, self.sum = zip(*extrapolation_results)
+        self.reference = reference
+        self.outsuffix = outsuffix
+        self.log = log
+
         
-        #open residlist to calculated alpha using selected residues
-        self.get_residlist()
-        
-        print("MAP EXPLORER ANALYSIS")
-        print("MAP EXPLORER ANALYSIS", file=self.log)
 
     
     def get_residlist(self):
@@ -94,10 +87,10 @@ class plotalpha(object):
         tmp2  = 0
         intnoise = 0
         for line in finallst:
-            tmp  += np.abs(float(line.split()[-3])) #sum all the peak-values to tmp for residues in finallist
+            tmp += np.abs(float(line.split()[-2])) / float(line.split()[-1]) #sum all the peak-values to tmp for residues in finallist
         for line in lines:
-            tmp2 += np.abs(float(line.split()[-3])) #sum all the peak-values to tmp2
-            intnoise+=np.abs(float(line.split()[-3])) #all peaks will be used to calculate the noise
+            tmp2 += np.abs(float(line.split()[-2])) / float(line.split()[-1]) #sum all the peak-values to tmp2
+            intnoise+=np.abs(float(line.split()[-2])) / float(line.split()[-1]) #all peaks will be used to calculate the noise
         return tmp, tmp2, intnoise
             
     def normalize_array(self, array):
@@ -122,8 +115,8 @@ class plotalpha(object):
                 try:
                     noise = np.sqrt(intnoise)
                     #Devision by noise to do some kind of normalization, usefull when map_explorer parameters were not superwill chosen
-                    self.exp1[0]  = tmp / noise #'experimental' peak-height = sum(all selected)/sqrt(all peaks)
-                    self.exp2[0]  = tmp2 / noise #'experimental' peak-height = sum(all)/sqrt(all peaks)
+                    self.exp1[0]  = tmp  #'experimental' peak-height = sum(all selected)/sqrt(all peaks)
+                    self.exp2[0]  = tmp2  #'experimental' peak-height = sum(all)/sqrt(all peaks)
                 except: #exception in which case?
                     self.exp1[0] = tmp
                     self.exp2[0] = tmp2
@@ -131,8 +124,8 @@ class plotalpha(object):
             else: #i > 0 means that expl_fle is from the extrapolated difference maps
                 try: 
                     noise = np.sqrt(intnoise)
-                    self.int1[i-1] = tmp / noise #'integrated' peak-height = sum(all selected)/sqrt(all peaks)
-                    self.int2[i-1] = tmp2 / noise #''integrated' peak-height = sum(all)/sqrt(all peaks)
+                    self.int1[i-1] = tmp #/ noise #'integrated' peak-height = sum(all selected)/sqrt(all peaks)
+                    self.int2[i-1] = tmp2 #/ noise #''integrated' peak-height = sum(all)/sqrt(all peaks)
                 except: #exception in which case? ZeroDivisionError?
                     self.int1[i-1] = tmp 
                     self.int2[i-1] = tmp2
@@ -148,16 +141,18 @@ class plotalpha(object):
         Alphadetermination with signal enhancement. Uses selected peaks only
         """
         try:
-            results = self.int1_norm * self.normalize_array(1 - np.sqrt(((self.int1_norm - self.exp1_norm)/(self.int1_norm+self.exp1_norm))**2))
-            self.results = self.normalize_array(results) #normalization
+            #results = self.int1_norm * self.normalize_array(1 - np.sqrt(((self.int1_norm - self.exp1_norm)/(self.int1_norm+self.exp1_norm))**2))
+            self.results = self.normalize_array(self.sum)#self.normalize_array(results) #normalization
         except ZeroDivisionError:
             print("no peaks found in at least one of the maps")
-            self.results = self.int1_norm 
-        gooda = np.where(self.results==np.max(self.results))
-            
+            self.results = np.zeros_like(self.sum)
+        gooda = np.where(self.results == np.max(self.results))
+        goodcc = np.where(self.pearsonCC == np.nanmax(self.pearsonCC))
         try:
             a = np.max(self.alphas[gooda])
             o = np.max(self.occupancies[gooda])
+            acc = np.max(self.alphas[goodcc])
+            occ = np.max(self.occupancies[goodcc])
             self.alphafound = True
         except:
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.", file=self.log)
@@ -165,7 +160,7 @@ class plotalpha(object):
             a = 1
             o = 1
             self.alphafound = False
-        return a, o
+        return a, o, acc, occ
     
     def alphadetermination_special(self):
         """
@@ -227,7 +222,7 @@ class plotalpha(object):
             print("no peaks found in at least one of the maps")
             self.results = self.int1_norm
         gooda = np.where(self.results==np.nanmax(self.results))
-        
+
         try:
             a = np.max(self.alphas[gooda])
             o = np.max(self.occupancies[gooda])
@@ -242,81 +237,87 @@ class plotalpha(object):
     def plot_alpha_determination(self, outname):
         
         #write pickle for GUI
-        out=open('alpha_occupancy_determination_%s.pickle' %(self.outsuffix) ,'wb') #write to pickle for GUI
-        stats = [self.alphas,self.occupancies, self.int1_norm, self.int2_norm, self.results]
-        if self.resids_lst == None:
-            stats.append(False)
-        else:
-            stats.append(True)
+        out = open('alpha_occupancy_determination_%s.pickle' %(self.outsuffix) ,'wb') #write to pickle for GUI
+        stats = [self.alphas,self.occupancies, self.pos, self.neg, self.results]
+        stats.append(True)
         
         if self.alphafound:
             stats.append(True)
         else:
             stats.append(False)
-        pickle.dump(stats,out)
+        pickle.dump(stats, out)
         out.close()
 
-        fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10, 5))
+        fig, axes = plt.subplots(2, 2, figsize=(10, 10))
         
-        if self.resids_lst == None:
-            ax1.plot(self.alphas, self.int1, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-        else:
-            try:
-                ax1.plot(self.alphas, self.int1_norm, 'o', color = 'red', label='Selected residues')      
-                ax1.plot(self.alphas, self.int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')
-                ax1.plot(self.alphas, self.results, '^', color="green", label='Selected residues with enhanced SNR')
-            except: #in case int1 and int2 don't exist, when would this be the case?
-                ax1.plot(self.alphas, self.int1_norm, 'o', color = 'red')
+        axes[0, 0].plot(self.alphas, stats[2] / self.reference[0], 'o', color = 'green', label='Positive features')
+        axes[0, 0].plot(self.alphas, stats[3] / self.reference[1], 's', markersize = 5, color = 'red', label='Negative features')
+        axes[0, 0].plot(self.alphas, self.sum / self.reference[2], '^', color="k", label='All features')
+        axes[0, 0].vlines(self.alpha, ymin=0, ymax=np.max(self.sum / self.reference[2]))
+        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color='blue')
+        axes[1, 0].vlines(self.alpha_CC, ymin=0, ymax=np.max(self.pearsonCC))
+        axes[1, 0].set_ylabel("Pearson CC")
+        axes[1, 0].set_xlabel('Alpha value = 1/occupancy')
+        axes[0, 0].set_xlim([np.min(self.alphas) * 0.95, np.max(self.alphas) * 1.05])
+        axes[1, 0].set_xlim([np.min(self.alphas)*0.95, np.max(self.alphas)*1.05])
 
-        ax1.set_ylim([0.,1.1])
-        ax1.set_xlim([np.min(self.alphas)*0.95,np.max(self.alphas)*1.05])
-        ax1.set_xlabel('Alpha value = 1/occupancy')
-        ax1.set_ylabel('Normalized difference map ratio')
+        #if self.resids_lst == None:
+        #    ax2.plot(self.occupancies, self.int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+        #else:
+        #try:
+        axes[0, 1].plot(self.occupancies, stats[2] / self.reference[0], 'o', color='green', label='Positive features')
+        axes[0, 1].plot(self.occupancies, stats[3] / self.reference[1], 's', markersize=5, color = 'red', label='Negative features')
+        axes[0, 1].plot(self.occupancies, self.sum / self.reference[2], '^', color="k", label='All features')
+        axes[0, 1].vlines(self.occ, ymin=0, ymax=np.max(self.sum / self.reference[2]))
 
-        if self.resids_lst == None:
-            ax2.plot(self.occupancies, self.int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-        else:
-            try:
-                ax2.plot(self.occupancies, self.int1_norm, 'o', color = 'red', label='Selected residues') 
-                ax2.plot(self.occupancies, self.int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')     
-                ax2.plot(self.occupancies, self.results, '^', color="green", label='Selected residues with enhanced SNR')
-            except:
-                ax2.plot(self.alphas,self.int1, 'o', color = 'red')
+        #ax2t = ax2.twinx()
+        axes[1, 1].plot(self.occupancies, self.pearsonCC, "X", color='blue', label='')
+        axes[1, 1].set_ylabel("Pearson CC")
+        axes[1, 1].vlines(self.occ_CC, ymin=0, ymax=np.max(self.pearsonCC))
+        #except:
+        #        ax2.plot(self.alphas,self.int1, 'o', color = 'red')
                 
-        ax2.set_ylim([0.,1.1])
-        ax2.set_xlim([np.min(self.occupancies)*0.95,np.max(self.occupancies)*1.05])
-        ax2.set_xlabel('Triggered state occupancy')
-        ax2.set_ylabel('Normalized difference map ratio')
-        ax2.legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+        #ax2.set_ylim([0.,1.1])
+        axes[0, 1].set_xlim([np.min(self.occupancies)*0.95, np.max(self.occupancies)*1.05])
+        axes[1, 1].set_xlabel('Triggered state occupancy')
+        axes[0, 0].set_ylabel('Normalized difference map ratio')
+        axes[0, 1].set_ylabel('Normalized difference map ratio')
+        axes[1, 0].legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+        axes[1, 1].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
+        #axes[1, 0].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
+        #axes[0, 0].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
 
         if self.alphafound:
-            ax1.set_title('Alpha determination', fontsize = 'medium',fontweight="bold")
-            ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
+            axes[0, 0].set_title('Alpha determination', fontsize='medium', fontweight="bold")
+            axes[0, 1].set_title('Occupancy determination', fontsize='medium', fontweight="bold")
         else:
-            ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-            ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
-            ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-            ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
+            axes[0, 0].set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+            axes[0, 0].text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
+            axes[0, 1].set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+            axes[0, 1].text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
         plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
         plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
         plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
     
     def estimate_alpha(self):
-        self.get_integration_lists()
-        print("mFext-DFc maps          | Sum of all integrated peaks | Sum of selected integrated peaks", file=self.log)
-        print("Occupancy       alpha         absolute   normalized         absolute   normalized", file=self.log)
-        print("mFext-DFc maps          | Sum of all integrated peaks | Sum of selected integrated peaks")
-        print("Occupancy       alpha         absolute   normalized         absolute   normalized")
+        #self.get_integration_lists()
+        print("mFext-DFc maps          | Sum of selected integrated peaks | Pearson CC", file=self.log)
+        print("Occupancy       alpha         absolute   normalized", file=self.log)
+        print("mFext-DFc maps          | Sum of selected integrated peaks | Pearson CC")
+        print("Occupancy       alpha         absolute   normalized")
 
         for i in range(self.alphas.shape[0]):
-            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.occupancies[i],self.alphas[i], self.int2[i], self.int2_norm[i], self.int1[i], self.int1_norm[i]), file=self.log)
-            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.occupancies[i],self.alphas[i], self.int2[i], self.int2_norm[i], self.int1[i], self.int1_norm[i]))
+            #if self.log not in [sys.stdout, None]:
+            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>20.3f}".format(self.occupancies[i], self.alphas[i], self.sum[i], self.sum[i] / float(self.reference[2]), self.pearsonCC[i]), file=self.log)
 
-        print("Fobs-Fobs map {:>23.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.exp2[0], self.exp2_norm[0], self.exp1[0], self.exp1_norm[0]), file=self.log)
-        print("Fobs-Fobs map {:>23.3f} {:>10.3f} {:>18.3f} {:>10.3f}".format(self.exp2[0], self.exp2_norm[0], self.exp1[0], self.exp1_norm[0]))
+            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>20.3f}".format(self.occupancies[i], self.alphas[i], self.sum[i], self.sum[i] / float(self.reference[2]), self.pearsonCC[i]))
+
+        #if self.log not in [sys.stdout, None]:
+        print("Fobs-Fobs map {:>23.3f}".format(self.reference[2], file=self.log))
+        print("Fobs-Fobs map {:>23.3f}".format(self.reference[2]))
 
         #print("Standard alphadetermination", file=self.log)
-        self.alpha, self.occ = self.alphadetermination()
+        self.alpha, self.occ, self.alpha_CC, self.occ_CC = self.alphadetermination()
         #alternatives:
         #print("Special alphadetermination", file=self.log)
         #self.alpha, self.occ = self.alphadetermination_special()
@@ -324,9 +325,14 @@ class plotalpha(object):
         #self.alpha, self.occ = self.alphadetermination_simple()
         #print("Kyprianos alphadetermination", file=self.log)
         #self.alpha, self.occ = self.alphadetermination_kyp()
-        print("Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ),file=self.log)
+        #if self.log not in [sys.stdout, None]:
+        print("Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ), file=self.log)
         print("Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ))
-        
+
+        #if self.log not in [sys.stdout, None]:
+        print("Pearson CC: Best alpha value is %.3f, meaning an occupancy of %.3f" % (self.alpha_CC, self.occ_CC), file=self.log)
+        print("Pearson CC: Best alpha value is %.3f, meaning an occupancy of %.3f" % (self.alpha_CC, self.occ_CC))
+
         self.plot_alpha_determination('alpha_occupancy_determination_%s' %(self.outsuffix))
         
         return self.alpha, self.occ
