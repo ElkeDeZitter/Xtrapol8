@@ -2777,7 +2777,7 @@ def run(args):
             recrealref_lst = qFextr_calc_recrealref_lst
             realref_lst    = qFextr_calc_realref_lst   
             map_expl_lst   = qFextr_calc_map_expl_fles
-        if mp == 'kFextr_map':
+        elif mp == 'kFextr_map':
             recref_mtz_lst = kFextr_recref_mtz_lst
             recref_pdb_lst = kFextr_recref_pdb_lst
             recrealref_lst = kFextr_recrealref_lst
@@ -2815,7 +2815,7 @@ def run(args):
             map_expl_lst   = Fextr_calc_map_expl_fles 
 
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
-        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst, residlst, mp_type, log=log).estimate_alpha()
+        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], FoFo_ref, mp_type, log=log).estimate_alpha()
         
         if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
             # If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
