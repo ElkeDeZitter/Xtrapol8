@@ -2475,6 +2475,7 @@ def run(args):
         
         #for each F_and_map type calculate structure factors and maps
         for mp in final_maptypes:
+            print(mp)
             if mp in ('qFextr_map','qFgenick_map','qFextr_calc_map'):
                 os.chdir(new_dirpath_q)
             elif mp in ('kFextr_map','kFgenick_map','kFextr_calc_map'):
@@ -2501,7 +2502,7 @@ def run(args):
                 Fextr.fextr_calc(qweight=True, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
-            if mp == 'kFextr_map':
+            elif mp == 'kFextr_map':
                 Fextr.fextr(qweight=False, kweight=True, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_k_ms, FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
@@ -2526,7 +2527,7 @@ def run(args):
                 get_Fextr_stats(occ, Fextr.fextr_calc_ms, Fextr.maptype, FoFo.fdif_c_ms, FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             else:
-                print("%s not recognised as extrapolated map type"%(mp))
+                print("%s not recognised as extrapolated map type" % mp)
                         
             #Use xplor map of type mFo-DFc to find and integrate the peaks, annotate the peaks to residues
             print("\n************Map explorer************", file=log)
@@ -2540,7 +2541,7 @@ def run(args):
                 if tmp > 0: pos+= tmp
                 else: neg -= tmp
             #integrated_values.append([pos, neg, pos+neg])
-            CC = scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0]
+            CC = pearsonr(fofo_data.flatten(), data.flatten())[0]
             #pearsonCC.append(scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0])
 
             #depending on the map-type, append the output-file of mapexplorer to the correct list
@@ -2571,8 +2572,8 @@ def run(args):
             elif mp == 'Fextr_calc_map':
                 #append_if_file_exist(Fextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
                 Fextr_calc_map_expl_fles.append([CC, pos, neg, pos + neg])
-            print("m%s-DFcalc map explored",file=log)
-            print("m%s-DFcalc map explored")
+            print("m%s-DFcalc map explored" % Fextr.maptype,file=log)
+            print("m%s-DFcalc map explored" % Fextr.maptype)
 
             #In case of running in slow_and_rigorous / slow_and_curious (whatever you like to call the full way mode):
             #run refinement with phenix or refmac/coot
