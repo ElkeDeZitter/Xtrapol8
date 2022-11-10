@@ -433,3 +433,44 @@ class Difference_distance_analysis(object):
         
         #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though
         return outname_png
+    
+if __name__=='__main__':
+
+    parser = argparse.ArgumentParser("Calculate the difference distance matrix between two pdb files.")
+    parser.add_argument('-r', '--pdb_ref', type=str, default=None, help= 'Reference pdb file.')
+    parser.add_argument('-o', '--pdb_other', type=str, default=None, help= 'Other pdb file to be compared with the reference pdb file.')
+    parser.add_argument('-l', '--ligand', type=str, action="append", help= 'Ligand 3-letter code. Add this argument for each ligand.')
+    parser.add_argument('-d', '--outdir', type=str, default=None, help= 'Output directory. Default is current directory')
+    parser.add_argument('-s', '--scale', type=float, default=1.5, help= 'Scale for ddm. Default=1.5')
+    
+    if len(sys.argv) < 2:
+        parser.print_help()
+        sys.exit(1)
+    
+    args = parser.parse_args()
+    
+    #print(args)
+
+    pdb_ref      = args.pdb_ref
+    pdb_other    = args.pdb_other
+    ligands      = args.ligand
+    outdir       = args.outdir
+    scale        = args.scale
+    
+    if pdb_ref == None:
+        print("Provide reference pdb")
+        sys.exit(1)
+    if pdb_other == None:
+        print("Provide other pdb")
+        sys.exit(1)
+        
+    if os.path.isdir(outdir) == False:
+        try:
+            os.mkdir(outdir)
+        except OSError:
+            os.makedirs(outdir)
+    
+    ddm_out = Difference_distance_analysis(pdb_ref, pdb_other, ligands = ligands, outdir=outdir, scale=scale).ddms()
+    
+    print("ddm calculated: {:s}".format(ddm_out))
+
