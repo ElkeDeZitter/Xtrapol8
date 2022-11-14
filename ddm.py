@@ -147,22 +147,53 @@ class Difference_distance_analysis(object):
         """
         Get the coordinates of the atoms in the pdb file.
         Because of badly placed TER cards, a chain may be read as multiple chains, hence need to loop over all chains again instead of working with the input chain. Need to find a proper way to merge chains with same ID or get rid of TER cards.
-        """
         
-        coord = []
-        info  = []
+        Need to add the coords and info of missing residues as well (coords can be 0,0,0) so as to add them to the ddm.
+        """
+    
+        #get first residue so as to know that the first residue so that it is clear that this is not a residue after a gap
+        n_ini = self.get_offset(chain)
+        
+        #get last residue number as to know where to stop
+        #n_fin = self.get_last_residue_number(pdb_hierarchy, chain)
+        
+        #to start set n to n1-1
+        n = n_ini-1
+        
+        coord   = []
+        info    = []
+        missing = []
         for c in pdb_hierarchy.chains():
             if c.id == chain.id:
                 for res_group in c.residue_groups():
-                    for a in res_group.atoms():
-                        #print a.name
-                        coord.append(list(a.xyz))
-                        i = a.fetch_labels()
-                        info.append(i.resseq)
+                    #check if residue is the subsequent residue in line
+                    while n+1 < res_group.resseq_as_int():
+                        #gap is present, coordinated will be replaced by (0,0,0). This will be the same for the two chains
+                        #ending up with a distance difference of 0, hence a white line in the ddm
+                        n +=1
+                        coord.append([0,0,0])
+                        info.append(str(n))
+                        #print("add missing residue: %s" %(str(n)))
+                        missing.append(n)
+                    if res_group.resseq_as_int() == n+1: #if should be not required but might make the case more clear
+                        #no residue gap present, coordinates can be extracted
+                        for a in res_group.atoms():
+                            #print a.name
+                            coord.append(list(a.xyz))
+                            i = a.fetch_labels()
+                            info.append(i.resseq)
+                            n = i.resseq_as_int()
+                    #else:
+                        ##gap is present, coordinated will be replaced by (0,0,0). This will be the same for the two chains
+                        ##ending up with a distance difference of 0, hence a white line in the ddm
+                        #n = n+1
+                        #coord.append([0,0,0])
+                        #info.append(str(n))
+                        
                          
         coord = np.asarray(coord)
  
-        return coord, info
+        return coord, info, missing
             
     
     def get_d(self, p1, p2, axis=0):
@@ -190,11 +221,11 @@ class Difference_distance_analysis(object):
     def calculate_ddm(self, chain1, chain2):
 
         #print "Processing first pdb" # Reference
-        coords1, seq_info = self.get_coord(self.hier1, chain1)
+        coords1, seq_info, missing = self.get_coord(self.hier1, chain1)
         diff_m1 = self.get_diff_matrix(coords1)
 
         #"Processing second pdb" -
-        coords2,_ = self.get_coord(self.hier2, chain2)
+        coords2,_,_ = self.get_coord(self.hier2, chain2)
         diff_m2 = self.get_diff_matrix(coords2)
         
         try:
@@ -203,9 +234,9 @@ class Difference_distance_analysis(object):
             print('Different number of Calpha between pdb1 (%s, %i) and pdb2 (%s, %i)\n'
                 'Please check your pdb files.'%(self.pdb1_name, diff_m1.shape[0], self.pdb2_name, diff_m2.shape[0]), file=self.log)
             diff = np.array([0,0])
-        return diff, seq_info
+        return diff, seq_info, missing
     
-    def ddm_residue(self, ddm, seq_info):
+    def ddm_residue(self, ddm, seq_info, missing):
         """
         From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
         """
@@ -216,6 +247,13 @@ class Difference_distance_analysis(object):
         for i in range(n_residues):
             for j in range(n_residues):
                 ddm_residue[i,j] = np.average(ddm[np.where(indices==i)[0],:][:,np.where(indices==j)[0]])
+                
+        #set all values from the missing residues to 0
+        to_zero = [i for i,val in enumerate(seq_info_unique) if val in missing]
+        if len(to_zero) != 0:
+            for i in to_zero:
+                ddm_residue[i,:] = 0
+                ddm_residue[:,i] = 0
                 
         return ddm_residue, seq_info_unique
     
@@ -290,7 +328,7 @@ class Difference_distance_analysis(object):
                             if (c.id == ID and self.get_offset(c) == offset):
                                 chain2 = c.detached_copy()
                             
-                    ddm, seq_info = self.calculate_ddm(chain1, chain2)
+                    ddm, seq_info, missing = self.calculate_ddm(chain1, chain2)
                     
                     try:
                         n,m = ddm.shape
@@ -321,7 +359,7 @@ class Difference_distance_analysis(object):
                         #scale = self.scale
                     
                     #For per residue ddm
-                    ddm_residue, seq_info_unique = self.ddm_residue(ddm, seq_info)
+                    ddm_residue, seq_info_unique = self.ddm_residue(ddm, seq_info, missing)
                     
                     #write info to pickle file
                     stats = [chain.id, ddm_residue, seq_info_unique]
@@ -361,69 +399,9 @@ class Difference_distance_analysis(object):
                     
                     fig.colorbar(img, ax=axs[row, col], fraction=0.046, pad=0.04)
                         
-                    #elif (n_rows > 1 and n_cols == 1):
-                        #img = axs[row].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
-                        
-                        #axs[row].set_xticks(tick_pos)
-                        #axs[row].set_xticklabels(seq_ticks)
-                        #plt.setp(axs[row].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        #axs[row].set_yticks(tick_pos)
-                        #axs[row].set_yticklabels(seq_ticks)
-
-                        #axs[row].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        #axs[row].set_xlabel('Residues')
-                        #axs[row].set_ylabel('Residues')
-                        
-                        #axs[row].spines['top'].set_visible(False)
-                        #axs[row].spines['right'].set_visible(False)
-                        
-                        #fig.colorbar(img, ax=axs[row], fraction=0.046, pad=0.04)
-                        
-                    #elif (n_rows == 1 and n_cols > 1):
-                        #img = axs[col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
-                        
-                        #axs[col].set_xticks(tick_pos)
-                        #axs[col].set_xticklabels(seq_ticks)
-                        #plt.setp(axs[col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        #axs[col].set_yticks(tick_pos)
-                        #axs[col].set_yticklabels(seq_ticks)
-
-                        #axs[col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        #axs[col].set_xlabel('Residues')
-                        #axs[col].set_ylabel('Residues')
-                        
-                        #axs[col].spines['top'].set_visible(False)
-                        #axs[col].spines['right'].set_visible(False)
-                        
-                        #fig.colorbar(img, ax=axs[col], fraction=0.046, pad=0.04)
-                    
-                    #else: #situation of n_rows == 1 and n_cols ==1
-                        #img = axs.imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
-                        #axs.set_xticks(tick_pos)
-                        #axs.set_xticklabels(seq_ticks)
-                        #plt.setp(axs.xaxis.get_majorticklabels(), rotation=90, fontsize='small')
-                        
-                        #axs.set_yticks(tick_pos)
-                        #axs.set_yticklabels(seq_ticks)
-
-                        #axs.set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                        #axs.set_xlabel('Residues')
-                        #axs.set_ylabel('Residues')
-                        
-                        #axs.spines['top'].set_visible(False)
-                        #axs.spines['right'].set_visible(False)
-                        
-                        #fig.colorbar(img, ax=axs, fraction=0.046, pad=0.04)
                         
                     old_chain_id = ID
-        
-        #if len(ligands)>0:            
-            #ligands.sort()
-            #row += 1
-            #col = 0
-            
+                    
         fig.tight_layout()
         plt.savefig(outname_pdf, dpi=300, transparent=True)
         plt.savefig(outname_png, dpi=300)
