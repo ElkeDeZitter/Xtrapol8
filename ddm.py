@@ -1,5 +1,18 @@
 # -*- coding: utf-8 -*-
 """
+Automatically run in Xtrapol8 routine but can be run on a standalone basis.
+
+What do you need?
+- a reference pdb file
+- a triggered pdb file
+- three letter code for each ligand
+- Optional:
+    - output directory name (alreaydexisting or not)
+    - ddm scale factor
+
+example of the standaloner version:
+phenix.python <here/is>/Xtrapol8/ddm.py -r my_reference.pdb -o my_triggered.pdb -l LG1 -l LG2 -d my_awesome_ddm -s 0.5
+
 authors and contact information
 -------
 Elke De Zitter - elke.de-zitter@ibs.fr
