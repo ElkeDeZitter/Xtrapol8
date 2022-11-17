@@ -17,7 +17,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from __future__ import print_function
+from __future__ import print_function, division
 import sys, os, re
 import glob
 import numpy as np
@@ -26,7 +26,7 @@ import pickle
 
 class plotalpha(object):
     """
-    Calculation of the alpha and occupancy based on the integrated difference maps peaks stored in map_explorer output files.
+    Calculation of the alpha and occupancy based on the integrated difference maps.
     """
     def __init__(self, occupancies, extrapolation_results, reference, outsuffix='qFextr', log=sys.stdout):
 
@@ -36,9 +36,6 @@ class plotalpha(object):
         self.reference = reference
         self.outsuffix = outsuffix
         self.log = log
-
-        
-
     
     def get_residlist(self):
         """
@@ -94,7 +91,11 @@ class plotalpha(object):
         return tmp, tmp2, intnoise
             
     def normalize_array(self, array):
-        return array/np.max(array)
+        if np.max(array) == 0:
+            raise ZeroDivisionError
+            #other option: return np.zeros_like(array)
+        else:
+            return array/np.max(array)
     
     def normalize_array_double(self, array):
         return (array-np.min(array))/(np.max(array)-np.min(array))
@@ -148,17 +149,25 @@ class plotalpha(object):
             self.results = np.zeros_like(self.sum)
         gooda = np.where(self.results == np.max(self.results))
         goodcc = np.where(self.pearsonCC == np.nanmax(self.pearsonCC))
-        try:
+        if np.max(self.alphas[gooda]) != 0:
             a = np.max(self.alphas[gooda])
             o = np.max(self.occupancies[gooda])
             acc = np.max(self.alphas[goodcc])
             occ = np.max(self.occupancies[goodcc])
             self.alphafound = True
-        except:
+        elif np.max(self.alphas[goodcc]) != 0:
+            print("No good alpha value could be found based on map_explorer. The alpha value based on the Pearson correlation between FoFo and mFextr-DF will be used instead. Consider changing map_explorer parameters and run again.")
+            print("No good alpha value could be found based on map_explorer. The alpha value based on the Pearson correlation between FoFo and mFextr-DFc will be used instead. Consider changing map_explorer parameters and run again.", file=self.log)
+            a = acc = np.max(self.alphas[goodcc])
+            o = occ = np.max(self.occupancies[goodcc])
+            self.alphafound = True
+        else:
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.", file=self.log)
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.")
             a = 1
             o = 1
+            acc = 1
+            occ = 1
             self.alphafound = False
         return a, o, acc, occ
     
@@ -250,12 +259,26 @@ class plotalpha(object):
 
         fig, axes = plt.subplots(2, 2, figsize=(10, 10))
         
-        axes[0, 0].plot(self.alphas, stats[2] / self.reference[0], 'o', color = 'green', label='Positive features')
-        axes[0, 0].plot(self.alphas, stats[3] / self.reference[1], 's', markersize = 5, color = 'red', label='Negative features')
-        axes[0, 0].plot(self.alphas, self.sum / self.reference[2], '^', color="k", label='All features')
-        axes[0, 0].vlines(self.alpha, ymin=0, ymax=np.max(self.sum / self.reference[2]))
-        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color='blue')
-        axes[1, 0].vlines(self.alpha_CC, ymin=0, ymax=np.max(self.pearsonCC))
+        if self.reference[0] == 0:
+            pos_features = np.zeros(len(stats[2]))
+        else:
+            pos_features = np.asarray(stats[2]) / self.reference[0]
+            
+        if self.reference[1] == 0:
+            neg_features = np.zeros(len(stats[3]))
+        else:
+            neg_features = np.asarray(stats[3]) / self.reference[1]
+            
+        if self.reference[2] == 0:
+            all_features = np.zeros(len(self.sum))
+        else:
+            all_features = np.asarray(self.sum) / self.reference[2]
+                
+        axes[0, 0].plot(self.alphas, pos_features, 'o', color = 'green', label='Positive features')
+        axes[0, 0].plot(self.alphas, neg_features, 's', markersize = 5, color = 'red', label='Negative features')
+        axes[0, 0].plot(self.alphas, all_features, '^', color="k", label='All features')
+        
+        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color ='blue')
         axes[1, 0].set_ylabel("Pearson CC")
         axes[1, 0].set_xlabel('Alpha value = 1/occupancy')
         axes[0, 0].set_xlim([np.min(self.alphas) * 0.95, np.max(self.alphas) * 1.05])
@@ -265,15 +288,14 @@ class plotalpha(object):
         #    ax2.plot(self.occupancies, self.int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
         #else:
         #try:
-        axes[0, 1].plot(self.occupancies, stats[2] / self.reference[0], 'o', color='green', label='Positive features')
-        axes[0, 1].plot(self.occupancies, stats[3] / self.reference[1], 's', markersize=5, color = 'red', label='Negative features')
-        axes[0, 1].plot(self.occupancies, self.sum / self.reference[2], '^', color="k", label='All features')
-        axes[0, 1].vlines(self.occ, ymin=0, ymax=np.max(self.sum / self.reference[2]))
+        axes[0, 1].plot(self.occupancies, pos_features, 'o', color='green', label='Positive features')
+        axes[0, 1].plot(self.occupancies, neg_features, 's', markersize=5, color = 'red', label='Negative features')
+        axes[0, 1].plot(self.occupancies, all_features, '^', color="k", label='All features')
 
         #ax2t = ax2.twinx()
         axes[1, 1].plot(self.occupancies, self.pearsonCC, "X", color='blue', label='')
         axes[1, 1].set_ylabel("Pearson CC")
-        axes[1, 1].vlines(self.occ_CC, ymin=0, ymax=np.max(self.pearsonCC))
+        
         #except:
         #        ax2.plot(self.alphas,self.int1, 'o', color = 'red')
                 
@@ -290,6 +312,16 @@ class plotalpha(object):
         if self.alphafound:
             axes[0, 0].set_title('Alpha determination', fontsize='medium', fontweight="bold")
             axes[0, 1].set_title('Occupancy determination', fontsize='medium', fontweight="bold")
+            
+            if self.reference[2] == 0:
+                ymax = 1
+            else:
+                ymax = np.max(self.sum / self.reference[2])
+            axes[0, 0].vlines(self.alpha, ymin=0, ymax=ymax, color = "magenta", linestyles="dashed")
+            axes[0, 1].vlines(self.occ, ymin=0, ymax=ymax, color = "magenta", linestyles="dashed")
+            axes[1, 0].vlines(self.alpha_CC, ymin=0, ymax=np.max(self.pearsonCC), color = "magenta", linestyles="dashed")
+            axes[1, 1].vlines(self.occ_CC, ymin=0, ymax=np.max(self.pearsonCC), color = "magenta", linestyles="dashed")
+            
         else:
             axes[0, 0].set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
             axes[0, 0].text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
@@ -307,13 +339,14 @@ class plotalpha(object):
         print("Occupancy       alpha         absolute   normalized")
 
         for i in range(self.alphas.shape[0]):
-            #if self.log not in [sys.stdout, None]:
-            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>20.3f}".format(self.occupancies[i], self.alphas[i], self.sum[i], self.sum[i] / float(self.reference[2]), self.pearsonCC[i]), file=self.log)
+            if self.reference[2] == 0:
+                all_features = 0
+            else:
+                all_features = self.sum[i] / float(self.reference[2])
+            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>20.3f}".format(self.occupancies[i], self.alphas[i], self.sum[i], all_features, self.pearsonCC[i]), file=self.log)
+            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>20.3f}".format(self.occupancies[i], self.alphas[i], self.sum[i], all_features, self.pearsonCC[i]))
 
-            print("{:>5.3f} {:>15.3f} {:>15.3f} {:>10.3f} {:>20.3f}".format(self.occupancies[i], self.alphas[i], self.sum[i], self.sum[i] / float(self.reference[2]), self.pearsonCC[i]))
-
-        #if self.log not in [sys.stdout, None]:
-        print("Fobs-Fobs map {:>23.3f}".format(self.reference[2], file=self.log))
+        print("Fobs-Fobs map {:>23.3f}".format(self.reference[2]), file=self.log)
         print("Fobs-Fobs map {:>23.3f}".format(self.reference[2]))
 
         #print("Standard alphadetermination", file=self.log)

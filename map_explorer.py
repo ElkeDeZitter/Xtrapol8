@@ -79,79 +79,85 @@ def blob_detection(out, residlst, map_object, threshold, peak, coord, radius,inf
     return np.concatenate((arr_pos, arr_neg), axis=0)
 
 def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
+    """
+    1) Find peaks >= the peak (peak_detection_threshold) and asing blobs to all vaxels around the peak that have a value >= threshold (peak_integration_floor)
+    2) Asign a unique number to each of voxels of each blob
+    3) Only keep those blobs which have the peak voxel wihtin the radius from a protein atom
+    4) Asign the blobs to the atoms and store the atom associated peak/blob information
+    """
 
+    s = ndimage.morphology.generate_binary_structure(3,3)
+    if threshold < 0:
+        copy = np.where(map_object.data <= threshold, 1, 0)
+        copy_peak = np.where(map_object.data <= -peak, 1, 0)
+        bla = ('negative', 'below')
+    else:
+        copy = np.where(map_object.data >= threshold, 1, 0)
+        copy_peak = np.where(map_object.data >= peak, 1, 0)
+        bla = ('positive', 'above')
 
-        s = ndimage.morphology.generate_binary_structure(3,3)
+    labeled_array, num_features = ndimage.label(copy, structure=s)
+    labeled_array_peak, num_features_peak = ndimage.label(copy_peak, structure=s)
+
+    all_atoms = []
+    mask_indices = []
+    blobs = []
+    bla = (num_features_peak,) + bla
+    print('Found  %i %s blobs %s peak threshold... Now integrating and allocating them.'%bla)
+
+    for i in range(1, num_features_peak+1):
+        atom = []
+
+        feature_to_integrate = labeled_array[np.nonzero(labeled_array_peak == i)][0]
+        indices = np.nonzero(labeled_array == feature_to_integrate)
+        blob = map_object.data[indices]
+        #print(any([np.array_equal(blob, y) for y in blobs]))
+        if np.abs(blob).max() < peak or blob.size < 2 or any([np.array_equal(blob, y) for y in blobs]):
+            continue
+        blobs.append(blob)
+        sum = blob.sum()
+        size = blob.size
+        if threshold < 0.:
+            max = blob.min()
+            argmax = blob.argmin()
+        else:
+            max = blob.max()
+            argmax = blob.argmax()
+        index_max = np.transpose(np.nonzero(labeled_array == feature_to_integrate))[argmax]
+        coord_map = map_object.get_coord_from_map_indices(index_max)
+
+        D = get_d(coord_pdb, coord_map, axis=1)
+
+        if coord_pdb is not None: #if no pdb is provided (should not happen within Xtrapol8)
+            if (radius is not None and D.min() <= radius) or radius is None: #only select blobs which are close enough to atoms
+                atom.extend(info[D.argmin()])
+                atom.extend([D.min(), max, sum, size, indices])
+        else:
+            atom.extend((max, sum, size))
+
+        if atom: #should normally always be the case
+
+            #if coord_pdb is not None and len(atom) == 10 and atom not in all_atoms: all_atoms.append(tuple(atom))
+            #else: all_atoms.append(tuple(atom))
+            all_atoms.append(tuple(atom))
+
+    del copy
+    del copy_peak
+    #print("done")
+    # Nasty but remove duplicate / Use of a decorator ?
+    #arr_all_atoms = np.array(list(set(tuple(all_atoms))))
+    all_atoms = np.array(all_atoms)
+
+    if all_atoms.size > 0:
+        sorted_indices = np.argsort(all_atoms[:, 8].astype(np.float32))
         if threshold < 0:
-            copy = np.where(map_object.data <= threshold, 1, 0)
-            copy_peak = np.where(map_object.data <= -peak, 1, 0)
-            bla = ('negative', 'below')
+            return all_atoms[sorted_indices]
         else:
-            copy = np.where(map_object.data >= threshold, 1, 0)
-            copy_peak = np.where(map_object.data >= peak, 1, 0)
-            bla = ('positive', 'above')
+            all_atoms = all_atoms[sorted_indices]
+            return all_atoms[::-1]
 
-        labeled_array, num_features = ndimage.label(copy, structure=s)
-        labeled_array_peak, num_features_peak = ndimage.label(copy_peak, structure=s)
-
-        all_atoms = []
-        mask_indices = []
-        blobs = []
-        bla = (num_features_peak,) + bla
-        print('Found  %i %s blobs %s peak threshold... Now integrating and allocating them.'%bla)
-
-        for i in range(1, num_features_peak+1):
-            atom = []
-
-            feature_to_integrate = labeled_array[np.nonzero(labeled_array_peak == i)][0]
-            indices = np.nonzero(labeled_array == feature_to_integrate)
-            blob = map_object.data[indices]
-            #print(any([np.array_equal(blob, y) for y in blobs]))
-            if np.abs(blob).max() < peak or blob.size < 2 or any([np.array_equal(blob, y) for y in blobs]):
-                continue
-            blobs.append(blob)
-            sum = blob.sum()
-            size = blob.size
-            if threshold < 0.:
-                max = blob.min()
-                argmax = blob.argmin()
-            else:
-                max = blob.max()
-                argmax = blob.argmax()
-            index_max = np.transpose(np.nonzero(labeled_array == feature_to_integrate))[argmax]
-            coord_map = map_object.get_coord_from_map_indices(index_max)
-
-            D = get_d(coord_pdb, coord_map, axis=1)
-
-            if coord_pdb is not None:
-                if (radius is not None and D.min() <= radius) or radius is None:
-                    atom.extend(info[D.argmin()])
-                    atom.extend([D.min(), max, sum, size, indices])
-            else:
-                atom.extend((max, sum, size))
-
-            if atom:
-
-                if coord_pdb is not None and len(atom) == 10 and atom not in all_atoms: all_atoms.append(tuple(atom))
-                else: all_atoms.append(tuple(atom))
-
-        del copy
-        del copy_peak
-        #print("done")
-        # Nasty but remove duplicate / Use of a decorator ?
-        #arr_all_atoms = np.array(list(set(tuple(all_atoms))))
-        all_atoms = np.array(all_atoms)
-
-        if all_atoms.size > 0:
-            sorted_indices = np.argsort(all_atoms[:, 8].astype(np.float32))
-            if threshold < 0:
-                return all_atoms[sorted_indices]
-            else:
-                all_atoms = all_atoms[sorted_indices]
-                return all_atoms[::-1]
-
-        else:
-            return all_atoms
+    else:
+        return all_atoms
     
 def check_inputs(map_name, pdb, radius, threshold, peak, log):
     """
@@ -225,14 +231,21 @@ def map_explorer(map, pdb, radius, peak_integration_floor, peak_detection_thresh
     residlst = open("%sresidlist.txt" %(maptype),'w')
     args  = check_inputs(map, pdb, radius, peak_integration_floor, peak_detection_threshold, log=log)
     blobs = blob_detection(out, residlst, *args)
-    peaks = blobs[:, 8].astype(np.float32)
-    peaks_corr = np.where(peaks < 0, peaks - (np.max(np.where(peaks > 0, -np.infty, peaks))), peaks - (np.min(
-        np.where(peaks < 0, np.infty,
-                 peaks))))
-
-
+    if len(blobs) >=1 :
+        peaks = blobs[:, 8].astype(np.float32)
+    else:
+        mask = np.ndarray([0,0])
+        return outname, outname, mask, [0, 0, 0]
+    peaks_corr = np.where(peaks < 0, peaks - (np.max(np.where(peaks > 0, -np.infty, peaks))), peaks - (np.min(np.where(peaks < 0, np.infty,peaks))))
     idx = np.where(scipy.stats.zscore(np.abs(peaks_corr)) > zscore)
-    mask = blobs[idx, -1]
+    if idx[0].shape[0] >= 1:
+        mask = blobs[idx, -1] #Keep the coordinates of the blob rather than storing the whole mask 
+    else:
+        #zscoring did not work, no blobs retained
+        mask = blobs[:, -1]
+        shape1 = mask.shape[0]
+        mask = mask.reshape((1,shape1))
+         
     out.close()
     residlst.close()
     outname_zscore = "%speakintegration_Zscore%4.2f.txt" % (maptype, zscore)
