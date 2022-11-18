@@ -247,8 +247,9 @@ class plotalpha(object):
         
         #write pickle for GUI
         out = open('alpha_occupancy_determination_%s.pickle' %(self.outsuffix) ,'wb') #write to pickle for GUI
-        stats = [self.alphas,self.occupancies, self.pos, self.neg, self.results]
-        stats.append(True)
+        #stats = [self.alphas,self.occupancies, self.pos, self.neg, self.results]
+        stats = [self.alphas,self.occupancies, self.pos, self.neg, self.sum, self.reference, self.pearsonCC, self.alpha, self.occ, self.alpha_CC, self.occ_CC]
+        #stats.append(True)
         
         if self.alphafound:
             stats.append(True)
@@ -260,14 +261,14 @@ class plotalpha(object):
         fig, axes = plt.subplots(2, 2, figsize=(10, 10))
         
         if self.reference[0] == 0:
-            pos_features = np.zeros(len(stats[2]))
+            pos_features = np.zeros(len(self.pos))
         else:
-            pos_features = np.asarray(stats[2]) / self.reference[0]
+            pos_features = np.asarray(self.pos) / self.reference[0]
             
         if self.reference[1] == 0:
-            neg_features = np.zeros(len(stats[3]))
+            neg_features = np.zeros(len(self.neg))
         else:
-            neg_features = np.asarray(stats[3]) / self.reference[1]
+            neg_features = np.asarray(self.neg) / self.reference[1]
             
         if self.reference[2] == 0:
             all_features = np.zeros(len(self.sum))
@@ -277,37 +278,29 @@ class plotalpha(object):
         axes[0, 0].plot(self.alphas, pos_features, 'o', color = 'green', label='Positive features')
         axes[0, 0].plot(self.alphas, neg_features, 's', markersize = 5, color = 'red', label='Negative features')
         axes[0, 0].plot(self.alphas, all_features, '^', color="k", label='All features')
-        
-        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color ='blue')
-        axes[1, 0].set_ylabel("Pearson CC")
-        axes[1, 0].set_xlabel('Alpha value = 1/occupancy')
         axes[0, 0].set_xlim([np.min(self.alphas) * 0.95, np.max(self.alphas) * 1.05])
-        axes[1, 0].set_xlim([np.min(self.alphas)*0.95, np.max(self.alphas)*1.05])
-
-        #if self.resids_lst == None:
-        #    ax2.plot(self.occupancies, self.int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-        #else:
-        #try:
+        axes[0, 0].set_xlabel('Alpha value = 1/occupancy')
+        axes[0, 0].set_ylabel('Normalized difference map ratio')
+        axes[0, 0].legend(loc='lower right', bbox_to_anchor=(0.94, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+        
         axes[0, 1].plot(self.occupancies, pos_features, 'o', color='green', label='Positive features')
         axes[0, 1].plot(self.occupancies, neg_features, 's', markersize=5, color = 'red', label='Negative features')
         axes[0, 1].plot(self.occupancies, all_features, '^', color="k", label='All features')
-
-        #ax2t = ax2.twinx()
-        axes[1, 1].plot(self.occupancies, self.pearsonCC, "X", color='blue', label='')
-        axes[1, 1].set_ylabel("Pearson CC")
-        
-        #except:
-        #        ax2.plot(self.alphas,self.int1, 'o', color = 'red')
-                
-        #ax2.set_ylim([0.,1.1])
         axes[0, 1].set_xlim([np.min(self.occupancies)*0.95, np.max(self.occupancies)*1.05])
-        axes[1, 1].set_xlabel('Triggered state occupancy')
-        axes[0, 0].set_ylabel('Normalized difference map ratio')
+        axes[0, 1].set_xlabel('Triggered state occupancy')
         axes[0, 1].set_ylabel('Normalized difference map ratio')
-        axes[1, 0].legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+
+        
+        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color ='blue', label = 'PeasonCC')
+        axes[1, 0].set_xlim([np.min(self.alphas)*0.95, np.max(self.alphas)*1.05])
+        axes[1, 0].set_xlabel('Alpha value = 1/occupancy')
+        axes[1, 0].set_ylabel("Pearson CC")
+        axes[1, 0].legend(loc='lower right', bbox_to_anchor=(0.84, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+
+        axes[1, 1].plot(self.occupancies, self.pearsonCC, "X", color='blue', label = 'PeasonCC')
+        axes[1, 1].set_ylabel("Pearson CC")
+        axes[1, 1].set_xlabel('Triggered state occupancy')
         axes[1, 1].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
-        #axes[1, 0].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
-        #axes[0, 0].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
 
         if self.alphafound:
             axes[0, 0].set_title('Alpha determination', fontsize='medium', fontweight="bold")
@@ -327,9 +320,11 @@ class plotalpha(object):
             axes[0, 0].text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
             axes[0, 1].set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
             axes[0, 1].text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
-        plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
+        plt.subplots_adjust(hspace=0.25,wspace=0.5, left=0.09, right=0.88, top = 0.95)
         plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
         plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
+        
+        plt.close()
     
     def estimate_alpha(self):
         #self.get_integration_lists()

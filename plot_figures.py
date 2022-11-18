@@ -334,51 +334,121 @@ def plot_alpha_occupancy_determination(suffix):
         return
     
     with open(pickle_file,'rb') as stats_file:
-        alphas, occupancies, int1_norm, int2_norm, resids_lst_used, alphafound = pickle.load(stats_file)
+        alphas,occupancies, pos, neg, pos_neg_sum, reference, pearsonCC, alpha, occ, alpha_CC, occ_CC, alphafound = pickle.load(stats_file)
         
-    if resids_lst_used == False:
-        ax1.plot(alphas, int1, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-    else:
-        try:
-            ax1.plot(alphas, int1_norm, 'o', color = 'red', label='Selected residues')      
-            ax1.plot(alphas, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')
-            ax1.plot(alphas, results, '^', color="green", label='Selected residues with enhanced SNR')
-        except: 
-            ax1.plot(alphas, int1_norm, 'o', color = 'red')
+    ### OLD PLOTALPHA:
+    #if resids_lst_used == False:
+        #ax1.plot(alphas, int1, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+    #else:
+        #try:
+            #ax1.plot(alphas, int1_norm, 'o', color = 'red', label='Selected residues')      
+            #ax1.plot(alphas, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')
+            #ax1.plot(alphas, results, '^', color="green", label='Selected residues with enhanced SNR')
+        #except: 
+            #ax1.plot(alphas, int1_norm, 'o', color = 'red')
 
-    ax1.set_ylim([0.,1.1])
-    ax1.set_xlim([np.min(alphas)*0.95,np.max(alphas)*1.05])
-    ax1.set_xlabel('Alpha value = 1/occupancy')
-    ax1.set_ylabel('Normalized difference map ratio')
+    #ax1.set_ylim([0.,1.1])
+    #ax1.set_xlim([np.min(alphas)*0.95,np.max(alphas)*1.05])
+    #ax1.set_xlabel('Alpha value = 1/occupancy')
+    #ax1.set_ylabel('Normalized difference map ratio')
 
-    if resids_lst_used == False:
-        ax2.plot(occupancies, int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-    else:
-        try:
-            ax2.plot(occupancies, int1_norm, 'o', color = 'red', label='Selected residues') 
-            ax2.plot(occupancies, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')     
-            ax2.plot(occupancies, results, '^', color="green", label='Selected residues with enhanced SNR')
-        except:
-            ax2.plot(alphas,int1, 'o', color = 'red')
+    #if resids_lst_used == False:
+        #ax2.plot(occupancies, int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
+    #else:
+        #try:
+            #ax2.plot(occupancies, int1_norm, 'o', color = 'red', label='Selected residues') 
+            #ax2.plot(occupancies, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')     
+            #ax2.plot(occupancies, results, '^', color="green", label='Selected residues with enhanced SNR')
+        #except:
+            #ax2.plot(alphas,int1, 'o', color = 'red')
             
-    ax2.set_ylim([0.,1.1])
-    ax2.set_xlim([np.min(occupancies)*0.95,np.max(occupancies)*1.05])
-    ax2.set_xlabel('Triggered state occupancy')
-    ax2.set_ylabel('Normalized difference map ratio')
-    ax2.legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+    #ax2.set_ylim([0.,1.1])
+    #ax2.set_xlim([np.min(occupancies)*0.95,np.max(occupancies)*1.05])
+    #ax2.set_xlabel('Triggered state occupancy')
+    #ax2.set_ylabel('Normalized difference map ratio')
+    #ax2.legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+
+    #if alphafound:
+        #ax1.set_title('Alpha determination', fontsize = 'medium',fontweight="bold")
+        #ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
+    #else:
+        #ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+        #ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
+        #ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+        #ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
+    #plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
+    #plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
+    #plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
+    #plt.close()
+    
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+    
+    if reference[0] == 0:
+        pos_features = np.zeros(len(pos))
+    else:
+        pos_features = np.asarray(pos) / reference[0]
+        
+    if reference[1] == 0:
+        neg_features = np.zeros(len(neg))
+    else:
+        neg_features = np.asarray(neg) / reference[1]
+        
+    if reference[2] == 0:
+        all_features = np.zeros(len(pos_neg_sum))
+    else:
+        all_features = np.asarray(pos_neg_sum) / reference[2]
+            
+    axes[0, 0].plot(alphas, pos_features, 'o', color = 'green', label='Positive features')
+    axes[0, 0].plot(alphas, neg_features, 's', markersize = 5, color = 'red', label='Negative features')
+    axes[0, 0].plot(alphas, all_features, '^', color="k", label='All features')
+    axes[0, 0].set_xlim([np.min(alphas) * 0.95, np.max(alphas) * 1.05])
+    axes[0, 0].set_xlabel('Alpha value = 1/occupancy')
+    axes[0, 0].set_ylabel('Normalized difference map ratio')
+    axes[0, 0].legend(loc='lower right', bbox_to_anchor=(0.94, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+    
+    axes[0, 1].plot(occupancies, pos_features, 'o', color='green', label='Positive features')
+    axes[0, 1].plot(occupancies, neg_features, 's', markersize=5, color = 'red', label='Negative features')
+    axes[0, 1].plot(occupancies, all_features, '^', color="k", label='All features')
+    axes[0, 1].set_xlim([np.min(occupancies)*0.95, np.max(occupancies)*1.05])
+    axes[1, 1].set_xlabel('Triggered state occupancy')
+    axes[0, 1].set_ylabel('Normalized difference map ratio')
+    
+    axes[1, 0].plot(alphas, pearsonCC, "X", color ='blue', label = "Pearson CC")
+    axes[1, 0].set_xlim([np.min(alphas)*0.95, np.max(alphas)*1.05])
+    axes[1, 0].set_ylabel("Pearson CC")
+    axes[1, 0].set_xlabel('Alpha value = 1/occupancy')
+    axes[1, 0].legend(loc='lower right', bbox_to_anchor=(0.84, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
+
+    axes[1, 1].plot(occupancies, pearsonCC, "X", color='blue', label='Pearson CC')
+    axes[1, 1].set_xlim([np.min(occupancies) * 0.95, np.max(occupancies) * 1.05])
+    axes[1, 1].set_xlabel('Triggered state occupancy')
+    axes[1, 1].set_ylabel("Pearson CC")
 
     if alphafound:
-        ax1.set_title('Alpha determination', fontsize = 'medium',fontweight="bold")
-        ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
+        axes[0, 0].set_title('Alpha determination', fontsize='medium', fontweight="bold")
+        axes[0, 1].set_title('Occupancy determination', fontsize='medium', fontweight="bold")
+        
+        if reference[2] == 0:
+            ymax = 1
+        else:
+            ymax = np.max(pos_neg_sum / reference[2])
+        axes[0, 0].vlines(alpha, ymin=0, ymax=ymax, color = "magenta", linestyles="dashed")
+        axes[0, 1].vlines(occ, ymin=0, ymax=ymax, color = "magenta", linestyles="dashed")
+        axes[1, 0].vlines(alpha_CC, ymin=0, ymax=np.max(pearsonCC), color = "magenta", linestyles="dashed")
+        axes[1, 1].vlines(occ_CC, ymin=0, ymax=np.max(pearsonCC), color = "magenta", linestyles="dashed")
+        
     else:
-        ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-        ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
-        ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-        ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
-    plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
+        axes[0, 0].set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+        axes[0, 0].text(np.min(alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
+        axes[0, 1].set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
+        axes[0, 1].text(np.min(occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
+    plt.subplots_adjust(hspace=0.25,wspace=0.5, left=0.09, right=0.88, top = 0.95)
     plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
-    plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
+    plt.savefig("%s.png"%(outname), dpi=300, bbox_inches='tight', pad_inches = 0)
+
     plt.close()
+    
 
 def plot_FoFosigmas(pickle_file='Fextr_binstats.pickle'):
     """
