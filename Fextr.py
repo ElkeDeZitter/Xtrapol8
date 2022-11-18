@@ -449,7 +449,7 @@ output{
         .type = bool
         .help = Automatically open COOT at the end.
         .expert_level = 0
-    ddm_scale = 1.5
+    ddm_scale = None
         .type = float
         .help = The ddm colors will range from -scale to +scale.
         .expert_level = 2
