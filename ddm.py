@@ -7,7 +7,7 @@ What do you need?
 - a triggered pdb file
 - three letter code for each ligand
 - Optional:
-    - output directory name (alreaydexisting or not)
+    - output directory name (already existing or not)
     - ddm scale factor
 
 example of the standaloner version:
@@ -396,7 +396,7 @@ class Difference_distance_analysis(object):
                         #scale = self.scale
                         
                     #if (n_rows > 1 and n_cols > 1):
-                    img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
+                    img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-self.scale, vmax=self.scale)
                     
                     axs[row, col].set_xticks(tick_pos)
                     axs[row, col].set_xticklabels(seq_ticks)
@@ -434,7 +434,7 @@ if __name__=='__main__':
     parser.add_argument('-o', '--pdb_other', type=str, default=None, help= 'Other pdb file to be compared with the reference pdb file.')
     parser.add_argument('-l', '--ligand', type=str, action="append", help= 'Ligand 3-letter code. Add this argument for each ligand.')
     parser.add_argument('-d', '--outdir', type=str, default=None, help= 'Output directory. Default is current directory')
-    parser.add_argument('-s', '--scale', type=float, default=1.5, help= 'Scale for ddm. Default=1.5')
+    parser.add_argument('-s', '--scale', type=float, default=None, help= 'Scale for ddm. Default=None, the scale will be determined on the ddm of the first chain.')
     
     if len(sys.argv) < 2:
         parser.print_help()
