@@ -388,10 +388,12 @@ class Difference_distance_analysis(object):
                     tick_pos = list(map(lambda x: x*tick_jump, range(len(seq_ticks))))
 
                     
+                    #if ddm_scale = None, then the scale will be based on the first chain, but will be the same
+                    #for all different chains, which is important for chain comparison
                     if self.scale == None:
-                        scale = max(np.abs(np.min(ddm_residue)), np.abs(np.max(ddm_residue)))
-                    else:
-                        scale = self.scale
+                        self.scale = max(np.abs(np.min(ddm_residue)), np.abs(np.max(ddm_residue)))
+                    #else:
+                        #scale = self.scale
                         
                     #if (n_rows > 1 and n_cols > 1):
                     img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
