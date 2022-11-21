@@ -220,7 +220,7 @@ def print_results(blobs, out, residlst):
                 residIDlst.append(residID)
                 residlst.write(residID)
         print("")
-        out.write("\n")
+        #out.write("\n")
 
 def map_explorer(map, pdb, radius, peak_integration_floor, peak_detection_threshold, zscore= 2, maptype='', log=sys.stdout):
     if len(maptype)> 0:
