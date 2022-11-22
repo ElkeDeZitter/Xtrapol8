@@ -133,8 +133,6 @@ class Difference_analysis(object):
         """
         Get list with three-letter codes for ligands. Needed in further analysis.
         """
-        #Read the additional files and check if these are sufficient to completely interprete the pdb file (aka, are all ligand codes provided)
-        #self.check_additional_files()
         
         #Extact the ligand codes from the cif-files
         cif_list = []
@@ -161,25 +159,13 @@ class Difference_analysis(object):
             print('Output directory: %s'%(outdir))
             print('Output directory: %s'%(outdir), file=self.log)
 
-    #def run_map_explorer(self, difference_map, map_type = ""):
-        #"""
-        #Run map_explorer and obtain the file containing the peakintegration information
-        #"""
-        
-        ##map_expl_file = map_explorer(difference_map, self.pdb_in, self.radius, self.threshold, self.peak)
-        
-        #map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref = map_explorer(difference_map, self.pdb_in, self.radius, self.threshold, self.peak, self.z_score)
-        
-        #map_expl_out_FoFo = os.path.abspath(check_file_existance(map_expl_out_FoFo))
-        #residlist_zscore  = os.path.abspath(check_file_existance(residlist_zscore))
-        
-        #return map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref
     
     def do_map_explorer_and_get_data_FoFo(self):
         """
-        Run map_explorer on the FoFo map and append the peakintegration file to a list
+        Run map_explorer on the FoFo map and append the peakintegration results to a list
         If no residue list is provided: search for the highest peaks in the map using the Z-score
         Make the secondary structure plot (ss-plot) with the difference map peaks
+        Write the actual map data to an object as it will be required to calculate the Pearson correlation coef.
         """
         print("************Map explorer: %s ************" %(self.fofo), file=self.log)
         print("************Map explorer: %s ************" %(self.fofo))
@@ -331,6 +317,9 @@ if __name__ == "__main__":
     peak         = args.peak_detection_threshold
     z_score      = args.z_score
     suffix       = args.suffix
+    
+    if residue_list != None:
+        print("The use of a residue list is disabled. The residue list will be determined based on the map-explorere parameters. I'm working on it!")
     
     
     if args.log_file == None:

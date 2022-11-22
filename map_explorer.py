@@ -184,7 +184,7 @@ def check_inputs(map_name, pdb, radius, threshold, peak, log):
             #xplor = iotbx.xplor.map.reader(file_name=map)
         else:
             try:
-              map_object = XPLOR_Maps(map_name) \
+              map_object = XPLOR_Maps(map_name)
               #    = ccp4_map.map_reader(file_name=map)
             except:
               print("Sorry, %s map is not a valid XPLOR or CCP4 map. Aborting map explorer." % map, file=log)

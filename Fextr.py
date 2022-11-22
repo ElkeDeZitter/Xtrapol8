@@ -96,6 +96,9 @@ from mmtbx import utils
 from cctbx import sgtbx
 from iotbx import pdb
 from mmtbx.scaling.matthews import p_vm_calculator
+from iotbx import ccp4_map
+from scipy.stats import pearsonr
+
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -2408,55 +2411,55 @@ def run(args):
 
     #For each map type, keep track of the map_explorer files. Therefore generate lists with output file names. Not elegant, but works.
     if qFextr_map:
-        qFextr_map_expl_fles  = [map_expl_out_FoFo]
+        qFextr_map_expl_fles  = [FoFo_ref]
         qFextr_recref_mtz_lst = []
         qFextr_recref_pdb_lst = [DH.pdb_in]
         qFextr_realref_lst    = [DH.pdb_in]
         qFextr_recrealref_lst = [DH.pdb_in]
     if kFextr_map:
-        kFextr_map_expl_fles  = [map_expl_out_FoFo]
+        kFextr_map_expl_fles  = [FoFo_ref]
         kFextr_recref_mtz_lst = []
         kFextr_recref_pdb_lst = [DH.pdb_in]
         kFextr_realref_lst    = [DH.pdb_in]
         kFextr_recrealref_lst = [DH.pdb_in]
     if Fextr_map:
-        Fextr_map_expl_fles  = [map_expl_out_FoFo]
+        Fextr_map_expl_fles  = [FoFo_ref]
         Fextr_recref_mtz_lst = []
         Fextr_recref_pdb_lst = [DH.pdb_in]
         Fextr_recrealref_lst = [DH.pdb_in]
         Fextr_realref_lst    = [DH.pdb_in]
     if qFgenick_map:
-        qFgenick_map_expl_fles  = [map_expl_out_FoFo]
+        qFgenick_map_expl_fles  = [FoFo_ref]
         qFgenick_recref_mtz_lst = []
         qFgenick_recref_pdb_lst = [DH.pdb_in]
         qFgenick_realref_lst    = [DH.pdb_in]
         qFgenick_recrealref_lst = [DH.pdb_in]
     if kFgenick_map:
-        kFgenick_map_expl_fles  = [map_expl_out_FoFo]
+        kFgenick_map_expl_fles  = [FoFo_ref]
         kFgenick_recref_mtz_lst = []
         kFgenick_recref_pdb_lst = [DH.pdb_in]
         kFgenick_realref_lst    = [DH.pdb_in]
         kFgenick_recrealref_lst = [DH.pdb_in]
     if Fgenick_map:
-        Fgenick_map_expl_fles  = [map_expl_out_FoFo]
+        Fgenick_map_expl_fles  = [FoFo_ref]
         Fgenick_recref_mtz_lst = []
         Fgenick_recref_pdb_lst = [DH.pdb_in]
         Fgenick_realref_lst    = [DH.pdb_in]
         Fgenick_recrealref_lst = [DH.pdb_in]
     if qFextr_calc_map:
-        qFextr_calc_map_expl_fles  = [map_expl_out_FoFo]
+        qFextr_calc_map_expl_fles  = [FoFo_ref]
         qFextr_calc_recref_mtz_lst = []
         qFextr_calc_recref_pdb_lst = [DH.pdb_in]
         qFextr_calc_realref_lst    = [DH.pdb_in]
         qFextr_calc_recrealref_lst = [DH.pdb_in]
     if kFextr_calc_map:
-        kFextr_calc_map_expl_fles  = [map_expl_out_FoFo]
+        kFextr_calc_map_expl_fles  = [FoFo_ref]
         kFextr_calc_recref_mtz_lst = []
         kFextr_calc_recref_pdb_lst = [DH.pdb_in]
         kFextr_calc_realref_lst    = [DH.pdb_in]
         kFextr_calc_recrealref_lst = [DH.pdb_in]
     if Fextr_calc_map:
-        Fextr_calc_map_expl_fles  = [map_expl_out_FoFo]
+        Fextr_calc_map_expl_fles  = [FoFo_ref]
         Fextr_calc_recref_mtz_lst = []
         Fextr_calc_recref_pdb_lst = [DH.pdb_in]
         Fextr_calc_realref_lst    = [DH.pdb_in]
@@ -2474,8 +2477,6 @@ def run(args):
     if os.path.isfile('%s/pymol_movie.py' %(outdir)):
         os.remove('%s/pymol_movie.py' %(outdir))
 
-    from iotbx import ccp4_map
-    from scipy.stats import pearsonr
     fofo_data = ccp4_map.map_reader(file_name=FoFo.ccp4_name).data.as_numpy_array()
     ################################################################
     #Loop over occupancies and calculate extrapolated structure factors
@@ -2705,6 +2706,8 @@ def run(args):
         #plot_sigmas(maptype_lst=list(map(lambda x: re.sub(r"\_map$", "", x), final_maptypes)))
         plot_negative_reflections()
 
+    #free some memory by deleting the fofo_map
+    del fofo_data
     ################################################################
     #Repeat the last step in order to make sure we have all plots correctly
     #Go back to output directory and generate the plots from the pickle files
@@ -2727,42 +2730,7 @@ def run(args):
     print("ESTIMATE OPTIMAL OCCUPANCY", file=log)
     print('-----------------------------------------', file=log)
 
-    ##To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
-    ##In both cases, a file with residues to base the calculation on should be provided
-    ##   In case of faf, the Z-score based list will automatically be choses
-    ##   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
-    #if params.f_and_maps.fast_and_furious:
-        #print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
-        #residlst = residlist_zscore
-    #else:
-        #print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
-        #if params.map_explorer.use_occupancy_from_distance_analysis:
-            #print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-        #else:
-            #print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-            
-        #timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
-        #rlist, _, _ = select([sys.stdin], [], [], timeout)
-        #if rlist:
-            #s = sys.stdin.readline()
-            #residlst = s.strip("\n")
-        #else:
-            #residlst = residlist_zscore
-            
-        #if os.path.isfile(residlst.lstrip().rstrip()):
-            #residlst = residlst.lstrip().rstrip()
-        #elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
-            #residlst = startdir+"/"+residlst.lstrip().rstrip()
-        #else:
-            #residlst = residlist_zscore
-        #try:
-            #residlst = os.path.abspath(residlst)
-            #if os.path.isfile(residlst) == False:
-                #raise IOError
-        #except IOError:
-            #print("File %s not found. All peaks and residues will be used" %(str(residlst)))
-            #residlst = None
-    #Avoid waiting and use immediately the Z-score list. The standalone version can be used if a specific residue list needs to be used.
+    #Use Z-score list to select the residues. The standalone version can be used if a specific residue list needs to be used.
     residlst = residlist_zscore
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst), file=log)
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst))
@@ -2852,7 +2820,8 @@ def run(args):
             map_expl_lst   = Fextr_calc_map_expl_fles 
 
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
-        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], FoFo_ref, mp_type, log=log).estimate_alpha()
+        #alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], FoFo_ref, mp_type, log=log).estimate_alpha()
+        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], map_expl_lst[0], mp_type, log=log).estimate_alpha()
         
         if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
             # If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
