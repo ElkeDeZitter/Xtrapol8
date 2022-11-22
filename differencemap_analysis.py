@@ -53,6 +53,9 @@ from mmtbx import utils
 from cctbx import sgtbx, crystal
 from iotbx import pdb
 from iotbx.file_reader import any_file
+from iotbx import ccp4_map
+import iotbx.xplor.map
+from scipy.stats import pearsonr
 from map_explorer import map_explorer
 from map_explorer_analysis import Map_explorer_analysis
 from plotalpha import plotalpha
@@ -91,6 +94,9 @@ class Difference_analysis(object):
         
         #check if all additional files are provided, this is needed to extract the ligand codes:
         self.check_additional_files()
+        
+        #initiate the mask as None
+        self.mask = None
         
     
     def check_additional_files(self):
@@ -155,16 +161,21 @@ class Difference_analysis(object):
             print('Output directory: %s'%(outdir))
             print('Output directory: %s'%(outdir), file=self.log)
 
-    def run_map_explorer(self, difference_map, map_type = ""):
-        """
-        Run map_explorer and obtain the file containing the peakintegration information
-        """
+    #def run_map_explorer(self, difference_map, map_type = ""):
+        #"""
+        #Run map_explorer and obtain the file containing the peakintegration information
+        #"""
         
-        map_expl_file = map_explorer(difference_map, self.pdb_in, self.radius, self.threshold, self.peak)
+        ##map_expl_file = map_explorer(difference_map, self.pdb_in, self.radius, self.threshold, self.peak)
         
-        return map_expl_file
+        #map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref = map_explorer(difference_map, self.pdb_in, self.radius, self.threshold, self.peak, self.z_score)
+        
+        #map_expl_out_FoFo = os.path.abspath(check_file_existance(map_expl_out_FoFo))
+        #residlist_zscore  = os.path.abspath(check_file_existance(residlist_zscore))
+        
+        #return map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref
     
-    def get_map_explorer_results_FoFo(self):
+    def do_map_explorer_and_get_data_FoFo(self):
         """
         Run map_explorer on the FoFo map and append the peakintegration file to a list
         If no residue list is provided: search for the highest peaks in the map using the Z-score
@@ -174,32 +185,28 @@ class Difference_analysis(object):
         print("************Map explorer: %s ************" %(self.fofo))
         
         #Run map_explorer
-        map_expl_out_FoFo = self.run_map_explorer(self.fofo)
+        map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref = map_explorer(self.fofo, self.pdb_in, self.radius, self.threshold, self.peak, self.z_score)
+        
         map_expl_out_FoFo = os.path.abspath(check_file_existance(map_expl_out_FoFo))
+        residlist_zscore  = os.path.abspath(check_file_existance(residlist_zscore))
+
         print("FoFo map explored. Results in %s" %(map_expl_out_FoFo), file=self.log)
         print("FoFo map explored. Results in %s" %(map_expl_out_FoFo))
         
-        #append the absolute path to the list of map_explorer files
-        self.map_exp_files.append(map_expl_out_FoFo)
-        
-        #Get the Z-score list
-        if (self.residue_list == None or os.path.abspath(self.residue_list) == False):
-            residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=self.log).residlist_top(Z=self.z_score)
-            residlist_zscore  = os.path.abspath(check_file_existance(residlist_zscore))
-            print("Residue list in residlist.txt and residues associated to highestpeaks in %s\n" %(residlist_zscore), file=self.log)
-            print("Residue list in residlist.txt and residues associated to highestpeaks in %s\n" %(residlist_zscore))
-            self.residue_list = residlist_zscore
-        else:
-            self.residue_list = os.path.abspath(self.residue_list)
-            print("Residue list provided: %s" %(self.residue_list), file=self.log)
-            print("Residue list provided: %s" %(self.residue_list))
-
         #Generate plot which indicates the secondary structure and integrated peak volume
         Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo, ligands = self.extract_ligand_codes(),log=self.log).get_ss(self.pdb_in)
         print("Difference map plot generated")
         
+        #Extract the FoFo data
+        if self.fofo.endswith('ccp4'):
+            self.fofo_data = ccp4_map.map_reader(file_name=self.fofo).data.as_numpy_array()
+        else:
+            self.fofo_data = iotbx.xplor.map.reader(file_name=self.fofo).data.as_numpy_array()
         
-    def get_map_explorer_results_FextrFcalc(self):
+        self.map_exp_files.append(FoFo_ref)
+        self.mask = mask
+        
+    def get_map_explorer_results_FextrFcalc(self, mask = None):
         """
         Run map_eplorer on each mFextr-DFcalc map and append results to the list with peakintegration files
         """
@@ -220,13 +227,40 @@ class Difference_analysis(object):
             self.check_and_make_dir(out_dir)
             os.chdir(out_dir)
             
-            #Run map_explorer
-            map_expl_out = self.run_map_explorer(fextrfcalc, map_type = self.prefix)
-            map_expl_out = os.path.abspath(check_file_existance(map_expl_out))
-            print("FoFo map explored. Results in %s" %(map_expl_out), file=self.log)
-            print("FoFo map explored. Results in %s" %(map_expl_out))
+            ##Run map_explorer
+            #map_expl_out = self.run_map_explorer(fextrfcalc, map_type = self.prefix)
+            #map_expl_out = os.path.abspath(check_file_existance(map_expl_out))
+            #print("FoFo map explored. Results in %s" %(map_expl_out), file=self.log)
+            #print("FoFo map explored. Results in %s" %(map_expl_out))
             
-            self.map_exp_files.append(map_expl_out)
+            if fextrfcalc.endswith('ccp4'):
+                data = ccp4_map.map_reader(file_name=fextrfcalc).data.as_numpy_array()
+            else:
+                data = iotbx.xplor.map.reader(file_name=fextrfcalc).data.as_numpy_array()
+            pos = 0
+            neg = 0
+            #print(mask[0,0])
+            
+            if self.mask == None:
+                print("Mask not found. Run get_map_explorer_results_FoFo first and make sure it ran correctly.")
+                return
+                
+            else:
+                for i in range(self.mask.shape[1]):
+                    tmp = data[self.mask[0, i]].sum()
+                    if tmp > 0: pos+= tmp
+                    else: neg -= tmp
+                
+            try:
+                CC = pearsonr(self.fofo_data.flatten(), data.flatten())[0]
+            except ValueError:
+                #the fft_map function might change the cystal gridding. In that case the maps do not have the same shape
+                #and thus the CC cannot be calculated. Not nice, but at least Xtrapol8 can continue.
+                #in this case, also the output from plotalpha is wrong since the mask will be incorrectly projected!!!
+                print("Pearson correlation factor could not be calculated. The CC will be set to zero.")
+                CC = 0
+
+            self.map_exp_files.append([CC, pos, neg, pos+neg])
             
             os.chdir(start_dir)
             
@@ -239,14 +273,15 @@ class Difference_analysis(object):
         
         print("---------------------------------------------", file=self.log)
         #Map_explorer and map_explorer_analysis on the FoFo map
-        self.get_map_explorer_results_FoFo()
+        self.do_map_explorer_and_get_data_FoFo()
         
         #Map_explorer om the FextrFcalc maps
         self.get_map_explorer_results_FextrFcalc()
         
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
         print("---------------------------------------------",file=self.log)
-        alpha, occ = plotalpha(self.map_exp_files, self.residue_list, self.prefix, log=self.log).estimate_alpha()
+        #alpha, occ = plotalpha(self.map_exp_files, self.residue_list, self.prefix, log=self.log).estimate_alpha()
+        alpha, occ = plotalpha(self.occupancies, self.map_exp_files[1:], self.map_exp_files[0], self.prefix, log=self.log).estimate_alpha()
     
         print("---------------------------------------------", file=self.log)
 
