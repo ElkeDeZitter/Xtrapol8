@@ -161,13 +161,13 @@ def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
         if np.abs(blob).max() < peak or blob.size < 2 or any([np.array_equal(blob, y) for y in blobs]):
             continue
         blobs.append(blob)
-        sum = blob.sum()
+        sm = blob.sum()
         size = blob.size
         if threshold < 0.:
-            max = blob.min()
+            mx = blob.min()
             argmax = blob.argmin()
         else:
-            max = blob.max()
+            mx = blob.max()
             argmax = blob.argmax()
         index_max = np.transpose(np.nonzero(labeled_array == feature_to_integrate))[argmax]
         coord_map = map_object.get_coord_from_map_indices(index_max)
@@ -177,9 +177,9 @@ def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
         if coord_pdb is not None: #if no pdb is provided (should not happen within Xtrapol8)
             if (radius is not None and D.min() <= radius) or radius is None: #only select blobs which are close enough to atoms
                 atom.extend(info[D.argmin()])
-                atom.extend([D.min(), max, sum, size, indices])
+                atom.extend([D.min(), mx, sm, size, indices])
         else:
-            atom.extend((max, sum, size))
+            atom.extend((mx, sm, size))
 
         if atom: #should normally always be the case
 
