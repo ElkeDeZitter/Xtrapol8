@@ -8,11 +8,13 @@ What do you need?
 - A reference model
 - list with mFextr-DFcalc map files.
 - list with occupancies in the same order as the associated mFextr-DFcalc map files
+- map-explorer parameters
 - Optional:
     - Residue list for which the difference map peaks will be used to estimate the occupancy (in the format as an Xtrapol8 residuelist)
         If no residue list provided, a residue list will be calculated based on the Z-score
     - Outsuffix to be added to the output files (will be used as a prefix for some files)
-    - Log-file. If not provided, then output will written to a predifined file
+    - Log-file
+    - Output directory
     
     
 usage
@@ -313,7 +315,10 @@ if __name__ == "__main__":
     
     fofo_map         = os.path.abspath(args.fofo_map)
     model_pdb        = os.path.abspath(args.model_pdb)
-    additional_files = list(map(lambda x: os.path.abspath(x), args.additional_files.split(",")))
+    if args.additional_files != None:
+        additional_files = list(map(lambda x: os.path.abspath(x), args.additional_files.split(",")))
+    else:
+        additional_files = []
     fextrfcalcs      = list(map(lambda x: os.path.abspath(x),args.fextrfcalc_list.split(",")))
     occupancies      = list(map(lambda x : float(x), args.occupancies.split(",")))
         
