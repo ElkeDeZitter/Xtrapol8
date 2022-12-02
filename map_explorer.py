@@ -377,7 +377,7 @@ class Maps(object):
         self.transfo_matrix = np.array([[ self.a, self.b * np.cos(self.gamma), self.c * np.cos(self.beta)],
                                         [0,       self.b * np.sin(self.gamma), - self.c * self.cosa_star * np.sin(self.beta)],
                                         [0,       0,                           self.c * np.sin(self.beta)*self.sina_star]
-                                        ])
+                                        ]).T
 
     def get_coord_from_map_indices(self, indices, verbose=False):
         """
