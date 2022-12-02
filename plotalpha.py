@@ -291,13 +291,13 @@ class plotalpha(object):
         axes[0, 1].set_ylabel('Normalized difference map ratio')
 
         
-        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color ='blue', label = 'PeasonCC')
+        axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color ='blue', label = 'PearsonCC')
         axes[1, 0].set_xlim([np.min(self.alphas)*0.95, np.max(self.alphas)*1.05])
         axes[1, 0].set_xlabel('Alpha value = 1/occupancy')
         axes[1, 0].set_ylabel("Pearson CC")
         axes[1, 0].legend(loc='lower right', bbox_to_anchor=(0.84, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
 
-        axes[1, 1].plot(self.occupancies, self.pearsonCC, "X", color='blue', label = 'PeasonCC')
+        axes[1, 1].plot(self.occupancies, self.pearsonCC, "X", color='blue', label = 'PearsonCC')
         axes[1, 1].set_ylabel("Pearson CC")
         axes[1, 1].set_xlabel('Triggered state occupancy')
         axes[1, 1].set_xlim([np.min(self.occupancies) * 0.95, np.max(self.occupancies) * 1.05])
