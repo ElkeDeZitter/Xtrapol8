@@ -283,7 +283,7 @@ class Distance_analysis(object):
     def get_residlist(self):
         if self.resids_lst != None:
             with open(self.resids_lst) as rs_lst:
-                residlst = rs_lst.readlines()
+                residlst = rs_lst.read().split("\n")
                 residlst = [lne for lne in residlst if len(lne)>0]
             if len(residlst) == 0: 
                 self.resids_lst = None
@@ -668,7 +668,7 @@ class Distance_analysis(object):
                     print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/((val/fitting_matrix[1, n,j])+ fitting_matrix[2, n,j])), file=self.log)
                     print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/((val/fitting_matrix[1, n,j])+ fitting_matrix[2, n,j])))
                     ax0.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.30, label='Distance')
-                    ax0.plot(x, np.abs(sigmoid_fit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.20, label = 'Exp. fit')
+                    ax0.plot(x, np.abs(sigmoid_fit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.20, label = 'Fit')
                 a+=1
         else:
             print("Too much distances, only plot averages", file=self.log)
