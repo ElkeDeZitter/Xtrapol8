@@ -208,7 +208,7 @@ class Pymol_movie(object):
     def get_residlist(self):
         if self.resids_lst != None:
             with open(self.resids_lst) as rs_lst:
-                residlst = rs_lst.readlines()
+                residlst = rs_lst.read().split("\n")
                 residlst = [lne for lne in residlst if len(lne)>0]
             if len(residlst) == 0: 
                 self.resids_lst = None

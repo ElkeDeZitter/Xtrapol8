@@ -427,7 +427,7 @@ class MainFrame(wx.Frame):
 
     def OnLoadResults(self, evt):
         PathResults = self.onBrowseDir(evt=None)
-        Phil = os.path.join(PathResults,'Xtrapol8_out.phil')
+        Phil = os.path.join(PathResults, 'Xtrapol8_out.phil')
         if os.path.exists(Phil):
             print(Phil)
             self.OnOpenPhil(event=None, phil_file=Phil)
@@ -469,7 +469,10 @@ class MainFrame(wx.Frame):
                         tab.addFextrImg(filepath)
                 else:
                     print("%s does not exists" %filepath)
-            self.notebook.ResultsBooks[run].tabOcc.onFinished()
+            if self.inputs[run].output.generate_fofo_only:
+                self.notebook.ResultsBooks[run].tabLog.CreateCoot()
+            else:
+                self.notebook.ResultsBooks[run].tabOcc.onFinished()
 
         return
     

@@ -8,11 +8,13 @@ What do you need?
 - A reference model
 - list with mFextr-DFcalc map files.
 - list with occupancies in the same order as the associated mFextr-DFcalc map files
+- map-explorer parameters
 - Optional:
     - Residue list for which the difference map peaks will be used to estimate the occupancy (in the format as an Xtrapol8 residuelist)
         If no residue list provided, a residue list will be calculated based on the Z-score
     - Outsuffix to be added to the output files (will be used as a prefix for some files)
-    - Log-file. If not provided, then output will written to a predifined file
+    - Log-file
+    - Output directory
     
     
 usage
@@ -53,6 +55,9 @@ from mmtbx import utils
 from cctbx import sgtbx, crystal
 from iotbx import pdb
 from iotbx.file_reader import any_file
+from iotbx import ccp4_map
+import iotbx.xplor.map
+from scipy.stats import pearsonr
 from map_explorer import map_explorer
 from map_explorer_analysis import Map_explorer_analysis
 from plotalpha import plotalpha
@@ -92,6 +97,9 @@ class Difference_analysis(object):
         #check if all additional files are provided, this is needed to extract the ligand codes:
         self.check_additional_files()
         
+        #initiate the mask as None
+        self.mask = None
+        
     
     def check_additional_files(self):
         """
@@ -127,8 +135,6 @@ class Difference_analysis(object):
         """
         Get list with three-letter codes for ligands. Needed in further analysis.
         """
-        #Read the additional files and check if these are sufficient to completely interprete the pdb file (aka, are all ligand codes provided)
-        #self.check_additional_files()
         
         #Extact the ligand codes from the cif-files
         cif_list = []
@@ -155,51 +161,39 @@ class Difference_analysis(object):
             print('Output directory: %s'%(outdir))
             print('Output directory: %s'%(outdir), file=self.log)
 
-    def run_map_explorer(self, difference_map, map_type = ""):
-        """
-        Run map_explorer and obtain the file containing the peakintegration information
-        """
-        
-        map_expl_file = map_explorer(difference_map, self.pdb_in, self.radius, self.threshold, self.peak)
-        
-        return map_expl_file
     
-    def get_map_explorer_results_FoFo(self):
+    def do_map_explorer_and_get_data_FoFo(self):
         """
-        Run map_explorer on the FoFo map and append the peakintegration file to a list
+        Run map_explorer on the FoFo map and append the peakintegration results to a list
         If no residue list is provided: search for the highest peaks in the map using the Z-score
         Make the secondary structure plot (ss-plot) with the difference map peaks
+        Write the actual map data to an object as it will be required to calculate the Pearson correlation coef.
         """
         print("************Map explorer: %s ************" %(self.fofo), file=self.log)
         print("************Map explorer: %s ************" %(self.fofo))
         
         #Run map_explorer
-        map_expl_out_FoFo = self.run_map_explorer(self.fofo)
+        map_expl_out_FoFo, residlist_zscore, mask, FoFo_ref = map_explorer(self.fofo, self.pdb_in, self.radius, self.threshold, self.peak, self.z_score, self.residue_list)
+                
         map_expl_out_FoFo = os.path.abspath(check_file_existance(map_expl_out_FoFo))
+
         print("FoFo map explored. Results in %s" %(map_expl_out_FoFo), file=self.log)
         print("FoFo map explored. Results in %s" %(map_expl_out_FoFo))
         
-        #append the absolute path to the list of map_explorer files
-        self.map_exp_files.append(map_expl_out_FoFo)
-        
-        #Get the Z-score list
-        if (self.residue_list == None or os.path.abspath(self.residue_list) == False):
-            residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=self.log).residlist_top(Z=self.z_score)
-            residlist_zscore  = os.path.abspath(check_file_existance(residlist_zscore))
-            print("Residue list in residlist.txt and residues associated to highestpeaks in %s\n" %(residlist_zscore), file=self.log)
-            print("Residue list in residlist.txt and residues associated to highestpeaks in %s\n" %(residlist_zscore))
-            self.residue_list = residlist_zscore
-        else:
-            self.residue_list = os.path.abspath(self.residue_list)
-            print("Residue list provided: %s" %(self.residue_list), file=self.log)
-            print("Residue list provided: %s" %(self.residue_list))
-
         #Generate plot which indicates the secondary structure and integrated peak volume
         Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo, ligands = self.extract_ligand_codes(),log=self.log).get_ss(self.pdb_in)
         print("Difference map plot generated")
         
+        #Extract the FoFo data
+        if self.fofo.endswith('ccp4'):
+            self.fofo_data = ccp4_map.map_reader(file_name=self.fofo).data.as_numpy_array()
+        else:
+            self.fofo_data = iotbx.xplor.map.reader(file_name=self.fofo).data.as_numpy_array()
         
-    def get_map_explorer_results_FextrFcalc(self):
+        self.map_exp_files.append(FoFo_ref)
+        self.mask = mask
+        
+    def get_map_explorer_results_FextrFcalc(self, mask = None):
         """
         Run map_eplorer on each mFextr-DFcalc map and append results to the list with peakintegration files
         """
@@ -208,27 +202,55 @@ class Difference_analysis(object):
         
         for i,fextrfcalc in enumerate(self.fextrfcalc_list):
             print("\n************Map explorer: %s ************" %(fextrfcalc), file=self.log)
+            print("occupancy: %.3f" %(self.occupancies[i]), file=self.log)
             print("\n************Map explorer: %s ************" %(fextrfcalc))
+            print("occupancy: %.3f" %(self.occupancies[i]))
             
-            fextrfcalc = os.path.abspath(fextrfcalc)
+            #fextrfcalc = os.path.abspath(fextrfcalc)
             
             #Need to work in different directories because
             #1) map_explorer writes always the same filename
             #2) plotalpha used the occupancy determined from the directory
-            occ = self.occupancies[i]
-            out_dir = "%s_occupancy_%.3f" %(self.prefix, occ)
-            self.check_and_make_dir(out_dir)
-            os.chdir(out_dir)
+            #occ = self.occupancies[i]
+            #out_dir = "%s_occupancy_%.3f" %(self.prefix, occ)
+            #self.check_and_make_dir(out_dir)
+            #os.chdir(out_dir)
             
-            #Run map_explorer
-            map_expl_out = self.run_map_explorer(fextrfcalc, map_type = self.prefix)
-            map_expl_out = os.path.abspath(check_file_existance(map_expl_out))
-            print("FoFo map explored. Results in %s" %(map_expl_out), file=self.log)
-            print("FoFo map explored. Results in %s" %(map_expl_out))
+            ##Run map_explorer
+            #map_expl_out = self.run_map_explorer(fextrfcalc, map_type = self.prefix)
+            #map_expl_out = os.path.abspath(check_file_existance(map_expl_out))
+            #print("FoFo map explored. Results in %s" %(map_expl_out), file=self.log)
+            #print("FoFo map explored. Results in %s" %(map_expl_out))
             
-            self.map_exp_files.append(map_expl_out)
+            if fextrfcalc.endswith('ccp4'):
+                data = ccp4_map.map_reader(file_name=fextrfcalc).data.as_numpy_array()
+            else:
+                data = iotbx.xplor.map.reader(file_name=fextrfcalc).data.as_numpy_array()
+            pos = 0
+            neg = 0
+            #print(mask[0,0])
             
-            os.chdir(start_dir)
+            try:
+                for i in range(self.mask.shape[1]):
+                    tmp = data[self.mask[0, i]].sum()
+                    if tmp > 0: pos+= tmp
+                    else: neg -= tmp
+            except AttributeError: #when self.mask = None  as set in the __init__
+                print("Mask not found. Run get_map_explorer_results_FoFo first and make sure it ran correctly.")
+                return
+                
+            try:
+                CC = pearsonr(self.fofo_data.flatten(), data.flatten())[0]
+            except ValueError:
+                #the fft_map function might change the cystal gridding. In that case the maps do not have the same shape
+                #and thus the CC cannot be calculated. Not nice, but at least Xtrapol8 can continue.
+                #in this case, also the output from plotalpha is wrong since the mask will be incorrectly projected!!!
+                print("Pearson correlation factor could not be calculated. The CC will be set to zero.")
+                CC = 0
+
+            self.map_exp_files.append([CC, pos, neg, pos+neg])
+            
+            #os.chdir(start_dir)
             
     def run_difference_map_analysis(self):
         """
@@ -236,17 +258,26 @@ class Difference_analysis(object):
         1) map explorer
         2) plotalpha
         """
+        print("map_explorer parameters:", file=self.log)
+        print("  peak_integration_floor: %f" %(self.threshold), file=self.log)
+        print("  peak_detection_threshold: %f" %(self.peak), file=self.log)
+        print("  radius: %f" %(self.radius), file=self.log)
+        if self.residue_list == None:
+            print("  z_score: %f" %(self.z_score), file=self.log)
+        else:
+            print("  residue list: %s" %(self.residue_list), file=self.log)
         
         print("---------------------------------------------", file=self.log)
         #Map_explorer and map_explorer_analysis on the FoFo map
-        self.get_map_explorer_results_FoFo()
+        self.do_map_explorer_and_get_data_FoFo()
         
         #Map_explorer om the FextrFcalc maps
         self.get_map_explorer_results_FextrFcalc()
         
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
         print("---------------------------------------------",file=self.log)
-        alpha, occ = plotalpha(self.map_exp_files, self.residue_list, self.prefix, log=self.log).estimate_alpha()
+        #alpha, occ = plotalpha(self.map_exp_files, self.residue_list, self.prefix, log=self.log).estimate_alpha()
+        alpha, occ = plotalpha(self.occupancies, self.map_exp_files[1:], self.map_exp_files[0], self.prefix, log=self.log).estimate_alpha()
     
         print("---------------------------------------------", file=self.log)
 
@@ -255,10 +286,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = 'Standalone version of the difference map analysis for occupancy estimation.')
     
     #input files
-    parser.add_argument('-f', '--fofo_map', default="my_input.map", help="Fourier difference map (FoFo) in xplor format (.map)")
+    parser.add_argument('-f', '--fofo_map', default="my_input.map", help="Fourier difference map (FoFo) in ccp4 or xplor format (.ccp4 or .map)")
     parser.add_argument('-m', '--model_pdb', default='input.pdb', help='Reference coordinates in pdb format.')
     parser.add_argument('-a', '--additional_files', default = None, help='Additional files required for correct interpration of the pdb file, e.g ligand cif file, restraints file. Comma-seperated, no spaces.')
-    parser.add_argument('-x', '--fextrfcalc_list', default='mfextr-Dfcalc_with_occ0.1.map,mfextr-Dfcalc_with_occ0.2.map', help='list of mfextr-Dfcalc map files in xplor format (.map) to be analysed. Comma-seperated, no spaces.')
+    parser.add_argument('-x', '--fextrfcalc_list', default='mfextr-Dfcalc_with_occ0.1.map,mfextr-Dfcalc_with_occ0.2.map', help='list of mfextr-Dfcalc map files in ccp4 or xplor format (.cpp4 or .map) to be analysed. Comma-seperated, no spaces.')
     parser.add_argument('-o', '--occupancies', default ='0.1, 0.2', help='list of occupancies, in the same order as the mfextr-Dfcalc map files. Comma-seperated, no spaces.')
     
     #map_explorer parameters
@@ -266,11 +297,12 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--radius', default = 2.0, type=float, help="maximum radius in Angstrom to allocate a density blob to a protein atom (e.g. the resolution of the extrapolated maps)")
     parser.add_argument('-t', '--peak_integration_floor', default = 3.5, type=float,  help="integration threshold in sigma")
     parser.add_argument('-p', '--peak_detection_threshold', default = 4.0, type=float, help="Peak detection threshold in sigma")
-    parser.add_argument('-z', '--z_score', default = 2.0, type=float, help='Z-score to determine residue list with only highest peaks')
+    parser.add_argument('-z', '--z_score', default = 2.0, type=float, help='Z-score to determine residue list with only highest peaks (will be used to generate a residue list only if no residue list is provided.')
 
     #auxiliary paramters
     parser.add_argument('-s', '--suffix', default = '', help='suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).')
     parser.add_argument('-l', '--log_file', default=None, help='write results to a file.')
+    parser.add_argument('-d', '--outdir', default=os.getcwd(), help='output directory.')
     
     
     #print help if no arguments provided
@@ -283,21 +315,54 @@ if __name__ == "__main__":
     
     fofo_map         = os.path.abspath(args.fofo_map)
     model_pdb        = os.path.abspath(args.model_pdb)
-    additional_files = args.additional_files.split(",")
-    fextrfcalcs      = args.fextrfcalc_list.split(",")
+    if args.additional_files != None:
+        additional_files = list(map(lambda x: os.path.abspath(x), args.additional_files.split(",")))
+    else:
+        additional_files = []
+    fextrfcalcs      = list(map(lambda x: os.path.abspath(x),args.fextrfcalc_list.split(",")))
     occupancies      = list(map(lambda x : float(x), args.occupancies.split(",")))
-    if len(fextrfcalcs) != len(occupancies):
-        print("Number of occupancies and mFextr-DFcalc maps is not equal. Please from a single occupancy for each map.")
-        sys.exit()
         
-    residue_list = args.residue_list
+    if args.residue_list != None:
+        residue_list = os.path.abspath(args.residue_list)
+    else:
+        residue_list = args.residue_list
     radius       = args.radius
     threshold    = args.peak_integration_floor
     peak         = args.peak_detection_threshold
     z_score      = args.z_score
     suffix       = args.suffix
-    
-    
+        
+    if len(fextrfcalcs) != len(occupancies):
+        print("Number of occupancies and mFextr-DFcalc maps is not equal. Please provide a single occupancy for each map.")
+        sys.exit()
+        
+    outdir = args.outdir
+    i = 1
+    while os.path.exists(outdir):
+        if os.path.isdir(outdir):
+            if len(os.listdir(outdir)) ==0:
+                #outdir = self.outdir
+                break
+        ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+        #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
+            #outdir = self.outdir
+            #break
+        outdir = "%s_%d" %(args.outdir, i)
+        i += 1
+        if i == 1000: #to avoid endless loop, but this leads to a max of 1000 runs
+            break
+    try:
+        os.mkdir(outdir)
+        print('Output directory being created: %s'%(outdir))
+    except OSError:
+        try:
+            os.makedirs(outdir)
+            print('Output directory being created: %s'%(outdir))
+        except OSError:
+            print("Output directory: %s" %(outdir))
+    os.chdir(outdir)
+
+
     if args.log_file == None:
         log = open('differencemap_analysis_%s.log' %(suffix), 'w')
     else:

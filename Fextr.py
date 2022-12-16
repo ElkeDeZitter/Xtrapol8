@@ -96,6 +96,9 @@ from mmtbx import utils
 from cctbx import sgtbx
 from iotbx import pdb
 from mmtbx.scaling.matthews import p_vm_calculator
+from iotbx import ccp4_map
+from scipy.stats import pearsonr
+
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -449,7 +452,7 @@ output{
         .type = bool
         .help = Automatically open COOT at the end.
         .expert_level = 0
-    ddm_scale = 1.5
+    ddm_scale = None
         .type = float
         .help = The ddm colors will range from -scale to +scale.
         .expert_level = 2
@@ -994,14 +997,30 @@ class FobsFobs(object):
         """
         if qweighting:
             maptype = 'qFoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+            F = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel)
+            #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
         elif kweighting:
             maptype = 'kFoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+            F = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel)
+            #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
         else:
             maptype = 'FoFo'
-            self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+            F = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel)
+            #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
+        self.mtz_name, self.ccp4_name, self.xplor_name = F.write_FoFo_output()
+        self.crystal_gridding = F.crystal_gridding
+
         
+    def get_crystal_gridding(self):
+        """
+        Return the crystal_gridding of the FoFo map so that the same gridding can be used to calculate other maps on the same grid.
+        """
+        if self.crystal_gridding:
+            return self.crystal_gridding
+        else:
+            print("Crystal gridding not defined yet. Have you calculated maps before?")
+            return 1
+       
        
 class Fextrapolate(object):
     """
@@ -1018,9 +1037,10 @@ class Fextrapolate(object):
                  fobs_on,
                  fmodel_fobs_off,
                  rfree,
-                 occ=1,
-                 name_out='Fextrapolate',
-                 neg_refl_handle='fill_missing'):
+                 occ              = 1,
+                 name_out         = 'Fextrapolate',
+                 neg_refl_handle  = 'fill_missing',
+                 crystal_gridding = None):
         self.fdif            = fdif
         self.fdif_q          = fdif_q
         self.fdif_k          = fdif_k
@@ -1035,6 +1055,7 @@ class Fextrapolate(object):
         self.alf             = 1/(self.occ)
         self.neg_refl_handle = neg_refl_handle
         self.indices         = fobs_off.indices()
+        self.crystal_gridding= crystal_gridding
         self.get_UC_and_SG()
         #print("Calculating Fextr and maps for occupancy %.3f." %(occ))
         if neg_refl_handle in ['no_fill', 'reject_no_fill', 'zero_no_fill', 'fcalc_no_fill', 'fref_no_fill', 'truncate_no_fill']: #'addconstant_no_fill', 'massage_no_fill'
@@ -1271,32 +1292,32 @@ class Fextrapolate(object):
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_ms = self.negatives_reject(self.fextr_ms)
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
-                self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['zero_and_fill', 'zero_no_fill']:
                 fextr_ms = self.negatives_zero(self.fextr_ms)
-                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             #elif self.neg_refl_handle in ['addconstant_and_fill', 'addconstant_no_fill']:
                 #fextr_ms = self.add_minimum_to_all(self.fextr_ms)
                 ##No need to update fmodel because for fextr and fextr_calc maps we only use the xray-model from it
-                #self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                #self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['fcalc_and_fill', 'fcalc_no_fill']:
                 fextr_ms = self.negatives_fcalc(self.fextr_ms)
-                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['fref_and_fill', 'fref_no_fill']:
                 fextr_ms = self.negatives_foff(self.fextr_ms)
-                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['truncate_and_fill', 'truncate_no_fill']:
                 fextr_ms = self.convert_to_I_then_to_F(self.fextr_ms, self.maptype, algorithm='truncate')
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
-                self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             # elif self.neg_refl_handle in ['massage_and_fill', 'massage_no_fill']:
             #     fextr_ms = self.convert_to_I_then_to_F(self.fextr_ms, self.maptype, algorithm='reflection_file_converter')
             #     rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
             #     self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
             else:
-                self.FM = Filesandmaps(self.fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(self.fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         else:
-            self.FM = Filesandmaps(self.fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+            self.FM = Filesandmaps(self.fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             
         try:
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
@@ -1309,7 +1330,7 @@ class Fextrapolate(object):
             print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             fextr_ms = self.negatives_reject(self.fextr_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
-            self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+            self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
                   
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
@@ -1348,9 +1369,9 @@ class Fextrapolate(object):
             print("Negative reflection handling:")
             self.fgenick_ms = self.negatives_reject(self.fgenick_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(self.fgenick_ms)
-            self.FM = Filesandmaps(self.fgenick_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+            self.FM = Filesandmaps(self.fgenick_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         else:
-            self.FM = Filesandmaps(self.fgenick_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+            self.FM = Filesandmaps(self.fgenick_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         fm = self.FM.write_Fgenick_output()
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
         
@@ -1385,32 +1406,32 @@ class Fextrapolate(object):
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-                self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['zero_and_fill', 'zero_no_fill']:
                 fextr_calc_ms = self.negatives_zero(self.fextr_calc_ms)
-                self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             #elif self.neg_refl_handle in ['addconstant_and_fill', 'addconstant_no_fill']:
                 #fextr_calc_ms = self.add_minimum_to_all(self.fextr_calc_ms)
                 ##No need to update fmodel because for fextr and fextr_calc maps we only use the xray-model from it
-                #self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                #self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['fcalc_and_fill', 'fcalc_no_fill']:
                 fextr_calc_ms = self.negatives_fcalc(self.fextr_calc_ms)
-                self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['fref_and_fill', 'fref_no_fill']:
                 fextr_calc_ms = self.negatives_foff(self.fextr_calc_ms)
-                self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['truncate_and_fill', 'truncate_no_fill']:
                 fextr_calc_ms = self.convert_to_I_then_to_F(self.fextr_calc_ms, self.maptype, algorithm='truncate')
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-                self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+                self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             # elif self.neg_refl_handle in ['massage_and_fill', 'massage_no_fill']:
             #     fextr_calc_ms = self.convert_to_I_then_to_F(self.fextr_calc_ms, self.maptype, algorithm='reflection_file_converter')
             #     rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
             #     self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
             else:
-                self.FM = Filesandmaps(self.fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+                self.FM = Filesandmaps(self.fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         else:
-            self.FM = Filesandmaps(self.fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off)
+            self.FM = Filesandmaps(self.fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         
         try:
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
@@ -1423,7 +1444,7 @@ class Fextrapolate(object):
             print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-            self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
+            self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
 
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
@@ -1719,7 +1740,7 @@ class Filesandmaps(object):
     """
     Class to generate mtz files with structure factors; and mtz,ccp4 and xplor files with map coefficients
     """
-    def __init__(self, miller_array, rfree, maptype, prefix, fmodel_ref):
+    def __init__(self, miller_array, rfree, maptype, prefix, fmodel_ref, crystal_gridding = None):
         self.ms         = miller_array
         self.rfree      = rfree
         self.maptype    = maptype
@@ -1735,10 +1756,15 @@ class Filesandmaps(object):
         
         self.sites_cart = self.fmodel_ref.xray_structure.sites_cart()
         
-        self.crystal_gridding = self.ms.crystal_gridding(
-            d_min             = self.ms.d_min(),
-            symmetry_flags    = maptbx.use_space_group_symmetry,
-            resolution_factor = 0.25)
+        if crystal_gridding == None:
+            self.crystal_gridding = self.ms.crystal_gridding(
+                d_min             = self.ms.d_min(),
+                symmetry_flags    = maptbx.use_space_group_symmetry,
+                resolution_factor = 0.25)
+        else:
+            self.crystal_gridding = crystal_gridding
+            
+        #print("Crystal_gridding gridpoints:", self.crystal_gridding.n_grid_points())
         
         if self.maptype.lower() == 'qfofo':
             self.labels = {'data':"QFDIFF", 'map_coefs_diff': "QFOFOWT"}
@@ -1813,6 +1839,7 @@ class Filesandmaps(object):
         
         fft_map_mfodfc = mc_diff.fft_map(
             crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
+        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_sigma_scaling()
         #fft_map_mfodfc.as_ccp4_map(file_name = self.ccp4_name_FoFc)
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
@@ -1950,7 +1977,7 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    version = "1.0.1"
+    version = "1.1.0"
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
     print('-----------------------------------------')
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
@@ -2384,55 +2411,55 @@ def run(args):
 
     #For each map type, keep track of the map_explorer files. Therefore generate lists with output file names. Not elegant, but works.
     if qFextr_map:
-        qFextr_map_expl_fles  = [map_expl_out_FoFo]
+        qFextr_map_expl_fles  = [FoFo_ref]
         qFextr_recref_mtz_lst = []
         qFextr_recref_pdb_lst = [DH.pdb_in]
         qFextr_realref_lst    = [DH.pdb_in]
         qFextr_recrealref_lst = [DH.pdb_in]
     if kFextr_map:
-        kFextr_map_expl_fles  = [map_expl_out_FoFo]
+        kFextr_map_expl_fles  = [FoFo_ref]
         kFextr_recref_mtz_lst = []
         kFextr_recref_pdb_lst = [DH.pdb_in]
         kFextr_realref_lst    = [DH.pdb_in]
         kFextr_recrealref_lst = [DH.pdb_in]
     if Fextr_map:
-        Fextr_map_expl_fles  = [map_expl_out_FoFo]
+        Fextr_map_expl_fles  = [FoFo_ref]
         Fextr_recref_mtz_lst = []
         Fextr_recref_pdb_lst = [DH.pdb_in]
         Fextr_recrealref_lst = [DH.pdb_in]
         Fextr_realref_lst    = [DH.pdb_in]
     if qFgenick_map:
-        qFgenick_map_expl_fles  = [map_expl_out_FoFo]
+        qFgenick_map_expl_fles  = [FoFo_ref]
         qFgenick_recref_mtz_lst = []
         qFgenick_recref_pdb_lst = [DH.pdb_in]
         qFgenick_realref_lst    = [DH.pdb_in]
         qFgenick_recrealref_lst = [DH.pdb_in]
     if kFgenick_map:
-        kFgenick_map_expl_fles  = [map_expl_out_FoFo]
+        kFgenick_map_expl_fles  = [FoFo_ref]
         kFgenick_recref_mtz_lst = []
         kFgenick_recref_pdb_lst = [DH.pdb_in]
         kFgenick_realref_lst    = [DH.pdb_in]
         kFgenick_recrealref_lst = [DH.pdb_in]
     if Fgenick_map:
-        Fgenick_map_expl_fles  = [map_expl_out_FoFo]
+        Fgenick_map_expl_fles  = [FoFo_ref]
         Fgenick_recref_mtz_lst = []
         Fgenick_recref_pdb_lst = [DH.pdb_in]
         Fgenick_realref_lst    = [DH.pdb_in]
         Fgenick_recrealref_lst = [DH.pdb_in]
     if qFextr_calc_map:
-        qFextr_calc_map_expl_fles  = [map_expl_out_FoFo]
+        qFextr_calc_map_expl_fles  = [FoFo_ref]
         qFextr_calc_recref_mtz_lst = []
         qFextr_calc_recref_pdb_lst = [DH.pdb_in]
         qFextr_calc_realref_lst    = [DH.pdb_in]
         qFextr_calc_recrealref_lst = [DH.pdb_in]
     if kFextr_calc_map:
-        kFextr_calc_map_expl_fles  = [map_expl_out_FoFo]
+        kFextr_calc_map_expl_fles  = [FoFo_ref]
         kFextr_calc_recref_mtz_lst = []
         kFextr_calc_recref_pdb_lst = [DH.pdb_in]
         kFextr_calc_realref_lst    = [DH.pdb_in]
         kFextr_calc_recrealref_lst = [DH.pdb_in]
     if Fextr_calc_map:
-        Fextr_calc_map_expl_fles  = [map_expl_out_FoFo]
+        Fextr_calc_map_expl_fles  = [FoFo_ref]
         Fextr_calc_recref_mtz_lst = []
         Fextr_calc_recref_pdb_lst = [DH.pdb_in]
         Fextr_calc_realref_lst    = [DH.pdb_in]
@@ -2450,8 +2477,6 @@ def run(args):
     if os.path.isfile('%s/pymol_movie.py' %(outdir)):
         os.remove('%s/pymol_movie.py' %(outdir))
 
-    from iotbx import ccp4_map
-    from scipy.stats import pearsonr
     fofo_data = ccp4_map.map_reader(file_name=FoFo.ccp4_name).data.as_numpy_array()
     ################################################################
     #Loop over occupancies and calculate extrapolated structure factors
@@ -2467,8 +2492,9 @@ def run(args):
                              DH.fmodel,
                              DH.rfree,
                              occ,
-                             name_out = outname,
-                             neg_refl_handle = params.f_and_maps.negative_and_missing)
+                             name_out         = outname,
+                             neg_refl_handle  = params.f_and_maps.negative_and_missing,
+                             crystal_gridding = FoFo.get_crystal_gridding())
         
         #Results stored in folder depending on occupancy and whether q-weighting is applied.
         new_dirpath_q, new_dirpath_k, new_dirpath = Fextr.create_output_dirs(outdir)
@@ -2536,12 +2562,24 @@ def run(args):
             data = ccp4_map.map_reader(file_name=Fextr.ccp4_name_FoFc).data.as_numpy_array()
             pos = 0
             neg = 0
+            #print(mask[0,0])
+            
             for i in range(mask.shape[1]):
                 tmp = data[mask[0, i]].sum()
                 if tmp > 0: pos+= tmp
                 else: neg -= tmp
+                
+            #print("data",data)
+            #print("data.shape", data.shape)
             #integrated_values.append([pos, neg, pos+neg])
-            CC = pearsonr(fofo_data.flatten(), data.flatten())[0]
+            try:
+                CC = pearsonr(fofo_data.flatten(), data.flatten())[0]
+            except ValueError:
+                #the fft_map function might change the cystal gridding. In that case the maps do not have the same shape
+                #and thus the CC cannot be calculated. Not nice, but at least Xtrapol8 can continue.
+                #in this case, also the output from plotalpha is wrong since the mask will be incorrectly projected!!!
+                print("Pearson correlation factor could not be calculated. The CC will be set to zero.")
+                CC = 0
             #pearsonCC.append(scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0])
 
             #depending on the map-type, append the output-file of mapexplorer to the correct list
@@ -2668,6 +2706,8 @@ def run(args):
         #plot_sigmas(maptype_lst=list(map(lambda x: re.sub(r"\_map$", "", x), final_maptypes)))
         plot_negative_reflections()
 
+    #free some memory by deleting the fofo_map
+    del fofo_data
     ################################################################
     #Repeat the last step in order to make sure we have all plots correctly
     #Go back to output directory and generate the plots from the pickle files
@@ -2690,42 +2730,7 @@ def run(args):
     print("ESTIMATE OPTIMAL OCCUPANCY", file=log)
     print('-----------------------------------------', file=log)
 
-    ##To estimate the optimal occupancy the integrated difference map peaks can be used and/or the structural movements in real space refinement (in slow_and_rigorous mode only)
-    ##In both cases, a file with residues to base the calculation on should be provided
-    ##   In case of faf, the Z-score based list will automatically be choses
-    ##   In sor mode, the user has the possibility to provide a list during a pauze of 5 minutes, but if nothong is provided or file is not found, the Z-score based list will be used.
-    #if params.f_and_maps.fast_and_furious:
-        #print("BASED ON THE DIFFERENCE MAPS (Fo-Fo AND mFextr-DFc) AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS YOU PROVIDED, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS. DEPENDING ON THE Z-SCORE WE SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS. YOU'RE IN FAST AND FURIOUS MODE SO I WILL USE THESE. THIS ONLY WORKS WELL IF YOUR MAPEXPLORER PARAMETERS ARE WELL CHOSEN.")
-        #residlst = residlist_zscore
-    #else:
-        #print("BASED ON THE DIFFERENCE MAPS AND THE THRESHOLD, RADIUS AND PEAK PARAMETERS, WE SELECTED RESIDUES THAT ARE NEAR THE PEAKS ('residlist.txt') DEPENDING ON THE Z-SCORE WE ALSO SELECTED ONLY THE RESIDUES AROUND THE HIGHEST PEAKS ('residlist_zscore.txt'). PLEASE INSPECT THE Fo-Fo DIFFERENCE MAP, MODIFY ONE OF THE RESIDUE ACCORDING TO THOSE RESIDUES THAT YOU BELIEVE HAVE REAL RELEVANT DIFFERENCE PEAKS AND STORE IT UNDER A NEW NAME.")
-        #if params.map_explorer.use_occupancy_from_distance_analysis:
-            #print("WE WILL USE THE DIFFERENCE OF THE REAL-SPACE REFINED MODEL RESIDUES IN THE LIST TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-        #else:
-            #print("WE WILL USE THE DIFFERENCE MAPS PEAKS AROUND THOSE RESIDUES TO SUGGEST A PROPER ALPHA-VALUE/OCCUPANCY OF THE TRIGGERED STATE. IF YOU DO NOT PROVIDE ANYTHING, THE Z-SCORE BASED LIST WILL BE USED AND THE RESULTING ALPHA-VALUE/OCCUPANCY MIGHT INFLUENCED BY ARTEFACTS.")
-            
-        #timeout = 300 #Time-out of 5 minutes to provide a different resid list than the z-score based list
-        #rlist, _, _ = select([sys.stdin], [], [], timeout)
-        #if rlist:
-            #s = sys.stdin.readline()
-            #residlst = s.strip("\n")
-        #else:
-            #residlst = residlist_zscore
-            
-        #if os.path.isfile(residlst.lstrip().rstrip()):
-            #residlst = residlst.lstrip().rstrip()
-        #elif os.path.isfile(startdir+"/"+residlst.lstrip().rstrip()):
-            #residlst = startdir+"/"+residlst.lstrip().rstrip()
-        #else:
-            #residlst = residlist_zscore
-        #try:
-            #residlst = os.path.abspath(residlst)
-            #if os.path.isfile(residlst) == False:
-                #raise IOError
-        #except IOError:
-            #print("File %s not found. All peaks and residues will be used" %(str(residlst)))
-            #residlst = None
-    #Avoid waiting and use immediately the Z-score list. The standalone version can be used if a specific residue list needs to be used.
+    #Use Z-score list to select the residues. The standalone version can be used if a specific residue list needs to be used.
     residlst = residlist_zscore
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst), file=log)
     print("Residue list used for estimation of occupancy of triggered state: %s\n" %(residlst))
@@ -2815,7 +2820,8 @@ def run(args):
             map_expl_lst   = Fextr_calc_map_expl_fles 
 
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
-        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], FoFo_ref, mp_type, log=log).estimate_alpha()
+        #alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], FoFo_ref, mp_type, log=log).estimate_alpha()
+        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], map_expl_lst[0], mp_type, log=log).estimate_alpha()
         
         if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
             # If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
