@@ -40,9 +40,9 @@ from libtbx.utils import null_out
 import mmtbx.map_tools
 import libtbx
 import random
-import boost.python
+import boost_adaptbx.boost.python
 from six.moves import range
-mmtbx_f_model_ext = boost.python.import_ext("mmtbx_f_model_ext")
+mmtbx_f_model_ext = boost_adaptbx.boost.python.import_ext("mmtbx_f_model_ext")
 import mmtbx.masks
 
 class combine(object):

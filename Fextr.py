@@ -700,7 +700,7 @@ class DataHandler(object):
                     try:
                         cif_object=mmtbx.monomer_library.server.read_cif(file_name=fle)
                     except Exception:
-                        raise  AssertionError,"Unable to read the cif file "+fle
+                        raise AssertionError("Unable to read the cif file "+fle)
                     else:
                         if (len(cif_object) > 0):
                             self.cif_objects.append((fle,cif_object))

@@ -253,8 +253,9 @@ class Distance_analysis(object):
         #To estimate alpha however, we should take into account that alpha between 0 and 1 is impossible, hence the curve should actually start at 1.
         #   This comes down to shifting the complete sigmoidal to the right. Hence to calcalute alpha, one should use the following formula
         #   k x (alpha - alphainflection) -1 = val
-        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
         global val
+        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
+
      
         #Sort the pdb files and alphas in order to have alpha from small to large, this is important for fitting
         #This might not work in pyhton3
@@ -263,9 +264,9 @@ class Distance_analysis(object):
         alphas, pdblst =zip(*zipped_sorted)
         self.alphas = list(alphas)
         self.pdblst = list(pdblst)
-        
-        maxalpha = np.max(self.alphas)
         global maxalpha
+        maxalpha = np.max(self.alphas)
+
      
         print("Reference pdb file:", self.pdblst[0], file=log)
         print("Reference pdb file:", self.pdblst[0])

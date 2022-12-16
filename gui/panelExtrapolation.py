@@ -24,7 +24,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import wx
 from wx.lib.pubsub import pub
 
-from utils import CharValidator
+from .utils import CharValidator
 from wx.lib.scrolledpanel import ScrolledPanel
 
 class TabExtrapolation(ScrolledPanel):
@@ -92,9 +92,9 @@ class TabExtrapolation(ScrolledPanel):
         list_occ_sizer.Add(self.ListTextCtrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         self.occ_sizer_final = wx.StaticBoxSizer(Occ, wx.VERTICAL)
-        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL, 0)
         #self.occ_sizer_final.AddSpacer(20)
-        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL, 0)
         #######################
         ###  \Occupancies\  ###
         #######################
@@ -103,7 +103,7 @@ class TabExtrapolation(ScrolledPanel):
         ########################
         ###  Maps N Scaling  ###
         ########################
-        Maps =  wx.StaticBox(self, 1, "Maps and Scaling", size=(800, 200))
+        Maps = wx.StaticBox(self, 1, "Maps and Scaling", size=(800, 200))
 
         FoTxt = wx.StaticText(self, wx.ID_ANY, "Type of FoFo Map : ")
         FoTxt.SetFont(defont)
@@ -115,8 +115,8 @@ class TabExtrapolation(ScrolledPanel):
         #MNS_fgs = wx.FlexGridSizer(2, 4, 10, 10)
 
         MNS_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        MNS_sizer.Add(FoTxt, 0, wx.LEFT  | wx.ALIGN_CENTER_VERTICAL, 10)
-        MNS_sizer.Add(self.FoChoice, 0, wx.LEFT  | wx.ALIGN_CENTER_VERTICAL, 10)
+        MNS_sizer.Add(FoTxt, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        MNS_sizer.Add(self.FoChoice, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         MNS_sizer.AddSpacer(30)
         MNS_sizer.Add(kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         MNS_sizer.Add(self.kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
@@ -231,6 +231,7 @@ class TabExtrapolation(ScrolledPanel):
         self.missChoice.SetFont(defont)
         self.missChoice.SetSelection(0)
         NM_fgs = wx.FlexGridSizer(1, 5, 10, 10)
+        blank = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         NM_fgs.AddMany([neg, self.negChoice, blank, missing, self.missChoice])
         self.NM.AddSpacer(5)
         self.NM.Add(NM_fgs)

@@ -236,9 +236,9 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
-        self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
-        self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
+        self.ToolBar.AddTool(101, "Settings",  wx.Bitmap(os.path.join(script_dir, "gui/pngs/settings_scaled.png")))
+        self.ToolBar.AddTool(102, "Run", wx.Bitmap(os.path.join(script_dir, "gui/pngs/run_scaled.png")))
+        self.ToolBar.AddTool(103, "Stop", wx.Bitmap(os.path.join(script_dir, "gui/pngs/cancel_scaled.png")))
         self.ToolBar.Bind(wx.EVT_TOOL, self.OnToolBar)
         self.ToolBar.Realize()
 
