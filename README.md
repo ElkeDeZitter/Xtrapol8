@@ -136,7 +136,7 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
 * You can add XtrapolG8 to your path for easier accessibilty, otherwise you just memorize where you've put it
    ```sh
    nano ~/.zprofile
-   alias 'XG8=phenix.python <folder/to/Xtrapol8>/Fextr.py'
+   alias 'XG8=phenix.python <folder/to/Xtrapol8>/X8_gui.py'
    ```
    
 * XtrapolG8 can also make use of a pre-made input file:
