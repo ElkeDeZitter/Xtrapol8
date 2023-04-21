@@ -1828,19 +1828,32 @@ class Filesandmaps(object):
             n_real     = fft_map_2mfodfc.n_real(),
             buffer     = 5.0,
             file_name  = self.ccp4_name_2FoFc)
-        #generation of xplor map for 2mfodfc type outcommented as it is not necessary for analysis but takes a lot of space
-        #mmtbx.maps.utils.write_xplor_map(
-            #sites_cart = self.sites_cart,
-            #unit_cell  = fft_map_2mfodfc.unit_cell(),
-            #map_data   = fft_map_2mfodfc.real_map(),
-            #n_real     = fft_map_2mfodfc.n_real(),
-            #buffer     = 5.0,
-            #file_name  = self.xplor_name_2FoFc)
-        
+ 
+        fft_map_2mfodfc = mc_map.fft_map(
+            crystal_gridding =self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
+        #fft_map_2mfodfc.as_ccp4_map(file_name = self.ccp4_name_2FoFc) #Origin not correct, causes problems with pymol
+        iotbx.map_tools.write_ccp4_map(
+            sites_cart = self.sites_cart,
+            unit_cell  = fft_map_2mfodfc.unit_cell(),
+            map_data   = fft_map_2mfodfc.real_map(),
+            n_real     = fft_map_2mfodfc.n_real(),
+            buffer     = 5.0,
+            file_name  = self.ccp4_name_2FoFc.split('.ccp4')[0]+'_vol_scaled.ccp4')
+
+        fft_map_2mfodfc = mc_map.fft_map(
+            crystal_gridding =self.crystal_gridding, resolution_factor=0.25)
+        #fft_map_2mfodfc.as_ccp4_map(file_name = self.ccp4_name_2FoFc) #Origin not correct, causes problems with pymol
+        iotbx.map_tools.write_ccp4_map(
+            sites_cart = self.sites_cart,
+            unit_cell  = fft_map_2mfodfc.unit_cell(),
+            map_data   = fft_map_2mfodfc.real_map(),
+            n_real     = fft_map_2mfodfc.n_real(),
+            buffer     = 5.0,
+            file_name  = self.ccp4_name_2FoFc.split('.ccp4')[0]+'_not_scaled.ccp4')
+
+       
         fft_map_mfodfc = mc_diff.fft_map(
             crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc.as_ccp4_map(file_name = self.ccp4_name_FoFc)
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
             unit_cell  = fft_map_mfodfc.unit_cell(),
@@ -1848,17 +1861,27 @@ class Filesandmaps(object):
             n_real     = fft_map_mfodfc.n_real(),
             buffer     = 5.0,
             file_name  = self.ccp4_name_FoFc)
- 
-        #fft_map_mfodfc.as_xplor_map(file_name = self.xplor_name_FoFc) 
-        #Next is how xplor map are calculated in mtz2map although sites_cart are extracted from a pdb instead of fmodel. In our case coordinates are fractional and hence it is not working
-        mmtbx.maps.utils.write_xplor_map( 
+        
+        fft_map_mfodfc = mc_diff.fft_map(
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
+        iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
             unit_cell  = fft_map_mfodfc.unit_cell(),
             map_data   = fft_map_mfodfc.real_map(),
             n_real     = fft_map_mfodfc.n_real(),
             buffer     = 5.0,
-            file_name  = self.xplor_name_FoFc)
-        
+            file_name  = self.ccp4_name_FoFc.split('.ccp4')[0]+'_vol_scaled.ccp4')
+
+        fft_map_mfodfc = mc_diff.fft_map(
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25)
+        iotbx.map_tools.write_ccp4_map(
+            sites_cart = self.sites_cart,
+            unit_cell  = fft_map_mfodfc.unit_cell(),
+            map_data   = fft_map_mfodfc.real_map(),
+            n_real     = fft_map_mfodfc.n_real(),
+            buffer     = 5.0,
+            file_name  = self.ccp4_name_FoFc.split('.ccp4')[0]+'_not_scaled.ccp4')
+
     def write_FoFo_output(self):
         """
         Write map coefficients for Fo-Fo in mtz, ccp4 and xplor format.
@@ -1866,7 +1889,7 @@ class Filesandmaps(object):
         """
         mtz_name   = '%s_m%s.mtz' %(self.prefix, self.maptype)
         ccp4_name  = '%s_m%s.ccp4' %(self.prefix, self.maptype)
-        xplor_name = '%s_m%s.map' %(self.prefix, self.maptype)
+        #xplor_name = '%s_m%s.map' %(self.prefix, self.maptype)
         
         edm = map_tools_Millerset.electron_density_map(fobs_in=self.ms, fmodel_2=self.fmodel_ref)
         mc_mfofo = edm.map_coefficients(map_type='mfo')
@@ -1884,15 +1907,29 @@ class Filesandmaps(object):
           buffer     = 5.0,
           file_name  = ccp4_name)
 
-        #fft_map_mfofo.as_xplor_map(file_name = xplor_name) #works too but below is how xplor-files arewritten with mtz2map
-        mmtbx.maps.utils.write_xplor_map(
-            sites_cart = self.sites_cart,
-            unit_cell  = fft_map_mfofo.unit_cell(),
-            map_data   = fft_map_mfofo.real_map(),
-            n_real     = fft_map_mfofo.n_real(),
-            buffer     = 5.0,
-            file_name  = xplor_name)
-        
+        fft_map_mfofo = mc_mfofo.fft_map(
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
+        #fft_map_mfofo.as_ccp4_map(file_name  = ccp4_name) #works too but below is how xplor-files arewritten with mtz2map
+        iotbx.map_tools.write_ccp4_map(
+          sites_cart = self.sites_cart,
+          unit_cell  = fft_map_mfofo.unit_cell(),
+          map_data   = fft_map_mfofo.real_map(),
+          n_real     = fft_map_mfofo.n_real(),
+          buffer     = 5.0,
+          file_name  = ccp4_name.split('.ccp4')[0]+'_vol_scaled.ccp4')
+
+        fft_map_mfofo = mc_mfofo.fft_map(
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25)
+        #fft_map_mfofo.as_ccp4_map(file_name  = ccp4_name) #works too but below is how xplor-files arewritten with mtz2map
+        iotbx.map_tools.write_ccp4_map(
+          sites_cart = self.sites_cart,
+          unit_cell  = fft_map_mfofo.unit_cell(),
+          map_data   = fft_map_mfofo.real_map(),
+          n_real     = fft_map_mfofo.n_real(),
+          buffer     = 5.0,
+          file_name  = ccp4_name.split('.ccp4')[0]+'_not_scaled.ccp4')
+
+         
         return mtz_name, ccp4_name, xplor_name
         
     def write_Fextr_Fextr_calc_output(self, fill_missing=True):
