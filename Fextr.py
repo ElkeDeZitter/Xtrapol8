@@ -329,11 +329,11 @@ refinement{
             .type = bool
             .help = use dm (ccp4) for density modification.
             .expert_level = 2
-            combine = *PERT OMIT
+            combine = PERT *OMIT
             .type = choice(multi=False)
             .help = dm combine mode.
             .expert_level = 2
-            cycles = 10
+            cycles = 3
             .type = int
             .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT.
             .expert_level = 2
@@ -1977,7 +1977,7 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    version = "1.1.0"
+    version = "1.2.0"
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
     print('-----------------------------------------')
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now))

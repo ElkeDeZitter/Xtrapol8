@@ -174,8 +174,8 @@ class TabRefinement(ScrolledPanel):
         combine = wx.StaticText(self, wx.ID_ANY, "Combine :")
         cycles = wx.StaticText(self, wx.ID_ANY, "Cycles :")
         self.combine = wx.Choice(self, wx.ID_ANY, choices=["PERT", "OMIT"])
-        self.cycles = wx.TextCtrl(self, wx.ID_ANY, "10", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 30))
-        self.combine.SetSelection(0) # Default
+        self.cycles = wx.TextCtrl(self, wx.ID_ANY, "3", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 30))
+        self.combine.SetSelection(1) # Default
 
         border=5
         DM_GridBag.Add(combine, pos=(0, 0), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
