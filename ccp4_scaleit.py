@@ -32,19 +32,20 @@ def make_mtz_for_scaleit(f_obs_ref, f_obs_2):
     f_obs_ms.mtz_object().write(file_name = mtz_out)
     return mtz_out
 
-def write_scaleit_input(mtz_in, b_scaling, high_res):
+def write_scaleit_input(mtz_in, b_scaling, low_res, high_res):
     mtz_out    = "fromscaleit.mtz"
     script_out = 'launch_scaleit.sh'
     i = open(script_out,'w')
     i.write("#!/bin/bash\n\
 scaleit HKLIN %s HKLOUT %s <<eof > scaleit.log\n\
 REFINE %s \n\
+RESOLUTION %.2f %.2f \n\
 LABIN FP = F_obs_ref SIGFP = SIGF_obs_ref  FPH1 = F_obs_2 SIGFPH1 = SIGF_obs_2 \n\
-eof" %(mtz_in, mtz_out, b_scaling))
+eof" %(mtz_in, mtz_out, b_scaling, low_res, high_res))
     i.close()
     return mtz_out, script_out
 
-def run_scaleit(f_obs_ref, f_obs_2, b_scaling, log=sys.stdout):
+def run_scaleit(f_obs_ref, f_obs_2, b_scaling, low_res=None, high_res=None, log=sys.stdout):
     if b_scaling   == 'isotropic':
         b_scaling  = 'ISOTROPIC'
     elif b_scaling == 'anisotropic':
@@ -52,8 +53,14 @@ def run_scaleit(f_obs_ref, f_obs_2, b_scaling, log=sys.stdout):
     else:
         b_scaling  = 'SCALE'
         
+    dmax, dmin = f_obs_2.d_max_min()
+    if low_res == None:
+        low_res = dmax
+    if high_res == None:
+        high_res = dmin
+        
     mtz_forscaleit = make_mtz_for_scaleit(f_obs_ref, f_obs_2)
-    mtz_fromscaleit, script_scaleit = write_scaleit_input(mtz_forscaleit, b_scaling, f_obs_2.d_min())
+    mtz_fromscaleit, script_scaleit = write_scaleit_input(mtz_forscaleit, b_scaling, low_res, high_res)
     os.system("chmod +x %s" %(script_scaleit))
     print("Running scaleit, see %s" %(script_scaleit), file=log)
     os.system("./%s" %(script_scaleit))

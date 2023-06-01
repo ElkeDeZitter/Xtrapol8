@@ -170,6 +170,14 @@ scaling{
         .type = choice(multi=False)
         .help = B-factor scaling for scaling triggered data vs reference data using scaleit.
         .expert_level = 0
+    high_resolution = None
+        .type = float
+        .help = High resolution for scaling triggered data vs reference data using scaleit. (Angstrom). Will only be used if high resolution of the input data files extends to this value. This only implies scaling, the data will not be cut.
+        .expert_level = 0
+    low_resolution = None
+        .type = float
+        .help = Low resolution for scaling triggered data vs reference data using scaleit. (Angstrom). Will only be used if low resolution of the input data files extends to this value. This only implies scaling, the data will not be cut.
+        .expert_level = 0
     }
 f_and_maps{
     fofo_type = *qfofo fofo kfofo
@@ -898,7 +906,7 @@ class DataHandler(object):
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
         
-    def scale_fobss(self, b_scaling):
+    def scale_fobss(self, b_scaling, low_res=None, high_res=None):
         """
         Scale triggered mtz with internally scaled reference mtz using scaleit.
         """
@@ -907,10 +915,22 @@ class DataHandler(object):
             print("Fobs,reference and Fobs,triggered not being scaled")
             self.fobs_on_scaled = self.fobs_on #don't scale
         else:
+            dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
+            dmax_on, dmin_on = self.fobs_on.d_max_min()
+            if high_res != None:
+                self.scaling_dmin = np.max([high_res, dmin_off, dmin_on])
+            else:
+                self.scaling_dmin = np.max([dmin_off, dmin_on])
+                
+            if low_res != None:
+                self.scaling_dmax = np.min([low_res, dmax_off, dmax_on])
+            else:
+                self.scaling_dmax = np.min([dmax_off, dmax_on])
+                
             print("Fobs,reference and Fobs,triggered scaled using scaleit", file=log)
             print("Fobs,reference and Fobs,triggered scaled using scaleit")
             #self.fobs_on_scaled = scalef_cnslike(self.fobs_off_scaled, self.fobs_on, self.SG, self.rfree, bscale=b_scaling) #run CNS-like scaling
-            self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling) #prepare mtz-file and run scaleit
+            self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling, low_res=self.scaling_dmax, high_res=self.scaling_dmin) #prepare mtz-file and run scaleit
 
 class FobsFobs(object):
     """
@@ -2283,7 +2303,12 @@ def run(args):
     DH.fobs_on = DH.get_common_indices_and_Fobs_off(DH.fobs_on) #compare reflections and reassemble off_state data set after scaling of f_obs_off 
     print("----Scaling Ftriggered with Freference----", file=log)
     print("----Scaling Ftriggered with Freference----")
-    DH.scale_fobss(params.scaling.b_scaling)
+    DH.scale_fobss(params.scaling.b_scaling,
+                   params.scaling.low_resolution,
+                   params.scaling.high_resolution)
+    #update the parameters so that they appear correct in the output phil files
+    params.scaling.high_resolution = DH.scaling_dmin
+    params.scaling.low_resolution  = DH.scaling_dmax
     DH.fobs_on_scaled = DH.get_common_indices_and_Fobs_off(DH.fobs_on_scaled) #compare reflections and reassemble off_state data set after scaling of f_obs_on
     DH.update_fmodel(DH.fobs_off_scaled) #alter fmodel to remove reflections that were removed during fobs_on scaling
     riso, cciso = compute_r_factors(DH.fobs_off_scaled, DH.fobs_on_scaled, DH.rfree, log=log)
