@@ -321,8 +321,8 @@ class TabRefinement(ScrolledPanel):
         refmac_combine = wx.StaticText(self, wx.ID_ANY, "Combine :", size=(80, -1))
         refmac_cycles = wx.StaticText(self, wx.ID_ANY, "Cycles :", size=(50, -1))
         self.refmac_combine = wx.Choice(self, wx.ID_ANY, choices=["PERT", "OMIT"])
-        self.refmac_DM_cycles = wx.TextCtrl(self, wx.ID_ANY, "10", style=wx.TE_PROCESS_ENTER, size=size_TxtCtrl)
-        self.refmac_combine.SetSelection(0)  # Default
+        self.refmac_DM_cycles = wx.TextCtrl(self, wx.ID_ANY, "3", style=wx.TE_PROCESS_ENTER, size=size_TxtCtrl)
+        self.refmac_combine.SetSelection(1)  # Default
         self.refmac_DM = wx.CheckBox(self, wx.ID_ANY, "Density modification")
         self.twinning = wx.CheckBox(self, wx.ID_ANY, "Twinning Refinement")
         self.REFMAC_map_sharpening = wx.CheckBox(self, wx.ID_ANY, "Map Sharpening")

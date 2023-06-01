@@ -428,11 +428,11 @@ refinement{
             .type = bool
             .help = use dm for density modification.
             .expert_level = 2
-            combine = *PERT OMIT
+            combine = PERT *OMIT
             .type = choice(multi=False)
             .help = dm combine mode.
             .expert_level = 2
-            cycles = 10
+            cycles = 3
             .type = int
             .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT.
             .expert_level = 2
