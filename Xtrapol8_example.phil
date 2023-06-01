@@ -106,8 +106,8 @@ refinement {
     additional_refmac_keywords = None
     density_modification {
       density_modification = False
-      combine = *PERT OMIT
-      cycles = 10
+      combine = PERT *OMIT
+      cycles = 3
     }
   }
 }
