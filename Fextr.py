@@ -1960,14 +1960,19 @@ class Filesandmaps(object):
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
 def run(args):
+    
+    version = "1.2.0"
+    now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
+    print('-----------------------------------------')
+    print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
 
     #If no input, show complete help, should be changed in order to give help depending on the attribute level
     if len(args) == 0 :
+        print('-----------------------------------------')
         master_phil.show(attributes_level=1)
         raise Usage("phenix.python Fextr.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
     
     #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
-    now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     logname = "%s_Xtrapol8.log" %(now)
     i=1
     while os.path.isfile(logname):
@@ -1977,10 +1982,7 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    version = "1.2.0"
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
-    print('-----------------------------------------')
-    print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
