@@ -643,10 +643,11 @@ class MainFrame(wx.Frame):
         self.fill_map_types(user_params)
         neg_N_missing = user_params.f_and_maps.negative_and_missing
         neg, fill = neg_N_missing.split('_')[0:2]
-        if neg in ['fill', 'no']:
-            tabExt.negChoice.SetStringSelection('--')
-        else:
-            tabExt.negChoice.SetStringSelection(neg)
+        #if neg in ['fill', 'no']:
+            #tabExt.negChoice.SetStringSelection('--')
+        #else:
+            #tabExt.negChoice.SetStringSelection(neg)
+        tabExt.negChoice.SetStringSelection(neg)
         if fill == 'no':
             tabExt.missChoice.SetSelection(1)
         else:
@@ -959,13 +960,13 @@ class MainFrame(wx.Frame):
         neg = self.notebook.Configure.tabExt.negChoice.GetStringSelection()
         missing = self.notebook.Configure.tabExt.missChoice.GetStringSelection()
         if missing == 'fill': missing = 'and_fill'
-        if neg == '--':
-            if missing == 'and_fill':
-                neg = 'fill'
-                missing = 'missing'
-            else:
-                neg = 'no'
-                missing = 'fill'
+        #if neg == '--':
+            #if missing == 'and_fill':
+                #neg = 'fill'
+                #missing = 'missing'
+            #else:
+                #neg = 'no'
+                #missing = 'fill'
 
 
         tobeparsed += "f_and_maps.negative_and_missing = %s_%s\n" % (neg, missing)

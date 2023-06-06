@@ -224,7 +224,7 @@ class TabExtrapolation(ScrolledPanel):
         neg.SetFont(defont)
         missing = wx.StaticText(self, wx.ID_ANY, "Missing", size=(60, -1))
         missing.SetFont(defont)
-        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "--"])
+        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "keep"])
         self.negChoice.SetFont(defont)
         self.negChoice.SetSelection(0)
         self.missChoice = wx.Choice(self, wx.ID_ANY, choices=["fill", "no_fill"])
