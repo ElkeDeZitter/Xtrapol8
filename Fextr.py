@@ -172,12 +172,12 @@ scaling{
         .expert_level = 0
     high_resolution = None
         .type = float
-        .help = High resolution for scaling triggered data vs reference data using scaleit. (Angstrom). Will only be used if high resolution of the input data files extends to this value. This only implies scaling, the data will not be cut.
-        .expert_level = 0
+        .help = High resolution for scaling triggered data vs reference data using scaleit (Angstrom). Will only be used if high resolution of the input data files extends to this value. This only implies scaling, the data will not be cut. If not specified, then input.high_resolution will be used.
+        .expert_level = 3
     low_resolution = None
         .type = float
-        .help = Low resolution for scaling triggered data vs reference data using scaleit. (Angstrom). Will only be used if low resolution of the input data files extends to this value. This only implies scaling, the data will not be cut.
-        .expert_level = 0
+        .help = Low resolution for scaling triggered data vs reference data using scaleit (Angstrom). Will only be used if low resolution of the input data files extends to this value. This only implies scaling, the data will not be cut. If not specified, then input.low_resolution will be used.
+        .expert_level = 3
     }
 f_and_maps{
     fofo_type = *qfofo fofo kfofo
@@ -214,7 +214,7 @@ f_and_maps{
         .expert_level = 0
     negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill keep_and_fill keep_no_fill reject_and_fill reject_no_fill zero_and_fill zero_no_fill fill_missing no_fill
         .type = choice(multi=False)
-        .help = Handling of negative and missing extrapolated structure factor amplitudes (ESFAs) Note that this will not be applied on the Fourier difference map. If seleceted, filling of missing reflections is only carried on maps of the 2mFextr-DFcalc type. This parameters is NOT applicable for (q/k)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied. keep_and_fill or keep_no_fill maps will be calculated in addition in all cases but not further used in Xtrapol8. keep_and_fill and keep_no_fill replace the old fill_missing and no_fill arguments which will become invalid keywords in future Xtrapol8 versions. Please check the manual for more information.
+        .help = Handling of negative and missing extrapolated structure factor amplitudes (ESFAs) Note that this will not be applied on the Fourier difference map. If selected, filling of missing reflections is only carried on maps of the 2mFextr-DFcalc type. This parameters is NOT applicable for (q/k)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied. keep_no_fill maps will be calculated in addition in all cases. keep_and_fill and keep_no_fill replace the old fill_missing and no_fill arguments which will become invalid keywords in future Xtrapol8 versions. Please check the manual for more information.
         .expert_level = 2
     }
 map_explorer{

@@ -1,10 +1,5 @@
 <!-- PROJECT LOGO -->
 <br />
-  <p left="center">
-    New in version 1.2.0:<br />
-    Untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. <br />
-    See release notes and manual for more info and other new features.
-  </p>
 <p align="center">
   <a href="https://github.com/ElkeDeZitter/Xtrapol8">
     <img src="Xtrapol8_logo.png" alt="Logo" width="405" height="120">
@@ -52,6 +47,10 @@ Xtrapol8 is software for the calculation of Fourier difference maps, extrapolate
 An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4](https://www.youtube.com/watch?v=H21L3-M_ge4)
 
 If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1):640, 2022. 
+
+New in version 1.2.0:<br />
+Untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. <br />
+See release notes and manual for more info and other new features.
 
 <!-- GETTING STARTED -->
 ## Getting Started
