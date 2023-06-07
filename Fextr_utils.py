@@ -33,7 +33,7 @@ from cctbx.array_family import flex
 #import matplotlib
 #matplotlib.use('Agg')
 from matplotlib import pyplot as plt
-from scipy.stats import linregress
+from scipy.stats import linregress, pearsonr
 
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
@@ -1359,6 +1359,87 @@ def plot_correlations(occ_lst, correlation_list):
     #plt.savefig("correlations_per_alpha.png", dpi=300, transparent=True)
     plt.close()
     
+def plot_phase_info(edm, fmodel = None, f_model_label = "Reference", prefix = "Phase_info"):
+    """
+    Plot the figure of merit and phase errors from mmtbx.map_tools.electron_density_map object after generation of map_coefficients
+    """
+    #extract f_model info
+    if fmodel == None:
+        if 'fmodel' in edm.__dict__.keys():
+            phases = edm.fmodel.f_model().phases().data()
+            phase_errors = np.radians(edm.fmodel.phase_errors())
+            fom_fmodel = edm.fmodel.fom().data()
+            indices_fmodel = edm.fmodel.f_model().indices()
+        elif 'fmodel_2' in edm.__dict__.keys():
+            phases = edm.fmodel_2.f_model().phases().data()
+            phase_errors = np.radians(edm.fmodel_2.phase_errors())
+            fom_fmodel = edm.fmodel_2.fom().data()
+            indices_fmodel = edm.fmodel_2.f_model().indices()
+        else:
+            print("Cannot extract fmodel from edm. Information in edm: {:s}. Provide an f_model or make sure edm is correctly generated".format(", ".join(edm.__dict__.keys())))
+    else:
+        phases = fmodel.f_model().phases().data()
+        phase_errors = np.radians(fmodel.phase_errors())
+        fom_fmodel = fmodel.fom().data()
+        indices_fmodel = fmodel.f_model().indices()
+        
+    #extract the updated info from mch
+    if 'mch' in edm.__dict__.keys():
+        mch = edm.mch
+    elif 'mch_2' in edm.__dict__.keys():
+        mch = edm.mch_2
+    else:
+        print("map_calculation_helper and fom cannot be extracted from the mmtbx.map_tools.electron_density_map. Make sure map_coefficients are calculated and edm is correctly generated.")
+        return
     
+    #check if fom is an attribute of edm. This is not the case for an edm without map_coefficients
+    try:
+        mch.fom 
+    except AttributeError:
+        print("map_calculation_helper and fom cannot be extracted from the mmtbx.map_tools.electron_density_map. Make sure map_coefficients are calculated and edm is correctly generated.")
+        return
+        
+    if fom_fmodel.size() != mch.fom.size():
+        print("Not the same amount of reflections with updated and initial fom. Something probably went wrong during generation of the edm.")
+    elif np.all([mch.f_obs.indices() == indices_fmodel]) == False:
+        print("Not the same indices for reflections with updated and initial fom. Something probably went wrong during generation of the edm.")
+       
+    #plot the updated and f_model_fom
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    axs[0,0].scatter(range(mch.fom.size()), mch.fom, color = "tab:blue", label="Updated fom. Average: {:.2f}".format(np.mean(mch.fom)), marker = ".", alpha=0.2, zorder=1)
+    axs[0,0].scatter(range(fom_fmodel.size()), fom_fmodel, color = "tab:red", label="{:s} fom. Average: {:.2f}".format(f_model_label, np.mean(fom_fmodel)), marker = ".", zorder=0, alpha=0.2)
+    axs[0,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[0,0].plot(range(mch.fom.size()), np.repeat(np.mean(mch.fom), mch.fom.size()), color="blue", zorder=3)
+    axs[0,0].plot(range(fom_fmodel.size()), np.repeat(np.mean(fom_fmodel), mch.fom.size()), color="red", zorder=2)
+    axs[0,0].set_xlabel("Reflection")
+    axs[0,0].set_ylabel("fom")
+    axs[0,0].set_ylim(0, 1)
+    
+    #plot the updated fom vs the f_model fom
+    if fom_fmodel.size() == mch.fom.size():
+        if np.all([mch.f_obs.indices() == indices_fmodel]):
+            CC = pearsonr(fom_fmodel, mch.fom)[0]
+            axs[1,0].scatter(fom_fmodel, mch.fom, color = "tab:blue", marker = ".", label="PearsonR = {:.2f}".format(CC))
+            axs[1,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+            axs[1,0].set_xlabel("{:s} fom".format(f_model_label))
+            axs[1,0].set_ylabel("Updated fom")
+            axs[1,0].set_ylim(0, 1)
+            axs[1,0].set_xlim(0, 1)
+            
+    #plot the phase and phase error of the f_model
+    axs[0,1].scatter(range(phases.size()), phases, color = "tab:red", label = "{:s} phases".format(f_model_label), marker = ".")
+    axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[0,1].set_xlabel("Reflection")
+    axs[0,1].set_ylabel("Phase {:s}".format(f_model_label))    
+    axs[0,1].set_ylim(-2*math.pi, 2*math.pi)
+    ax2 = axs[0,1].twinx()
+    ax2.fill_between(range(phases.size()), (phases-phase_errors), (phases+phase_errors), color="tab:red", alpha=0.2, label='phase error')
+    ax2.tick_params(axis='y')
+    ax2.set_ylabel('Phase error {:s}'.format(f_model_label))
+    ax2.set_ylim(-2*math.pi, 2*math.pi)
+
+    plt.subplots_adjust(hspace=0.35, wspace=0.5, left=0.09, right=0.85, top = 0.95)
+    plt.savefig("{:s}.png".format(prefix))
+    plt.close()
     
         
