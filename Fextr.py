@@ -1317,15 +1317,15 @@ class Fextrapolate(object):
         FM = Filesandmaps(ms, self.rfree, self.maptype, name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         try:
             mtz_name, ccp4_name_2FoFc, ccp4_name_FoFc = FM.write_Fextr_maps(fill_missing=False)
-            print("\nElectron density map in which the reflections with negative amplitude are preserved without filling of missing reflections:")
-            print("\nElectron density map in which the reflections with negative amplitude are preserved without filling of missing reflections:", file=log)
+            print("\nElectron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:")
+            print("\nElectron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:", file=log)
             print("  mtz-format: {:s}".format(mtz_name))
             print("  mtz-format: {:s}".format(mtz_name), file=log)
             print("  ccp4-format: {:s} and {:s}".format(ccp4_name_2FoFc, ccp4_name_FoFc))
             print("  ccp4-format: {:s} and {:s}".format(ccp4_name_2FoFc, ccp4_name_FoFc), file=log)
         except AssertionError:
-            print("Electron density map in which the reflections with negative amplitude are preserved without filling of missing reflections:")
-            print("Electron density map in which the reflections with negative amplitude are preserved without filling of missing reflections:", file=log)
+            print("Electron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:")
+            print("Electron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:", file=log)
             print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. The map will not be calculated.")
             print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. The map will not be calculated.", file=log)
             
