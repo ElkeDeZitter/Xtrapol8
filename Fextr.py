@@ -214,7 +214,7 @@ f_and_maps{
         .expert_level = 0
     negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill keep_and_fill keep_no_fill reject_and_fill reject_no_fill zero_and_fill zero_no_fill fill_missing no_fill
         .type = choice(multi=False)
-        .help = Handling of negative and missing extrapolated reflections (note that this will not be applied on the Fourier difference map). Please check the manual for more information. This parameters is NOT applicable for (q/k)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied. keep_and_fill or keep_no_fill maps will be calculated in addition in all cases but not further used in Xtrapol8. keep_and_fill and keep_no_fill replace the old fill_missing and no_fill arguments which will become invalid keywords in future Xtrapol8 versions.
+        .help = Handling of negative and missing extrapolated structure factor amplitudes (ESFAs) Note that this will not be applied on the Fourier difference map. If seleceted, filling of missing reflections is only carried on maps of the 2mFextr-DFcalc type. This parameters is NOT applicable for (q/k)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied. keep_and_fill or keep_no_fill maps will be calculated in addition in all cases but not further used in Xtrapol8. keep_and_fill and keep_no_fill replace the old fill_missing and no_fill arguments which will become invalid keywords in future Xtrapol8 versions. Please check the manual for more information.
         .expert_level = 2
     }
 map_explorer{
@@ -1523,61 +1523,6 @@ class Fextrapolate(object):
         
         #Carry out handling of negative ESFAs and write files and maps.
         self.negatives_and_maps_Fextr_Fextr_calc(self.fextr_calc_ms, outdir_for_negstats = outdir_for_negstats)
-
-        #neg_neflecions_binning(self.fextr_calc_ms, self.maptype, log=log)
-        #neg_reflections = self.fextr_calc_ms.select(~(self.fextr_calc_ms.data()>=0))
-        #dump_negative_stats(self.occ, self.maptype, self.fextr_calc_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
-        #print("%d reflections with negative amplitudes (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100))
-        #print("%d reflections with negative amplitudes (%.2f %% of the data)"
-                #%(neg_reflections.data().size(), neg_reflections.data().size()/self.fextr_calc_ms.data().size() *100), file=log)
-        #if neg_reflections.data().size() > 0:
-            #print("Negative reflection handling:", file=log)
-            #print("Negative reflection handling:")
-            #if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
-                #fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
-                #rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-                #self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            #elif self.neg_refl_handle in ['zero_and_fill', 'zero_no_fill']:
-                #fextr_calc_ms = self.negatives_zero(self.fextr_calc_ms)
-                #self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            ##elif self.neg_refl_handle in ['addconstant_and_fill', 'addconstant_no_fill']:
-                ##fextr_calc_ms = self.add_minimum_to_all(self.fextr_calc_ms)
-                ###No need to update fmodel because for fextr and fextr_calc maps we only use the xray-model from it
-                ##self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            #elif self.neg_refl_handle in ['fcalc_and_fill', 'fcalc_no_fill']:
-                #fextr_calc_ms = self.negatives_fcalc(self.fextr_calc_ms)
-                #self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            #elif self.neg_refl_handle in ['fref_and_fill', 'fref_no_fill']:
-                #fextr_calc_ms = self.negatives_foff(self.fextr_calc_ms)
-                #self.FM = Filesandmaps(fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            #elif self.neg_refl_handle in ['truncate_and_fill', 'truncate_no_fill']:
-                #fextr_calc_ms = self.convert_to_I_then_to_F(self.fextr_calc_ms, self.maptype, algorithm='truncate')
-                #rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-                #self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            ## elif self.neg_refl_handle in ['massage_and_fill', 'massage_no_fill']:
-            ##     fextr_calc_ms = self.convert_to_I_then_to_F(self.fextr_calc_ms, self.maptype, algorithm='reflection_file_converter')
-            ##     rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-            ##     self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
-            #else:
-                #self.FM = Filesandmaps(self.fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-        #else:
-            #self.FM = Filesandmaps(self.fextr_calc_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-        
-        #try:
-            #fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
-        #except AssertionError:
-            #if "no_fill" in self.neg_refl_handle:
-                #new_neg_refl_handle = "reject_no_fill"
-            #else:
-                #new_neg_refl_handle = "reject_and_fill"
-            #print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            #print("Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
-            #fextr_calc_ms = self.negatives_reject(self.fextr_calc_ms)
-            #rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_calc_ms)
-            #self.FM = Filesandmaps(fextr_calc_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            #fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
-
-        #self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
                 
     def get_updated_fmodel_fobs_off(self, miller_array):
         """
