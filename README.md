@@ -1,7 +1,8 @@
 <!-- PROJECT LOGO -->
 <br />
-  <p align="center">
-    New in version 1.2.0: untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. See release notes and manual for more info and other new features.
+  <p left="center">
+    New in version 1.2.0:
+    untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. See release notes and manual for more info and other new features.
   </p>
 <p align="center">
   <a href="https://github.com/ElkeDeZitter/Xtrapol8">
