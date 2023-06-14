@@ -1535,7 +1535,8 @@ def plot_phase_info(edm, fmodel = None, f_model_label = "Reference", prefix = "p
     axs[2,0].ticklabel_format(style="sci")
     ax2 = axs[2,0].twinx()
     ax2.fill_between(range(fmodel_phases.data().size()), (fmodel_phases.data()-fmodel_phase_errors), (fmodel_phases.data()+fmodel_phase_errors), color="tab:red", alpha=0.2, label='phase error')
-    ax2.tick_params(axis='y')
+    #ax2.tick_params(axis='y')
+    ax2.tick_params(top=False, labeltop=False, left=False, labelleft=False, right=False, labelright=False, bottom=False, labelbottom=False)
     ax2.set_ylabel('Phase error')
     ax2.set_ylim(-2*math.pi, 2*math.pi)
     
