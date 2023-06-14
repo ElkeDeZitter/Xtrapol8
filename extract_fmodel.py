@@ -279,6 +279,7 @@ def plot_phases_and_fom(fmodel,
     ax2 = axs[2,0].twinx()
     ax2.fill_between(range(fmodel_phases.data().size()), (fmodel_phases.data()-fmodel_phase_errors), (fmodel_phases.data()+fmodel_phase_errors), color="tab:blue", alpha=0.2, label='phase error')
     #ax2.tick_params(axis='y')
+    ax2.tick_params(top=False, labeltop=False, left=False, labelleft=False, right=False, labelright=False, bottom=False, labelbottom=False)
     ax2.set_ylabel('Phase error')
     ax2.set_ylim(-2*math.pi, 2*math.pi)
     
@@ -692,8 +693,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "extract and fmodel object from a given pdb and mtzfile")
     parser.add_argument('-m', '--model', default='input.pdb', help='Coordinates in pdb format. Just a single model should be provided. Other models can be givven with -o argument.')
     parser.add_argument('-d', '--data', default='input.mtz', help='Data in mtz format.')
-    parser.add_argument('-o', '--other_models', action = 'append', help='Data in mtz format. Optional, if not provided, then the data set given with the -d argument will be used to generate the fmodel. If provided, then exactly the same number of other data sets as other_models should be provided and in the same order.')
-    parser.add_argument('-a', '--other_data', action = 'append', help='Coordinates in pdb format. At least one model should be provided to use the --compare_phase_info argument.')
+    parser.add_argument('-o', '--other_models', default=[], action = 'append', help='Data in mtz format. Optional, if not provided, then the data set given with the -d argument will be used to generate the fmodel. If provided, then exactly the same number of other data sets as other_models should be provided and in the same order.')
+    parser.add_argument('-a', '--other_data', default=[], action = 'append', help='Coordinates in pdb format. At least one model should be provided to use the --compare_phase_info argument.')
     parser.add_argument('--phase_info', action = 'store_true', help='Plot phase information from the fmodel')
     parser.add_argument('--compare_phase_info', action = 'store_true', help='Compare the phase info in two models.')
     parser.add_argument('-x8', '--xtrapol8_phil', default= None, help="Xtrapol8 output phil file (Xtrapol8_out.phil) from which the input pdb and mtz files will be extracted. -m, -d, and -o will be ignored.")
