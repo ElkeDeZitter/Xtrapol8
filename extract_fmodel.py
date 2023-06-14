@@ -23,6 +23,7 @@ from __future__ import division, print_function
 import sys, os
 import argparse
 from matplotlib import pyplot as plt
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import math
 from scipy.stats import pearsonr
@@ -201,6 +202,9 @@ def plot_phases_and_fom(fmodel,
     fmodel_fom_bin_lst          = []
     fmodel_alpha_bin_lst        = []
     
+    fmodel_prefix_alt = "model1"
+    print("{:s}: {:s}".format(fmodel_prefix_alt, fmodel_prefix))
+    
     fmodel_phases.setup_binner(n_bins=20)
     print("bin  resolution range  #reflections        <fom>   <alpha> <phase> <phase-error>")
     for i_bin in fmodel_phases.binner().range_all():
@@ -229,15 +233,16 @@ def plot_phases_and_fom(fmodel,
     
     #plot the updated and f_model_fom
     #in function of reflection
-    axs[0,0].scatter(range(fmodel_fom.data().size()), fmodel_fom.data(), color = "tab:blue", label="{:s} fom.\n Average: {:.2f}".format(fmodel_prefix, np.mean(fmodel_fom.data())), marker = ".", zorder=0, alpha=0.1)
+    axs[0,0].scatter(range(fmodel_fom.data().size()), fmodel_fom.data(), color = "tab:blue", label="{:s} fom.\n Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_fom.data())), marker = ".", zorder=0, alpha=0.1)
     axs[0,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     axs[0,0].plot(range(fmodel_fom.data().size()), flex.double(fmodel_fom.data().size(), np.mean(fmodel_fom.data())), color="blue", zorder=3)
     axs[0,0].set_xlabel("Reflection")
     axs[0,0].set_ylabel("fom")
     axs[0,0].set_ylim(-0.05, 1.05)
+    axs[0,0].ticklabel_format(style="sci")
     
     #in function of resolution
-    axs[0,1].scatter(fmodel_bin_res_cent_lst, fmodel_fom_bin_lst, color = "tab:blue", label="{:s} <fom>.".format(fmodel_prefix), marker = ".", zorder=0)
+    axs[0,1].scatter(fmodel_bin_res_cent_lst, fmodel_fom_bin_lst, color = "tab:blue", label="{:s} <fom>.".format(fmodel_prefix_alt), marker = ".", zorder=0)
     axs[0,1].set_xlim(np.max(fmodel_bin_res_cent_lst[1:]), np.min(fmodel_bin_res_cent_lst[1:]))
     axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     axs[0,1].set_xlabel("Resolution (A)")
@@ -246,15 +251,16 @@ def plot_phases_and_fom(fmodel,
 
     #plot the updated alpha (D)
     #in function of reflection
-    axs[1,0].scatter(range(fmodel_alpha.data().size()), fmodel_alpha.data(), color = "tab:blue", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_prefix, np.mean(fmodel_alpha.data())), marker = ".", zorder=0, alpha=0.1)
+    axs[1,0].scatter(range(fmodel_alpha.data().size()), fmodel_alpha.data(), color = "tab:blue", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_alpha.data())), marker = ".", zorder=0, alpha=0.1)
     axs[1,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     axs[1,0].plot(range(fmodel_alpha.data().size()), flex.double(fmodel_alpha.data().size(), np.mean(fmodel_alpha.data())), color="blue", zorder=2)
     axs[1,0].set_xlabel("Reflection")
     axs[1,0].set_ylabel("alpha (D)")
     #axs[1,1].set_ylim(0, 1)
+    axs[1,0].ticklabel_format(style="sci")
     
     #in function of resolution
-    axs[1,1].scatter(fmodel_bin_res_cent_lst, fmodel_alpha_bin_lst, color = "tab:blue", label="{:s} <alpha (D)>.".format(fmodel_prefix), marker = ".", zorder=0)
+    axs[1,1].scatter(fmodel_bin_res_cent_lst, fmodel_alpha_bin_lst, color = "tab:blue", label="{:s} <alpha (D)>.".format(fmodel_prefix_alt), marker = ".", zorder=0)
     axs[1,1].set_xlim(np.max(fmodel_bin_res_cent_lst[1:]), np.min(fmodel_bin_res_cent_lst[1:]))
     axs[1,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     axs[1,1].set_xlabel("Resolution (A)")
@@ -263,20 +269,21 @@ def plot_phases_and_fom(fmodel,
     
     #plot the phase and phase error of the f_model
     #in function of reflection
-    axs[2,0].scatter(range(fmodel_phases.data().size()), fmodel_phases.data(), color = "tab:blue", label = "{:s} fmodel_phases.\n Average = {:.2f}".format(fmodel_prefix, np.mean(fmodel_phases.data())), marker = ".")
+    axs[2,0].scatter(range(fmodel_phases.data().size()), fmodel_phases.data(), color = "tab:blue", label = "{:s} fmodel_phases.\n Average = {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_phases.data())), marker = ".")
     axs[2,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     axs[2,0].plot(range(fmodel_phases.data().size()), flex.double(fmodel_phases.data().size(), np.mean(fmodel_phases.data())), color="blue", zorder=3)
     axs[2,0].set_xlabel("Reflection")
     axs[2,0].set_ylabel("Phase")    
     axs[2,0].set_ylim(-2*math.pi, 2*math.pi)
+    axs[2,0]
     ax2 = axs[2,0].twinx()
     ax2.fill_between(range(fmodel_phases.data().size()), (fmodel_phases.data()-fmodel_phase_errors), (fmodel_phases.data()+fmodel_phase_errors), color="tab:blue", alpha=0.2, label='phase error')
-    ax2.tick_params(axis='y')
+    #ax2.tick_params(axis='y')
     ax2.set_ylabel('Phase error')
     ax2.set_ylim(-2*math.pi, 2*math.pi)
     
     #in function of resolution
-    axs[2,1].scatter(fmodel_bin_res_cent_lst, fmodel_phases_bin_lst, color = "tab:blue", label = "{:s} <phases>.".format(fmodel_prefix), marker = ".")
+    axs[2,1].scatter(fmodel_bin_res_cent_lst, fmodel_phases_bin_lst, color = "tab:blue", label = "{:s} <phases>.".format(fmodel_prefix_alt), marker = ".")
     axs[2,1].set_xlim(np.max(fmodel_bin_res_cent_lst[1:]), np.min(fmodel_bin_res_cent_lst[1:]))
     axs[2,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     axs[2,1].set_xlabel("Resolution (A)")
@@ -285,16 +292,18 @@ def plot_phases_and_fom(fmodel,
     #ax3.fill_between(fmodel_bin_res_cent_lst,  np.subtract(fmodel_phases_bin_lst,fmodel_phase_errors_bin_lst),  np.subtract(fmodel_phases_bin_lst,fmodel_phase_errors_bin_lst), color="tab:red", alpha=0.2, label='phase error')
     #ax3.set_xlim(np.max(fmodel_bin_res_cent_lst[1:]), np.min(fmodel_bin_res_cent_lst[1:]))
     #ax3.tick_params(axis='y')
-    #ax3.set_ylabel('Phase error {:s}'.format(fmodel_prefix))
+    #ax3.set_ylabel('Phase error {:s}'.format(fmodel_prefix_alt))
     #ax3.set_ylim(-2*math.pi, 2*math.pi)
+    
+    fig.suptitle("{:s}: {:s}".format(fmodel_prefix_alt, fmodel_prefix), ha='left', x=0.05)
     
     plt.subplots_adjust(hspace=0.35, wspace=0.5, left=0.09, right=0.88, top = 0.95)
     plt.savefig("{:s}.png".format(prefix))
     plt.close()
     
-    print("{:s} fom. Average: {:.2f}".format(fmodel_prefix, np.mean(fmodel_fom.data())))
-    print("{:s} alpha (D). Average: {:.2f}".format(fmodel_prefix, np.mean(fmodel_alpha.data())))
-    print("{:s} phase. Average: {:.2f}".format(fmodel_prefix, np.mean(fmodel_phases.data())))
+    print("{:s} fom. Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_fom.data())))
+    print("{:s} alpha (D). Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_alpha.data())))
+    print("{:s} phase. Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_phases.data())))
     print("\n------------------------------------")
     
 def compare_phases_and_fom(fmodel_1,
@@ -342,8 +351,11 @@ def compare_phases_and_fom(fmodel_1,
         fmodel1_phases.setup_binner(n_bins=20)
         fmodel2_phases.use_binning_of(fmodel1_phases)
         
-        print("                                              <fom>              <alpha>             <phase>          <phase error>")
-        print("bin  resolution range  #reflections       {:s} {:s}  {:s} {:s}  {:s} {:s} {:s} {:s}".format(fmodel_1_prefix, fmodel_2_prefix, fmodel_1_prefix, fmodel_2_prefix, fmodel_1_prefix, fmodel_2_prefix, fmodel_1_prefix, fmodel_2_prefix))
+        fmodel_1_prefix_alt = "model1"
+        fmodel_2_prefix_alt = "model2"
+        print("{:s}: {:s}\n{:s}: {:s}".format(fmodel_1_prefix_alt, fmodel_1_prefix, fmodel_2_prefix_alt, fmodel_2_prefix))
+        print("                                              <fom>              <alpha>             <phase>         <phase error>")
+        print("bin  resolution range  #reflections        {:s}  {:s}     {:s}  {:s}     {:s}  {:s}     {:s}  {:s}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt))
 
         for i_bin in fmodel1_phases.binner().range_all():
             #get info from fmodel1
@@ -389,18 +401,19 @@ def compare_phases_and_fom(fmodel_1,
         
         #plot the updated and f_model_fom
         #in function of reflection
-        axs[0,0].scatter(range(fmodel1_fom.data().size()), fmodel1_fom.data(), color = "tab:blue", label="{:s} fom.\n Average: {:.2f}".format(fmodel_1_prefix,np.mean(fmodel1_fom.data())), marker = ".", alpha=0.1, zorder=1)
-        axs[0,0].scatter(range(fmodel2_fom.data().size()), fmodel2_fom.data(), color = "tab:red", label="{:s} fom.\n Average: {:.2f}".format(fmodel_2_prefix, np.mean(fmodel2_fom.data())), marker = ".", zorder=0, alpha=0.1)
+        axs[0,0].scatter(range(fmodel1_fom.data().size()), fmodel1_fom.data(), color = "tab:blue", label="{:s} fom.\n Average: {:.2f}".format(fmodel_1_prefix_alt,np.mean(fmodel1_fom.data())), marker = ".", alpha=0.1, zorder=1)
+        axs[0,0].scatter(range(fmodel2_fom.data().size()), fmodel2_fom.data(), color = "tab:red", label="{:s} fom.\n Average: {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_fom.data())), marker = ".", zorder=0, alpha=0.1)
         axs[0,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[0,0].plot(range(fmodel1_fom.data().size()), flex.double(fmodel1_fom.data().size(), np.mean(fmodel1_fom.data())), color="blue", zorder=3)
         axs[0,0].plot(range(fmodel2_fom.data().size()), flex.double(fmodel2_fom.data().size(), np.mean(fmodel2_fom.data())), color="red", zorder=2)
         axs[0,0].set_xlabel("Reflection")
         axs[0,0].set_ylabel("fom")
         axs[0,0].set_ylim(-0.05, 1.05)
+        axs[0,0].ticklabel_format(style="sci")
         
         #in function of resolution
-        axs[0,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_fom_bin_lst, color = "tab:blue", label="{:s} <fom>" .format(fmodel_1_prefix), marker = ".", zorder=1)
-        axs[0,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_fom_bin_lst, color = "tab:red", label="{:s} <fom>".format(fmodel_2_prefix), marker = ".", zorder=0)
+        axs[0,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_fom_bin_lst, color = "tab:blue", label="{:s} <fom>" .format(fmodel_1_prefix_alt), marker = ".", zorder=1)
+        axs[0,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_fom_bin_lst, color = "tab:red", label="{:s} <fom>".format(fmodel_2_prefix_alt), marker = ".", zorder=0)
         axs[0,1].set_xlim(np.max(fmodel1_bin_res_cent_lst[1:]), np.min(fmodel1_bin_res_cent_lst[1:]))
         axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[0,1].set_xlabel("Resolution (A)")
@@ -411,25 +424,26 @@ def compare_phases_and_fom(fmodel_1,
         CC_fom = pearsonr(fmodel1_fom.data(), fmodel2_fom.data())[0]
         axs[0,2].scatter(fmodel1_fom.data(), fmodel2_fom.data(), color = "tab:blue", marker = ".", label="fom PearsonR = {:.2f}".format(CC_fom))
         axs[0,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        axs[0,2].set_xlabel("{:s} fom".format(fmodel_1_prefix))
-        axs[0,2].set_ylabel("{:s} fom".format(fmodel_2_prefix))
+        axs[0,2].set_xlabel("{:s} fom".format(fmodel_1_prefix_alt))
+        axs[0,2].set_ylabel("{:s} fom".format(fmodel_2_prefix_alt))
         axs[0,2].set_ylim(-0.05, 1.05)
         axs[0,2].set_xlim(-0.05, 1.05)
                 
         #plot the updated alpha (D)
         #in function of reflection
-        axs[1,0].scatter(range(fmodel1_alpha.data().size()), fmodel1_alpha.data(), color = "tab:blue", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_1_prefix, np.mean(fmodel1_alpha.data())), marker = ".", alpha=0.1, zorder=1)
-        axs[1,0].scatter(range(fmodel2_alpha.data().size()), fmodel2_alpha.data(), color = "tab:red", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_2_prefix, np.mean(fmodel2_alpha.data())), marker = ".", zorder=0, alpha=0.1)
+        axs[1,0].scatter(range(fmodel1_alpha.data().size()), fmodel1_alpha.data(), color = "tab:blue", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_1_prefix_alt, np.mean(fmodel1_alpha.data())), marker = ".", alpha=0.1, zorder=1)
+        axs[1,0].scatter(range(fmodel2_alpha.data().size()), fmodel2_alpha.data(), color = "tab:red", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_alpha.data())), marker = ".", zorder=0, alpha=0.1)
         axs[1,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[1,0].plot(range(fmodel1_alpha.data().size()), flex.double(fmodel1_alpha.data().size(), np.mean(fmodel1_alpha.data())), color="blue", zorder=3)
         axs[1,0].plot(range(fmodel2_alpha.data().size()), flex.double(fmodel2_alpha.data().size(), np.mean(fmodel2_alpha.data())), color="red", zorder=2)
         axs[1,0].set_xlabel("Reflection")
         axs[1,0].set_ylabel("alpha (D)")
         #axs[1,1].set_ylim(0, 1)
+        axs[1,0].ticklabel_format(style="sci")
         
         #in function of resolution
-        axs[1,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_alpha_bin_lst, color = "tab:blue", label="{:s} <alpha (D)> ".format(fmodel_1_prefix), marker = ".", zorder=1)
-        axs[1,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_alpha_bin_lst, color = "tab:red", label="{:s} <alpha (D)>".format(fmodel_2_prefix), marker = ".", zorder=0)
+        axs[1,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_alpha_bin_lst, color = "tab:blue", label="{:s} <alpha (D)> ".format(fmodel_1_prefix_alt), marker = ".", zorder=1)
+        axs[1,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_alpha_bin_lst, color = "tab:red", label="{:s} <alpha (D)>".format(fmodel_2_prefix_alt), marker = ".", zorder=0)
         axs[1,1].set_xlim(np.max(fmodel1_bin_res_cent_lst[1:]), np.min(fmodel1_bin_res_cent_lst[1:]))
         axs[1,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[1,1].set_xlabel("Resolution (A)")
@@ -439,31 +453,33 @@ def compare_phases_and_fom(fmodel_1,
         CC_alpha = pearsonr(fmodel1_alpha.data(), fmodel2_alpha.data())[0]
         axs[1,2].scatter(fmodel1_alpha.data(), fmodel2_alpha.data(), color = "tab:blue", marker = ".", label="alpha (D) PearsonR = {:.2f}".format(CC_alpha))
         axs[1,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        axs[1,2].set_xlabel("{:s} alpha (D)".format(fmodel_1_prefix))
-        axs[1,2].set_ylabel("{:s} alpha (D)".format(fmodel_2_prefix))
+        axs[1,2].set_xlabel("{:s} alpha (D)".format(fmodel_1_prefix_alt))
+        axs[1,2].set_ylabel("{:s} alpha (D)".format(fmodel_2_prefix_alt))
         #axs[1,2].set_ylim(0, 1)
         #axs[1,2].set_xlim(0, 1)
                 
         #plot the phase and phase error
         #in function of reflection
-        axs[2,0].scatter(range(fmodel1_phases.data().size()), fmodel1_phases.data(), color = "tab:blue", label = "{:s} phases.\n Average = {:.2f}".format(fmodel_1_prefix, np.mean(fmodel1_phases.data())), marker = ".")
-        axs[2,0].scatter(range(fmodel2_phases.data().size()), fmodel2_phases.data(), color = "tab:red", label = "{:s} phases.\n Average = {:.2f}".format(fmodel_2_prefix, np.mean(fmodel2_phases.data())), marker = ".")
+        axs[2,0].scatter(range(fmodel1_phases.data().size()), fmodel1_phases.data(), color = "tab:blue", label = "{:s} phases.\n Average = {:.2f}".format(fmodel_1_prefix_alt, np.mean(fmodel1_phases.data())), marker = ".")
+        axs[2,0].scatter(range(fmodel2_phases.data().size()), fmodel2_phases.data(), color = "tab:red", label = "{:s} phases.\n Average = {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_phases.data())), marker = ".")
         axs[2,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[2,0].plot(range(fmodel1_phases.data().size()), flex.double(fmodel1_phases.data().size(), np.mean(fmodel1_phases.data())), color="blue", zorder=3)
         axs[2,0].plot(range(fmodel2_phases.data().size()), flex.double(fmodel2_phases.data().size(), np.mean(fmodel2_phases.data())), color="blue", zorder=4)
         axs[2,0].set_xlabel("Reflection")
         axs[2,0].set_ylabel("Phase")
         axs[2,0].set_ylim(-2*math.pi, 2*math.pi)
+        axs[2,0].ticklabel_format(axis="x", style="sci")
         ax2 = axs[2,0].twinx()
         ax2.fill_between(range(fmodel1_phases.data().size()), (fmodel1_phases.data()-fmodel1_phase_errors), (fmodel1_phases.data()+fmodel1_phase_errors), color="tab:blue", alpha=0.2, label='phase error')
         ax2.fill_between(range(fmodel2_phases.data().size()), (fmodel2_phases.data()-fmodel2_phase_errors), (fmodel2_phases.data()+fmodel2_phase_errors), color="tab:red", alpha=0.2, label='phase error')
-        ax2.tick_params(axis='y')
+        #ax2.tick_params(axis='y')
+        ax2.tick_params(top=False, labeltop=False, left=False, labelleft=False, right=False, labelright=False, bottom=False, labelbottom=False)
         ax2.set_ylabel('Phase error')
         ax2.set_ylim(-2*math.pi, 2*math.pi)
         
         #in function of resolution
-        axs[2,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_phases_bin_lst, color = "tab:blue", label = "{:s} <phases>".format(fmodel_1_prefix), marker = ".")
-        axs[2,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_phases_bin_lst, color = "tab:red", label = "{:s} <phases>".format(fmodel_2_prefix), marker = ".")
+        axs[2,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_phases_bin_lst, color = "tab:blue", label = "{:s} <phases>".format(fmodel_1_prefix_alt), marker = ".")
+        axs[2,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_phases_bin_lst, color = "tab:red", label = "{:s} <phases>".format(fmodel_2_prefix_alt), marker = ".")
         axs[2,1].set_xlim(np.max(fmodel1_bin_res_cent_lst[1:]), np.min(fmodel1_bin_res_cent_lst[1:]))
         axs[2,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[2,1].set_xlabel("Resolution (A)")
@@ -477,20 +493,22 @@ def compare_phases_and_fom(fmodel_1,
     
         #correlation
         CC_phase = pearsonr(fmodel1_phases.data(), fmodel2_phases.data())[0]
-        axs[0,1].scatter(fmodel1_phases.data(), fmodel2_phases.data(), color = "tab:blue", marker = ".", label="phases PearsonR = {:.2f}".format(CC_phase))
-        axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        axs[0,1].set_xlabel("{:s} phase".format(fmodel_1_prefix))
-        axs[0,1].set_ylabel("{:s} phase".format(fmodel_2_prefix))
-        axs[0,1].set_ylim(0, 1)
-        axs[0,1].set_xlim(0, 1)
+        axs[2,2].scatter(fmodel1_phases.data(), fmodel2_phases.data(), color = "tab:blue", marker = ".", label="phases PearsonR = {:.2f}".format(CC_phase))
+        axs[2,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+        axs[2,2].set_xlabel("{:s} phase".format(fmodel_1_prefix_alt))
+        axs[2,2].set_ylabel("{:s} phase".format(fmodel_2_prefix_alt))
+        axs[2,2].set_ylim(0, 1)
+        axs[2,2].set_xlim(0, 1)
+        
+        fig.suptitle("{:s}: {:s}\n{:s}: {:s}".format(fmodel_1_prefix_alt, fmodel_1_prefix, fmodel_2_prefix_alt, fmodel_2_prefix), ha='left', x=0.05)
     
-        plt.subplots_adjust(hspace=0.35, wspace=0.65, left=0.09, right=0.88, top = 0.95)
+        plt.subplots_adjust(hspace=0.35, wspace=0.65, left=0.09, right=0.88, top = 0.88)
         plt.savefig("{:s}.png".format(prefix))
         plt.close()
 
-        print("{:s} {:s} fom PearsonR = {:.2f}".format(fmodel_1_prefix, fmodel_2_prefix, CC_fom))
-        print("{:s} {:s} alpha (d) PearsonR = {:.2f}".format(fmodel_1_prefix, fmodel_2_prefix, CC_alpha))
-        print("{:s} {:s} phase PearsonR = {:.2f}".format(fmodel_1_prefix, fmodel_2_prefix, CC_phase))
+        print("{:s} {:s} fom PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_fom))
+        print("{:s} {:s} alpha (d) PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_alpha))
+        print("{:s} {:s} phase PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_phase))
         
     
     print("\n------------------------------------")    
@@ -518,89 +536,24 @@ def plot_CCs(CC_array, model_names, prefix="Correlations"):
         fig, axs = plt.subplots(len(CC_names), 1, figsize=(10, 10))
         for i in range(len(CC_names)):
             if n == 1:
-                axs[i].scatter(model_names, CC_array[0][i], color = "tab:blue", marker = ".", label = CC_names[i])
+                axs[i].scatter(range(1,m+1), CC_array[0][i], color = "tab:blue", marker = "o", label = CC_names[i])
             else:
-                axs[i].scatter(model_names, CC_array[:,i], color = "tab:blue", marker = ".", label = CC_names[i])
+                axs[i].scatter(range(1,m+1), CC_array[:,i], color = "tab:blue", marker = "o", label = CC_names[i])
             #axs[i].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
             axs[i].set_xlabel("Model")
             axs[i].set_ylabel(CC_names[i])
-        
-        plt.subplots_adjust(hspace=0.35, left=0.09, right=0.88, top = 0.95)
+            axs[i].xaxis.set_major_locator(MaxNLocator(integer=True))
+            
+        title = ""
+        for i in range(m):
+            title += "model{:d}: {:s}\n".format(i+1, model_names[i])
+        fig.suptitle(title, ha='left', x=0.05)
+        plt.subplots_adjust(hspace=0.35, left=0.09, right=0.88, top = 0.88)
         plt.savefig("{:s}.png".format(prefix))
         plt.close()
         
     else:
         print("No CCs to plot")
-                
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description = "extract and fmodel object from a given pdb and mtzfile")
-    parser.add_argument('-m', '--model', default='input.pdb', help='Coordinates in pdb format. Just a single model should be provided. Other models can be givven with -o argument.')
-    parser.add_argument('-d', '--data', default='input.mtz', help='Data in mtz format.')
-    parser.add_argument('-o', '--other_models', action = 'append', help='Data in mtz format. Optional, if not provided, then the data set given with the -d argument will be used to generate the fmodel. If provided, then exactly the same number of other data sets as other_models should be provided and in the same order.')
-    parser.add_argument('-a', '--other_data', action = 'append', help='Coordinates in pdb format. At least one model should be provided to use the --compare_phase_info argument.')
-    parser.add_argument('--phase_info', action = 'store_true', help='Plot phase information from the fmodel')
-    parser.add_argument('--compare_phase_info', action = 'store_true', help='Compare the phase info in two models.')
-    parser.add_argument('-x8', '--xtrapol8_phil', default= None, help="Xtrapol8 output phil file (Xtrapol8_out.phil) from which the input pdb and mtz files will be extracted. -m, -d, and -o will be ignored.")
-    
-    #print help if no arguments provided
-    if len(sys.argv) < 2:
-           parser.print_help()
-           sys.exit(1)
-
-    args = parser.parse_args()
-    print(args)
-    
-    pdb = args.model
-    mtz = args.data
-    other_models = args.other_models
-    other_data   = args.other_data
-    phase_info   = args.phase_info
-    compare_phase_info = args.compare_phase_info
-    
-    if args.xtrapol8_phil == None:
-        run(pdb,
-            mtz,
-            other_models,
-            other_data,
-            phase_info = phase_info,
-            compare_phase_info = compare_phase_info)
-    
-    else:
-        #reset the input files to avoid that we'll start working with them
-        pdb = None
-        mtz = None
-        other_models = []
-        #Extract input from inputfile and command line
-        #argument_interpreter = master_phil.command_line_argument_interpreter(home_scope="input")
-        input_objects = iotbx.phil.process_command_line_with_files(
-            args=args.xtrapol8_phil,
-            master_phil=master_phil
-            )
-        params = input_objects.work.extract()
-        #modified_phil = master_phil.format(python_object=params)
-        
-        pdb = params.input.reference_pdb
-        
-        if params.output.generate_phil_only or params.output.generate_fofo_only:
-            print("No input files from Xtrapol8 run with output.generate_phil_only or generate_fofo_only")
-            sys.exit()
-            
-        mtz_and_pdb_files = {}
-        maptypes = params.f_and_maps
-        for maptype in maptypes:
-            for root, dirs, files in os.walk(os.getcwd()): #params.output.outdir
-                for fle in files:
-                    if fle.lower().endswith("{:s}.mtz".format(maptype)):
-                        print(fle)
-                        print(dirs)
-                        mtz = os.path.join(root, fle)
-                        other_models = [os.path.join(root, fle) for fle in os.listdir(root) if fle.lower().endswith(".pdb")]
-                        other_models = filter_other_models(other_models, maptype)
-                        mtz_and_pdb_files[mtz] = other_models
-                        
-        for mtz in mtz_and_pdb_files.keys():
-            run(pdb, mtz, other_models = mtz_and_pdb_files[mtz], phase_info = phase_info, compare_phase_info = compare_phase_info)
         
 def filter_other_models(other_models = [], maptype="qfextr"):
     """
@@ -608,12 +561,12 @@ def filter_other_models(other_models = [], maptype="qfextr"):
     possible maptypes: qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
     """
     if maptype.lower() in ('qfextr', 'fextr', 'kfextr'):
-        to_remove = [fle for fle in other_models if 'genick' in fle or 'fextr_calc' in fle or 'for_dm' in fle]
+        to_remove = [fle for fle in other_models if 'genick' in fle.lower() or 'fextr_calc' in fle.lower() or 'for_dm' in fle.lower()]
     elif maptype.lower() in ('qfgenick', 'fgenick', 'kfgenick'):
-        to_remove = [fle for fle in other_models if 'fextr' in fle or 'fextr_calc' in fle or 'for_dm' in fle]
+        to_remove = [fle for fle in other_models if 'fextr' in fle.lower() or 'fextr_calc' in fle.lower() or 'for_dm' in fle.lower()]
     elif maptype.lower() in ('qfextr_calc', 'fextr_calc', 'kfextr_calc'):
-        to_remove = [fle for fle in other_models if 'genick' in fle or 'for_dm' in fle]
-        to_remove_fextr = [fle for fle in other_models if 'fextr' in fle and not 'fextr_calc' in fle]
+        to_remove = [fle for fle in other_models if 'genick' in fle.lower() or 'for_dm' in fle.lower()]
+        to_remove_fextr = [fle for fle in other_models if 'fextr' in fle.lower() and not 'fextr_calc' in fle.lower()]
         to_remove += to_remove_fextr
     else:
         print("Invalid maptype, other models cannot be filtered.")
@@ -705,16 +658,107 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
                                     prefix = "{:s}_{:s}_scale_update".format(m_ref.prefix, m.prefix))
             CCs_fmodel_update.append(CCs)
         
-        #plot the correlation per model
+        #plot the correlation per model, outnames need to be checked since they will be overwritten in case of an Xtrapol8 with multiple fextr and occupancies
+        
+        base = "correlations_{:s}_no_scale_update".format(m_ref.prefix)
+        prefix_no_scale_update = base
+        i = 1
+        while os.path.isfile("{:s}.png".format(prefix_no_scale_update)):
+            prefix_no_scale_update = "{:s}_{:d}".format(base,i)
+            i+=1
+            if i == 1000: 
+                break
+        base = "correlations_{:s}_scale_update".format(m_ref.prefix)
+        prefix_scale_update = base
+        i = 1
+        while os.path.isfile("{:s}.png".format(prefix_scale_update)):
+            prefix_scale_update = "{:s}_{:d}".format(prefix_scale_update, i)
+            i+=1
+            if i == 1000: 
+                break
+        
         model_names = [m.prefix for m in models[1:]]
         CCs_fmodel = np.array(CCs_fmodel)
         plot_CCs(CC_array = CCs_fmodel,
                  model_names = model_names,
-                 prefix = "correlations_{:s}_no_scale_update".format(m_ref.prefix))
+                 prefix = prefix_no_scale_update)
         
         CCs_fmodel_update = np.array(CCs_fmodel_update)
         plot_CCs(CC_array = CCs_fmodel_update,
                  model_names = model_names,
-                 prefix = "correlations_{:s}_scale_update".format(m_ref.prefix))
+                 prefix = prefix_scale_update)
         
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description = "extract and fmodel object from a given pdb and mtzfile")
+    parser.add_argument('-m', '--model', default='input.pdb', help='Coordinates in pdb format. Just a single model should be provided. Other models can be givven with -o argument.')
+    parser.add_argument('-d', '--data', default='input.mtz', help='Data in mtz format.')
+    parser.add_argument('-o', '--other_models', action = 'append', help='Data in mtz format. Optional, if not provided, then the data set given with the -d argument will be used to generate the fmodel. If provided, then exactly the same number of other data sets as other_models should be provided and in the same order.')
+    parser.add_argument('-a', '--other_data', action = 'append', help='Coordinates in pdb format. At least one model should be provided to use the --compare_phase_info argument.')
+    parser.add_argument('--phase_info', action = 'store_true', help='Plot phase information from the fmodel')
+    parser.add_argument('--compare_phase_info', action = 'store_true', help='Compare the phase info in two models.')
+    parser.add_argument('-x8', '--xtrapol8_phil', default= None, help="Xtrapol8 output phil file (Xtrapol8_out.phil) from which the input pdb and mtz files will be extracted. -m, -d, and -o will be ignored.")
+    
+    #print help if no arguments provided
+    if len(sys.argv) < 2:
+           parser.print_help()
+           sys.exit(1)
+
+    args = parser.parse_args()
+    print(args)
+    
+    pdb = args.model
+    mtz = args.data
+    other_models = args.other_models
+    other_data   = args.other_data
+    phase_info   = args.phase_info
+    compare_phase_info = args.compare_phase_info
+    
+    if args.xtrapol8_phil == None:
+        run(pdb,
+            mtz,
+            other_models,
+            other_data,
+            phase_info = phase_info,
+            compare_phase_info = compare_phase_info)
+    
+    else:
+        #reset the input files to avoid that we'll start working with them
+        pdb = None
+        mtz = None
+        other_models = []
+        #Extract input from inputfile and command line
+        #argument_interpreter = master_phil.command_line_argument_interpreter(home_scope="input")
+        input_objects = iotbx.phil.process_command_line_with_files(
+            args=[args.xtrapol8_phil],
+            master_phil=master_phil
+            )
+        params = input_objects.work.extract()
+        #modified_phil = master_phil.format(python_object=params)
         
+        pdb = params.input.reference_pdb
+        
+        if params.output.generate_phil_only or params.output.generate_fofo_only:
+            print("No input files from Xtrapol8 run with output.generate_phil_only or generate_fofo_only")
+            sys.exit()
+        if params.refinement.run_refinement == False and compare_phase_info == True:
+            print("No refinement has been run in Xtrapol8. No models to compare")
+            compare_phase_info = False
+            
+        mtz_and_pdb_files = {}
+        maptypes = params.f_and_maps.f_extrapolated_and_maps
+        for maptype in maptypes:
+            for root, dirs, files in os.walk(params.output.outdir):
+                for fle in files:
+                    if fle.lower().endswith("{:s}.mtz".format(maptype)):
+                        if root.endswith("maps-keep_no_fill"):
+                            continue
+                        mtz = os.path.join(root, fle)
+                        other_models = [os.path.join(root, fle) for fle in os.listdir(root) if fle.lower().endswith(".pdb")]
+                        other_models = filter_other_models(other_models, maptype)
+                        other_models.sort()
+                        mtz_and_pdb_files[mtz] = other_models
+                        
+        for mtz in mtz_and_pdb_files.keys():
+            run(pdb, mtz, other_models = mtz_and_pdb_files[mtz], phase_info = phase_info, compare_phase_info = compare_phase_info)
+        
+
