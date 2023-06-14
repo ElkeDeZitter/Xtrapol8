@@ -184,7 +184,8 @@ class model(object):
         
 def plot_phases_and_fom(fmodel,
                         fmodel_prefix = "fmodel",
-                        prefix = "Phase_info"):
+                        prefix = "Phase_info",
+                        outdir = os.getcwd()):
     """
     plot the phases and fom for the updated and 
     """
@@ -299,7 +300,7 @@ def plot_phases_and_fom(fmodel,
     fig.suptitle("{:s}: {:s}".format(fmodel_prefix_alt, fmodel_prefix), ha='left', x=0.05)
     
     plt.subplots_adjust(hspace=0.35, wspace=0.5, left=0.09, right=0.88, top = 0.95)
-    plt.savefig("{:s}.png".format(prefix))
+    plt.savefig("{:s}/{:s}.png".format(outdir, prefix))
     plt.close()
     
     print("{:s} fom. Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_fom.data())))
@@ -311,7 +312,8 @@ def compare_phases_and_fom(fmodel_1,
                            fmodel_2,
                            fmodel_1_prefix = "fmodel",
                            fmodel_2_prefix = "fmodel_2",
-                           prefix = "Phase_info_correlation"):
+                           prefix = "Phase_info_correlation",
+                           outdir = os.getcwd()):
     """
     Correlate the phases and fom of two fmodels
     """
@@ -504,7 +506,7 @@ def compare_phases_and_fom(fmodel_1,
         fig.suptitle("{:s}: {:s}\n{:s}: {:s}".format(fmodel_1_prefix_alt, fmodel_1_prefix, fmodel_2_prefix_alt, fmodel_2_prefix), ha='left', x=0.05)
     
         plt.subplots_adjust(hspace=0.35, wspace=0.65, left=0.09, right=0.88, top = 0.88)
-        plt.savefig("{:s}.png".format(prefix))
+        plt.savefig("{:s}/{:s}.png".format(outdir, prefix))
         plt.close()
 
         print("{:s} {:s} fom PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_fom))
@@ -516,7 +518,7 @@ def compare_phases_and_fom(fmodel_1,
     return CC_fom, CC_alpha, CC_phase
     
     
-def plot_CCs(CC_array, model_names, prefix="Correlations"):
+def plot_CCs(CC_array, model_names, prefix="Correlations", outdir = os.getcwd()):
     """
     Plot the evolution of the CCs for the different models
     """
@@ -550,7 +552,7 @@ def plot_CCs(CC_array, model_names, prefix="Correlations"):
             title += "model{:d}: {:s}\n".format(i+1, model_names[i])
         fig.suptitle(title, ha='left', x=0.05)
         plt.subplots_adjust(hspace=0.35, left=0.09, right=0.88, top = 0.88)
-        plt.savefig("{:s}.png".format(prefix))
+        plt.savefig("{:s}/{:s}.png".format(outdir, prefix))
         plt.close()
         
     else:
@@ -577,7 +579,7 @@ def filter_other_models(other_models = [], maptype="qfextr"):
     return other_models
         
 
-def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare_phase_info = True):
+def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare_phase_info = True, outdir = os.getcwd()):
     for fle in [pdb, mtz]:
         if os.path.isfile(fle) == False:
             print("File not found: {:s}".format(fle))
@@ -629,13 +631,15 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
             print("Plotting phase information from the fmodels without updating scales")
             plot_phases_and_fom(fmodel = m.fmodel,
                                 fmodel_prefix = "fmodel_no_scale_update",
-                                prefix = "{:s}_phase_info_no_scale_update".format(m.prefix))
+                                prefix = "{:s}_phase_info_no_scale_update".format(m.prefix),
+                                outdir = outdir)
             
             #plot updated fmodel phase info
             print("Plotting phase information from the fmodels after updating scales")
             plot_phases_and_fom(fmodel = m.fmodel_update,
                                 fmodel_prefix = "fmodel_scale_update",
-                                prefix = "{:s}_phase_info_scale_update".format(m.prefix))
+                                prefix = "{:s}_phase_info_scale_update".format(m.prefix),
+                                outdir = outdir)
     
     if compare_phase_info:
         CCs_fmodel        = []
@@ -647,7 +651,8 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
                                     fmodel_2 = m.fmodel,
                                     fmodel_1_prefix = "{:s}".format(m_ref.prefix),
                                     fmodel_2_prefix = "{:s}".format(m.prefix),
-                                    prefix = "{:s}_{:s}_no_scale_update".format(m_ref.prefix, m.prefix))
+                                    prefix = "{:s}_{:s}_no_scale_update".format(m_ref.prefix, m.prefix),
+                                    outdir = outdir)
             CCs_fmodel.append(CCs)
             
             #plot updated fmodel phase info
@@ -656,7 +661,8 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
                                     fmodel_2 = m.fmodel_update,
                                     fmodel_1_prefix = "{:s}".format(m_ref.prefix),
                                     fmodel_2_prefix = "{:s}".format(m.prefix),
-                                    prefix = "{:s}_{:s}_scale_update".format(m_ref.prefix, m.prefix))
+                                    prefix = "{:s}_{:s}_scale_update".format(m_ref.prefix, m.prefix),
+                                    outdir = outdir)
             CCs_fmodel_update.append(CCs)
         
         #plot the correlation per model, outnames need to be checked since they will be overwritten in case of an Xtrapol8 with multiple fextr and occupancies
@@ -664,7 +670,7 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
         base = "correlations_{:s}_no_scale_update".format(m_ref.prefix)
         prefix_no_scale_update = base
         i = 1
-        while os.path.isfile("{:s}.png".format(prefix_no_scale_update)):
+        while os.path.isfile("{:s}/{:s}.png".format(outdir, prefix_no_scale_update)):
             prefix_no_scale_update = "{:s}_{:d}".format(base,i)
             i+=1
             if i == 1000: 
@@ -672,7 +678,7 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
         base = "correlations_{:s}_scale_update".format(m_ref.prefix)
         prefix_scale_update = base
         i = 1
-        while os.path.isfile("{:s}.png".format(prefix_scale_update)):
+        while os.path.isfile("{:s}/{:s}.png".format(outdir, prefix_scale_update)):
             prefix_scale_update = "{:s}_{:d}".format(prefix_scale_update, i)
             i+=1
             if i == 1000: 
@@ -682,12 +688,14 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
         CCs_fmodel = np.array(CCs_fmodel)
         plot_CCs(CC_array = CCs_fmodel,
                  model_names = model_names,
-                 prefix = prefix_no_scale_update)
+                 prefix = prefix_no_scale_update,
+                 outdir = outdir)
         
         CCs_fmodel_update = np.array(CCs_fmodel_update)
         plot_CCs(CC_array = CCs_fmodel_update,
                  model_names = model_names,
-                 prefix = prefix_scale_update)
+                 prefix = prefix_scale_update,
+                 outdir = outdir)
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = "extract and fmodel object from a given pdb and mtzfile")
@@ -697,7 +705,8 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--other_data', default=[], action = 'append', help='Coordinates in pdb format. At least one model should be provided to use the --compare_phase_info argument.')
     parser.add_argument('--phase_info', action = 'store_true', help='Plot phase information from the fmodel')
     parser.add_argument('--compare_phase_info', action = 'store_true', help='Compare the phase info in two models.')
-    parser.add_argument('-x8', '--xtrapol8_phil', default= None, help="Xtrapol8 output phil file (Xtrapol8_out.phil) from which the input pdb and mtz files will be extracted. -m, -d, and -o will be ignored.")
+    parser.add_argument('-x8', '--xtrapol8_phil', default= None, help="Xtrapol8 output phil file (Xtrapol8_out.phil) from which the input pdb and mtz files will be extracted. -m, -d, -o and -dwill be ignored.")
+    parser.add_argument('-r', '--outdir', default=".", help='Output directory for generated plots.')
     
     #print help if no arguments provided
     if len(sys.argv) < 2:
@@ -711,8 +720,19 @@ if __name__ == '__main__':
     mtz = args.data
     other_models = args.other_models
     other_data   = args.other_data
+    outdir       = args.outdir
     phase_info   = args.phase_info
     compare_phase_info = args.compare_phase_info
+    
+    if os.path.isdir(outdir) == False:
+        try:
+            os.mkdir(outdir)
+        except OSError:
+            try:
+                os.makedirs(outdir)
+            except OSError:
+                print("Output directory cannot be created.")
+                sys.exit(1)
     
     if args.xtrapol8_phil == None:
         run(pdb,
@@ -720,13 +740,15 @@ if __name__ == '__main__':
             other_models,
             other_data,
             phase_info = phase_info,
-            compare_phase_info = compare_phase_info)
+            compare_phase_info = compare_phase_info,
+            outdir = outdir)
     
     else:
         #reset the input files to avoid that we'll start working with them
         pdb = None
         mtz = None
         other_models = []
+        outdir = os.getcwd()
         #Extract input from inputfile and command line
         #argument_interpreter = master_phil.command_line_argument_interpreter(home_scope="input")
         input_objects = iotbx.phil.process_command_line_with_files(
@@ -757,9 +779,12 @@ if __name__ == '__main__':
                         other_models = [os.path.join(root, fle) for fle in os.listdir(root) if fle.lower().endswith(".pdb")]
                         other_models = filter_other_models(other_models, maptype)
                         other_models.sort()
-                        mtz_and_pdb_files[mtz] = other_models
+                        mtz_and_pdb_files[mtz] = [other_models, root] #first item is the list of models, second item is the directory
                         
         for mtz in mtz_and_pdb_files.keys():
-            run(pdb, mtz, other_models = mtz_and_pdb_files[mtz], phase_info = phase_info, compare_phase_info = compare_phase_info)
-        
-
+            run(pdb,
+                mtz,
+                other_models = mtz_and_pdb_files[mtz][0],
+                phase_info = phase_info,
+                compare_phase_info = compare_phase_info,
+                outdir = mtz_and_pdb_files[mtz][1])
