@@ -68,6 +68,7 @@ class combine(object):
       return miller.array(miller_set=miller_set, data=fo)
     if(f_model is None): 
       if(not self.mnm.ml_map):
+        print("fmodel_2.scale_k1:", self.fmodel_2.scale_k1())
         self.f_model = self.fmodel_2.f_model_scaled_with_k1()
       else:
         self.f_model = self.mch_2.f_model

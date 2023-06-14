@@ -78,6 +78,7 @@ class combine(object):
     if(f_model is None):
       if(not self.mnm.ml_map):
         self.f_model = self.fmodel_1.f_model_scaled_with_k1()
+        print("fmodel_1.scale_k1:", self.fmodel_1.scale_k1())
         f_model_data = self.f_model.data()*self.fc_scale #calculation of fc_scale*Fc
       else:
         self.f_model = self.mch_1.f_model

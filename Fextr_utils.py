@@ -1359,29 +1359,35 @@ def plot_correlations(occ_lst, correlation_list):
     #plt.savefig("correlations_per_alpha.png", dpi=300, transparent=True)
     plt.close()
     
-def plot_phase_info(edm, fmodel = None, f_model_label = "Reference", prefix = "Phase_info"):
+def plot_phase_info(edm, fmodel = None, f_model_label = "Reference", prefix = "phase_info"):
     """
     Plot the figure of merit and phase errors from mmtbx.map_tools.electron_density_map object after generation of map_coefficients
     """
     #extract f_model info
     if fmodel == None:
         if 'fmodel' in edm.__dict__.keys():
-            phases = edm.fmodel.f_model().phases().data()
-            phase_errors = np.radians(edm.fmodel.phase_errors())
-            fom_fmodel = edm.fmodel.fom().data()
-            indices_fmodel = edm.fmodel.f_model().indices()
+            fmodel = edm.fmodel
+            #fmodel_phases = edm.fmodel.f_model().fmodel_phases()
+            #fmodel_phase_errors = np.radians(edm.fmodel.phase_errors())
+            #fmodel_fom = edm.fmodel.fom()
+            #fmodel_indices = fmodel_phases.indices()
+            #fmodel_alpha = edm.fmodel.alpha_beta()[0]
         elif 'fmodel_2' in edm.__dict__.keys():
-            phases = edm.fmodel_2.f_model().phases().data()
-            phase_errors = np.radians(edm.fmodel_2.phase_errors())
-            fom_fmodel = edm.fmodel_2.fom().data()
-            indices_fmodel = edm.fmodel_2.f_model().indices()
+            fmodel = edm.fmodel_2
+            #fmodel_phases = edm.fmodel_2.f_model().fmodel_phases()
+            #fmodel_phase_errors = np.radians(edm.fmodel_2.phase_errors())
+            #fmodel_fom = edm.fmodel_2.fom()
+            #fmodel_indices = fmodel_phases.indices()
+            #fmodel_alpha = edm.fmodel_2.alpha_beta()[0]
         else:
             print("Cannot extract fmodel from edm. Information in edm: {:s}. Provide an f_model or make sure edm is correctly generated".format(", ".join(edm.__dict__.keys())))
-    else:
-        phases = fmodel.f_model().phases().data()
-        phase_errors = np.radians(fmodel.phase_errors())
-        fom_fmodel = fmodel.fom().data()
-        indices_fmodel = fmodel.f_model().indices()
+            return
+            
+    fmodel_phases = fmodel.f_model().phases()
+    fmodel_phase_errors = flex.double(np.radians(fmodel.phase_errors()))
+    fmodel_fom = fmodel.fom()
+    fmodel_indices = fmodel_phases.indices()
+    fmodel_alpha = fmodel.alpha_beta()[0]
         
     #extract the updated info from mch
     if 'mch' in edm.__dict__.keys():
@@ -1399,47 +1405,155 @@ def plot_phase_info(edm, fmodel = None, f_model_label = "Reference", prefix = "P
         print("map_calculation_helper and fom cannot be extracted from the mmtbx.map_tools.electron_density_map. Make sure map_coefficients are calculated and edm is correctly generated.")
         return
         
-    if fom_fmodel.size() != mch.fom.size():
+    if fmodel_fom.data().size() != mch.fom.size():
         print("Not the same amount of reflections with updated and initial fom. Something probably went wrong during generation of the edm.")
-    elif np.all([mch.f_obs.indices() == indices_fmodel]) == False:
+    elif np.all([mch.f_obs.indices() == fmodel_indices]) == False:
         print("Not the same indices for reflections with updated and initial fom. Something probably went wrong during generation of the edm.")
+        
+    mch_bin_res_cent_lst        = []
+    mch_fom_bin_lst             = []
+    mch_alpa_bin_list           = []
+    fmodel_bin_res_cent_lst     = []
+    fmodel_phases_bin_lst       = []
+    fmodel_phase_errors_bin_lst = []
+    fmodel_fom_bin_lst          = []
+    fmodel_alpha_bin_lst        = []
+    
+    mch.f_obs.setup_binner(n_bins=20)
+    fmodel_phases.use_binning_of(mch.f_obs)
+    #fmodel_fom.use_binning_of(mch.f_obs)
+    #fmodel_alpha.use_binning_of(mch.f_obs)
+    print("                                              <fom>            <alpha>        <phase> {:s}".format(f_model_label))
+    print("bin  resolution range  #reflections       Updated {:s}  Updated {:s}  phase phase-error".format(f_model_label, f_model_label))
+    for i_bin in mch.f_obs.binner().range_all():
+        #get info from edm
+        sel_mch = mch.f_obs.binner().selection(i_bin)
+        mch_fom_bin = mch.fom.select(sel_mch)
+        if mch_fom_bin.size() == 0 : continue
+        mch_fom_bin_av = np.average(mch_fom_bin)
+        mch_fom_bin_lst.append(mch_fom_bin_av)
+        mch_alpa_bin = mch.alpha.select(sel_mch).data()
+        mch_alpa_bin_av = np.average(mch_alpa_bin)
+        mch_alpa_bin_list.append(mch_alpa_bin_av)
+        mch_bin_res_cent = np.average(mch.f_obs.binner().bin_d_range(i_bin))
+        mch_bin_res_cent_lst.append(mch_bin_res_cent)
+        #get info from fmodel
+        fmodel_bin_res_cent = np.average(fmodel_phases.binner().bin_d_range(i_bin))
+        fmodel_bin_res_cent_lst.append(fmodel_bin_res_cent)
+        sel_fmodel = fmodel_phases.binner().selection(i_bin)
+        fmodel_phases_bin = fmodel_phases.select(sel_fmodel).data()
+        fmodel_phases_bin_av = np.average(fmodel_phases_bin)
+        fmodel_phases_bin_lst.append(fmodel_phases_bin_av)
+        fmodel_phase_errors_bin = fmodel_phase_errors.select(sel_fmodel)
+        fmodel_phase_errors_bin_av = np.average(fmodel_phase_errors_bin)
+        fmodel_phase_errors_bin_lst.append(fmodel_phase_errors_bin_av)
+        fmodel_fom_bin = fmodel_fom.select(sel_fmodel).data()
+        fmodel_fom_bin_av = np.average(fmodel_fom_bin)
+        fmodel_fom_bin_lst.append(fmodel_fom_bin_av)
+        fmodel_alpha_bin = fmodel_alpha.select(sel_fmodel).data()
+        fmodel_alpha_bin_av = np.average(fmodel_alpha_bin)
+        fmodel_alpha_bin_lst.append(fmodel_alpha_bin_av)
+        #print info
+        legend = mch.f_obs.binner().bin_legend(i_bin, show_counts=False)
+        print("{:s} {:^10d} {:> 12.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f}".format(legend, sel_mch.size(), mch_fom_bin_av, fmodel_fom_bin_av, mch_alpa_bin_av, fmodel_alpha_bin_av, fmodel_phases_bin_av, fmodel_phase_errors_bin_av))
+
+    
+    #initiate plot
+    fig, axs = plt.subplots(3, 3, figsize=(10, 15))
        
     #plot the updated and f_model_fom
-    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
-    axs[0,0].scatter(range(mch.fom.size()), mch.fom, color = "tab:blue", label="Updated fom. Average: {:.2f}".format(np.mean(mch.fom)), marker = ".", alpha=0.2, zorder=1)
-    axs[0,0].scatter(range(fom_fmodel.size()), fom_fmodel, color = "tab:red", label="{:s} fom. Average: {:.2f}".format(f_model_label, np.mean(fom_fmodel)), marker = ".", zorder=0, alpha=0.2)
+    #in function of reflection
+    axs[0,0].scatter(range(mch.fom.size()), mch.fom, color = "tab:blue", label="Updated fom.\n Average: {:.2f}".format(np.mean(mch.fom)), marker = ".", alpha=0.1, zorder=1)
+    axs[0,0].scatter(range(fmodel_fom.data().size()), fmodel_fom.data(), color = "tab:red", label="{:s} fom.\n Average: {:.2f}".format(f_model_label, np.mean(fmodel_fom.data())), marker = ".", zorder=0, alpha=0.1)
     axs[0,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-    axs[0,0].plot(range(mch.fom.size()), np.repeat(np.mean(mch.fom), mch.fom.size()), color="blue", zorder=3)
-    axs[0,0].plot(range(fom_fmodel.size()), np.repeat(np.mean(fom_fmodel), mch.fom.size()), color="red", zorder=2)
+    axs[0,0].plot(range(mch.fom.size()), flex.double(mch.fom.size(), np.mean(mch.fom)), color="blue", zorder=3)
+    axs[0,0].plot(range(fmodel_fom.data().size()), flex.double(mch.fom.size(), np.mean(fmodel_fom.data())), color="red", zorder=2)
     axs[0,0].set_xlabel("Reflection")
     axs[0,0].set_ylabel("fom")
-    axs[0,0].set_ylim(0, 1)
+    axs[0,0].set_ylim(-0.05, 1.05)
+    axs[0,0].ticklabel_format(style="sci")
     
-    #plot the updated fom vs the f_model fom
-    if fom_fmodel.size() == mch.fom.size():
-        if np.all([mch.f_obs.indices() == indices_fmodel]):
-            CC = pearsonr(fom_fmodel, mch.fom)[0]
-            axs[1,0].scatter(fom_fmodel, mch.fom, color = "tab:blue", marker = ".", label="PearsonR = {:.2f}".format(CC))
-            axs[1,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-            axs[1,0].set_xlabel("{:s} fom".format(f_model_label))
-            axs[1,0].set_ylabel("Updated fom")
-            axs[1,0].set_ylim(0, 1)
-            axs[1,0].set_xlim(0, 1)
+    #in function of resolution
+    axs[0,1].scatter(mch_bin_res_cent_lst, mch_fom_bin_lst, color = "tab:blue", label="Updated <fom>", marker = ".", zorder=1)
+    axs[0,1].scatter(fmodel_bin_res_cent_lst, fmodel_fom_bin_lst, color = "tab:red", label=" {:s} <fom>".format(f_model_label), marker = ".", zorder=0)
+    axs[0,1].set_xlim(np.max(mch_bin_res_cent_lst[1:]), np.min(mch_bin_res_cent_lst[1:]))
+    axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[0,1].set_xlabel("Resolution (A)")
+    axs[0,1].set_ylabel("fom")
+    axs[0,1].set_ylim(-0.05, 1.05)
+    
+    #correlation between updated fom and f_model fom
+    if fmodel_fom.data().size() == mch.fom.size():
+        if np.all([mch.f_obs.indices() == fmodel_indices]):
+            CC = pearsonr(mch.fom, fmodel_fom.data())[0]
+            axs[0,2].scatter(mch.fom, fmodel_fom.data(), color = "tab:blue", marker = ".", label="fom PearsonR = {:.2f}".format(CC))
+            axs[0,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+            axs[0,2].set_ylabel("{:s} fom".format(f_model_label))
+            axs[0,2].set_xlabel("Updated fom")
+            axs[0,2].set_ylim(-0.05, 1.05)
+            axs[0,2].set_xlim(-0.05, 1.05)
+            
+    #plot the updated alpha (D)
+    #in function of reflection
+    axs[1,0].scatter(range(mch.alpha.data().size()), mch.alpha.data(), color = "tab:blue", label="Updated alpha (D).\n Average: {:.2f}".format(np.mean(mch.alpha.data())), marker = ".", alpha=0.1, zorder=1)
+    axs[1,0].scatter(range(fmodel_alpha.data().size()), fmodel_alpha.data(), color = "tab:red", label="{:s} alpha (D).\n Average: {:.2f}".format(f_model_label, np.mean(fmodel_alpha.data())), marker = ".", zorder=0, alpha=0.1)
+    axs[1,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[1,0].plot(range(mch.alpha.data().size()), flex.double(mch.alpha.data().size(), np.mean(mch.alpha.data())), color="blue", zorder=3)
+    axs[1,0].plot(range(fmodel_alpha.data().size()), flex.double(fmodel_alpha.data().size(), np.mean(fmodel_alpha.data())), color="red", zorder=2)
+    axs[1,0].set_xlabel("Reflection")
+    axs[1,0].set_ylabel("alpha (D)")
+    #axs[1,1].set_ylim(0, 1)
+    axs[1,0].ticklabel_format(style="sci")
+    
+    #in function of resolution
+    axs[1,1].scatter(mch_bin_res_cent_lst, mch_alpa_bin_list, color = "tab:blue", label="Updated <alpha (D)> ", marker = ".", zorder=1)
+    axs[1,1].scatter(fmodel_bin_res_cent_lst, fmodel_alpha_bin_lst, color = "tab:red", label="{:s} <alpha (D)>".format(f_model_label), marker = ".", zorder=0)
+    axs[1,1].set_xlim(np.max(mch_bin_res_cent_lst[1:]), np.min(mch_bin_res_cent_lst[1:]))
+    axs[1,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[1,1].set_xlabel("Resolution (A)")
+    axs[1,1].set_ylabel("alpha (D)")         
+
+    #correlation between updated alpha and f_model alpha
+    if fmodel_fom.data().size() == mch.fom.size():
+        if np.all([mch.f_obs.indices() == fmodel_indices]):
+            CC = pearsonr(mch.alpha.data(), fmodel_alpha.data())[0]
+            axs[1,2].scatter(mch.alpha.data(), fmodel_alpha.data(), color = "tab:blue", marker = ".", label="alpha (D) PearsonR = {:.2f}".format(CC))
+            axs[1,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+            axs[1,2].set_ylabel("{:s} alpha (D) ".format(f_model_label))
+            axs[1,2].set_xlabel("Updated alpha (D) ")
+            #axs[1,2].set_ylim(0, 1)
+            #axs[1,2].set_xlim(0, 1)
             
     #plot the phase and phase error of the f_model
-    axs[0,1].scatter(range(phases.size()), phases, color = "tab:red", label = "{:s} phases".format(f_model_label), marker = ".")
-    axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-    axs[0,1].set_xlabel("Reflection")
-    axs[0,1].set_ylabel("Phase {:s}".format(f_model_label))    
-    axs[0,1].set_ylim(-2*math.pi, 2*math.pi)
-    ax2 = axs[0,1].twinx()
-    ax2.fill_between(range(phases.size()), (phases-phase_errors), (phases+phase_errors), color="tab:red", alpha=0.2, label='phase error')
+    #in function of reflection
+    axs[2,0].scatter(range(fmodel_phases.data().size()), fmodel_phases.data(), color = "tab:red", label = "{:s} phases. \n Average: {:.2f}".format(f_model_label, np.mean(fmodel_phases.data())), marker = ".")
+    axs[2,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[2,0].plot(range(fmodel_phases.data().size()), flex.double(fmodel_phases.data().size(), np.mean(fmodel_phases.data())), color="red", zorder=2)
+    axs[2,0].set_xlabel("Reflection")
+    axs[2,0].set_ylabel("Phase")    
+    axs[2,0].set_ylim(-2*math.pi, 2*math.pi)
+    axs[2,0].ticklabel_format(style="sci")
+    ax2 = axs[2,0].twinx()
+    ax2.fill_between(range(fmodel_phases.data().size()), (fmodel_phases.data()-fmodel_phase_errors), (fmodel_phases.data()+fmodel_phase_errors), color="tab:red", alpha=0.2, label='phase error')
     ax2.tick_params(axis='y')
-    ax2.set_ylabel('Phase error {:s}'.format(f_model_label))
+    ax2.set_ylabel('Phase error')
     ax2.set_ylim(-2*math.pi, 2*math.pi)
+    
+    #in function of resolution
+    axs[2,1].scatter(fmodel_bin_res_cent_lst, fmodel_phases_bin_lst, color = "tab:red", label = "{:s} <phases>".format(f_model_label), marker = ".")
+    axs[2,1].set_xlim(np.max(fmodel_bin_res_cent_lst[1:]), np.min(fmodel_bin_res_cent_lst[1:]))
+    axs[2,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+    axs[2,1].set_xlabel("Resolution (A)")
+    axs[2,1].set_ylabel("Phase")
+    #ax3 = axs[2,1].twinx()
+    #ax3.fill_between(fmodel_bin_res_cent_lst,  np.subtract(fmodel_phases_bin_lst,fmodel_phase_errors_bin_lst),  np.subtract(fmodel_phases_bin_lst,fmodel_phase_errors_bin_lst), color="tab:red", alpha=0.2, label='phase error')
+    #ax3.set_xlim(np.max(fmodel_bin_res_cent_lst[1:]), np.min(fmodel_bin_res_cent_lst[1:]))
+    #ax3.tick_params(axis='y')
+    #ax3.set_ylabel('Phase error {:s}'.format(f_model_label))
+    #ax3.set_ylim(-2*math.pi, 2*math.pi)
+    
+    axs[2,2].set_axis_off()
 
-    plt.subplots_adjust(hspace=0.35, wspace=0.5, left=0.09, right=0.85, top = 0.95)
+    plt.subplots_adjust(hspace=0.25, wspace=0.65, left=0.09, right=0.95, top = 0.95)
     plt.savefig("{:s}.png".format(prefix))
     plt.close()
-    
-        

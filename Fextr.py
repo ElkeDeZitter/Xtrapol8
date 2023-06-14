@@ -1975,7 +1975,7 @@ class Filesandmaps(object):
         
         edm = map_tools_Millerset.electron_density_map(fobs_in=self.ms, fmodel_2=self.fmodel_ref)
         mc_mfofo = edm.map_coefficients(map_type='mfo')
-        plot_phase_info(edm, fmodel = self.fmodel_ref, f_model_label = "Reference", prefix = "Phase_info_{:s}".format(self.maptype))
+        plot_phase_info(edm, fmodel = self.fmodel_ref, f_model_label = "Reference", prefix = "phase_info_{:s}".format(self.maptype))
         mtz_dataset = mc_mfofo.as_mtz_dataset(column_root_label=self.labels['map_coefs_diff'])
         mtz_object = mtz_dataset.mtz_object()
         mtz_object.write(file_name = mtz_name)
@@ -2056,7 +2056,7 @@ class Filesandmaps(object):
         edm = mmtbx.map_tools.electron_density_map(fmodel=fmodel_update) #electron density map object created
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing = False) #mfodfc mapcoefs defined
         mc_2mfodfc = edm.map_coefficients(map_type='2mfo-dfc', isotropize=True, fill_missing = fill_missing) #2mfodfc mapcoefs defined
-        plot_phase_info(edm, fmodel = self.fmodel_ref, f_model_label = "Reference", prefix = "Phase_info_{:s}".format(self.maptype))
+        plot_phase_info(edm, fmodel = self.fmodel_ref, f_model_label = "Reference", prefix = "phase_info_{:s}".format(self.maptype))
         self.mtz_mapcoefs(mc_2mfodfc, mc_mfodfc)
         self.ccp4_xplor_mapcoefs(mc_2mfodfc, mc_mfodfc)
         
@@ -2089,7 +2089,7 @@ class Filesandmaps(object):
         edm = map_tools_fomsource.electron_density_map(fmodel_1=fmodel_update, fmodel_2=self.fmodel_ref)
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing= False)
         mc_mfo = edm.map_coefficients(map_type='mfo', isotropize=True, fill_missing= False)
-        plot_phase_info(edm, fmodel = self.fmodel_ref, f_model_label = "Reference", prefix = "Phase_info_{:s}".format(self.maptype))
+        plot_phase_info(edm, fmodel = self.fmodel_ref, f_model_label = "Reference", prefix = "phase_info_{:s}".format(self.maptype))
         self.mtz_mapcoefs(mc_mfo, mc_mfodfc)
         self.ccp4_xplor_mapcoefs(mc_mfo, mc_mfodfc)
         
