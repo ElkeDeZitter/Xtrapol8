@@ -3267,7 +3267,7 @@ def run(args):
     if params.f_and_maps.negative_and_missing == "fill_missing":
         params.f_and_maps.negative_and_missing = "keep_and_fill"
     if params.f_and_maps.negative_and_missing == "no_fill":
-        arams.f_and_maps.negative_and_missing = "keep_no_fill"
+        params.f_and_maps.negative_and_missing = "keep_no_fill"
     
     modified_phil = master_phil.format(python_object=params)
     modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
