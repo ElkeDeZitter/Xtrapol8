@@ -2024,6 +2024,7 @@ class Filesandmaps(object):
         edm = mmtbx.map_tools.electron_density_map(fmodel=fmodel_update) #electron density map object created
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing = False) #mfodfc mapcoefs defined
         mc_2mfodfc = edm.map_coefficients(map_type='2mfo-dfc', isotropize=True, fill_missing = fill_missing) #2mfodfc mapcoefs defined
+        #mc_2mfodfc = edm.map_coefficients(map_type='fo', isotropize=True, fill_missing = fill_missing) #fo mapcoefs defined
         self.mtz_mapcoefs(mc_2mfodfc, mc_mfodfc)
         self.ccp4_mapcoefs(mc_2mfodfc, mc_mfodfc)
         
@@ -3270,7 +3271,7 @@ def run(args):
     if params.f_and_maps.negative_and_missing == "fill_missing":
         params.f_and_maps.negative_and_missing = "keep_and_fill"
     if params.f_and_maps.negative_and_missing == "no_fill":
-        arams.f_and_maps.negative_and_missing = "keep_no_fill"
+        params.f_and_maps.negative_and_missing = "keep_no_fill"
     
     modified_phil = master_phil.format(python_object=params)
     modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
