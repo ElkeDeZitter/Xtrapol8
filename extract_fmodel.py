@@ -18,6 +18,35 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 Script to extract an fmodel from a pdb file and mtz file. Used to extract phase info after refinement
 
+What do you need?
+- A model (reference model in case of multiple models) (PDB or mmcif)
+- A file with structure factor amplitudes (mtz or mmcif)
+- Optional:
+    - multiple other models. This is required in the comparison mode but not if you just want to get the phase info of the model according to the structure factor amplitudes
+    - multiple dataset. This is optional also in the comparison mode if you want to compare different models with each havind their own set of strcuture factor amplitudes. works only if exactly the same Miller indices are present in all the mtz files
+    - Output directory
+OR
+- An Xtrapol8 output file (Xtrapol8_out.phil) from which the locatiom of input files will automatically be extracted
+
+If you wan to get the fom, alpha(D) and phases of each model/data indepently, use --phase_info
+If you want comparision between the reference and other models, use --compare_phase_info
+    
+usage
+-----
+To get the help message:
+$ phenix.python extract_fmodel.py
+
+To run with a specific set of arguments to get both the individual as well as compared output
+$phenix.python extract_fmodel.py -m my_model.pdb -d my_data.mtz -o another_model_1.pdb -o another_model_2.pdb -d my_outputdir -phase_info --compare_phase_info 
+
+To run with a specific set of arguments to get the individual output of a single model
+$phenix.python extract_fmodel.py -m my_model.pdb -d my_data.mtz -d my_outputdir -phase_info
+
+To run with Xtrapol8 output in comparison mode
+$phenix.python extract_fmodel.py -x Xtrapol8_out.phil --compare_phase_info 
+-------
+
+
 """
 from __future__ import division, print_function
 import sys, os
