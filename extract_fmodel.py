@@ -300,7 +300,7 @@ def plot_phases_and_fom(fmodel,
     fig.suptitle("{:s}: {:s}".format(fmodel_prefix_alt, fmodel_prefix), ha='left', x=0.05)
     
     plt.subplots_adjust(hspace=0.35, wspace=0.5, left=0.09, right=0.88, top = 0.95)
-    plt.savefig("phase_info_{:s}/{:s}.png".format(outdir, prefix))
+    plt.savefig("{:s}/phase_info_{:s}.png".format(outdir, prefix))
     plt.close()
     
     print("{:s} fom. Average: {:.2f}".format(fmodel_prefix_alt, np.mean(fmodel_fom.data())))
@@ -506,7 +506,7 @@ def compare_phases_and_fom(fmodel_1,
         fig.suptitle("{:s}: {:s}\n{:s}: {:s}".format(fmodel_1_prefix_alt, fmodel_1_prefix, fmodel_2_prefix_alt, fmodel_2_prefix), ha='left', x=0.05)
     
         plt.subplots_adjust(hspace=0.35, wspace=0.65, left=0.09, right=0.88, top = 0.88)
-        plt.savefig("phase_info_{:s}/{:s}.png".format(outdir, prefix))
+        plt.savefig("{:s}/phase_info_{:s}.png".format(outdir, prefix))
         plt.close()
 
         print("{:s} {:s} fom PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_fom))
@@ -552,7 +552,7 @@ def plot_CCs(CC_array, model_names, prefix="Correlations", outdir = os.getcwd())
             title += "model{:d}: {:s}\n".format(i+1, model_names[i])
         fig.suptitle(title, ha='left', x=0.05)
         plt.subplots_adjust(hspace=0.35, left=0.09, right=0.88, top = 0.88)
-        plt.savefig("phase_info_{:s}/{:s}.png".format(outdir, prefix))
+        plt.savefig("{:s}/phase_info_{:s}.png".format(outdir, prefix))
         plt.close()
         
     else:
@@ -670,7 +670,7 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
         base = "correlations_{:s}_no_scale_update".format(m_ref.prefix)
         prefix_no_scale_update = base
         i = 1
-        while os.path.isfile("phase_info_{:s}/{:s}.png".format(outdir, prefix_no_scale_update)):
+        while os.path.isfile("{:s}/phase_info_{:s}.png".format(outdir, prefix_no_scale_update)):
             prefix_no_scale_update = "{:s}_{:d}".format(base,i)
             i+=1
             if i == 1000: 
@@ -678,7 +678,7 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
         base = "correlations_{:s}_scale_update".format(m_ref.prefix)
         prefix_scale_update = base
         i = 1
-        while os.path.isfile("phase_info_{:s}/{:s}.png".format(outdir, prefix_scale_update)):
+        while os.path.isfile("{:s}/phase_info_{:s}.png".format(outdir, prefix_scale_update)):
             prefix_scale_update = "{:s}_{:d}".format(prefix_scale_update, i)
             i+=1
             if i == 1000: 
