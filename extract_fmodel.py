@@ -359,7 +359,24 @@ def compare_phases_and_fom(fmodel_1,
     fmodel2_fom = fmodel_2.fom()
     fmodel2_indices = fmodel2_phases.indices()
     fmodel2_alpha = fmodel_2.alpha_beta()[0]
-
+    
+    #get the difference between the two sets of phases.
+    #since phases can go from -pi to pi, we have to find the minimum angle description by
+    #the two vectors. The maximum difference is pi, meaning that differences can go between 0 and pi (third approach) or -pi and pi (first approach)
+    #the first approach gives differences between -pi/2 and 
+    diff = np.subtract(fmodel1_phases.data(),fmodel2_phases.data())
+    #diff_phases = (diff - math.pi/2 ) % math.pi - math.pi/2
+    #diff_phases = flex.double(diff_phases)
+    #second approach returns differences between -pi/2 and 3/2pi, so not ok in the logic here
+    #diff = np.where(diff > math.pi/2, diff-2*math.pi, diff)
+    #diff = np.where(diff < -math.pi/2, diff+2*math.pi, diff)
+    #diff_phases = flex.double(diff)
+    #thrid approac gives differences between 0 and pi and is thus easiest to interpret (e.g. averages per resolution bin)
+    diff_phases = np.min([2*math.pi - np.abs(diff), np.abs(diff)], axis=0)
+    diff_phases = flex.double(diff_phases)
+    
+    print("diff_phases range:")
+    print(np.min(diff_phases), np.max(diff_phases))
     
     if fmodel1_fom.data().size() != fmodel2_fom.data().size():
         print("fmodels don't have the same number of Miller indices. Phase information cannot be compared.")
@@ -379,6 +396,8 @@ def compare_phases_and_fom(fmodel_1,
         fmodel2_phase_errors_bin_lst = []
         fmodel2_fom_bin_lst          = []
         fmodel2_alpha_bin_lst        = []
+        
+        diff_phases_bin_lst          = []
 
         fmodel1_phases.setup_binner(n_bins=20)
         fmodel2_phases.use_binning_of(fmodel1_phases)
@@ -387,7 +406,7 @@ def compare_phases_and_fom(fmodel_1,
         fmodel_2_prefix_alt = "model2"
         print("{:s}: {:s}\n{:s}: {:s}".format(fmodel_1_prefix_alt, fmodel_1_prefix, fmodel_2_prefix_alt, fmodel_2_prefix))
         print("                                              <fom>              <alpha>             <phase>         <phase error>")
-        print("bin  resolution range  #reflections        {:s}  {:s}     {:s}  {:s}     {:s}  {:s}     {:s}  {:s}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt))
+        print("bin  resolution range  #reflections        {:s}  {:s}     {:s}  {:s}     {:s}  {:s}     {:s}  {:s}     <Phase difference>".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt, fmodel_1_prefix_alt, fmodel_2_prefix_alt))
 
         for i_bin in fmodel1_phases.binner().range_all():
             #get info from fmodel1
@@ -407,7 +426,7 @@ def compare_phases_and_fom(fmodel_1,
             fmodel1_alpha_bin_lst.append(fmodel1_alpha_bin_av)
             fmodel1_bin_res_cent = np.average(fmodel1_phases.binner().bin_d_range(i_bin))
             fmodel1_bin_res_cent_lst.append(fmodel1_bin_res_cent)
-            #get info from fmodel1
+            #get info from fmodel2
             sel_fmodel2 = fmodel2_phases.binner().selection(i_bin)
             fmodel2_phases_bin = fmodel2_phases.select(sel_fmodel2).data()
             fmodel2_phases_bin_av = np.average(fmodel2_phases_bin)
@@ -423,29 +442,39 @@ def compare_phases_and_fom(fmodel_1,
             fmodel2_alpha_bin_lst.append(fmodel2_alpha_bin_av)
             fmodel2_bin_res_cent = np.average(fmodel2_phases.binner().bin_d_range(i_bin))
             fmodel2_bin_res_cent_lst.append(fmodel2_bin_res_cent)
+            #get info from the phase differences
+            #should have the same binning as fmodel1 and fmodel2, binner cannot be setup for flex.double
+            diff_phases_bin = diff_phases.select(sel_fmodel2)
+            diff_phases_bin_av = np.average(diff_phases_bin)
+            diff_phases_bin_lst.append(diff_phases_bin_av)
             
             #print info
             legend = fmodel1_phases.binner().bin_legend(i_bin, show_counts=False)
-            print("{:s} {:^10d} {:> 12.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f}".format(legend, sel_fmodel1.size(), fmodel1_fom_bin_av, fmodel2_fom_bin_av, fmodel1_alpha_bin_av, fmodel2_alpha_bin_av, fmodel1_phases_bin_av, fmodel2_phases_bin_av, fmodel1_phase_errors_bin_av, fmodel2_phase_errors_bin_av))
+            print("{:s} {:^10d} {:> 12.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f} {:> 10.4f} {:> 6.4f} {:> 12.4f}".format(legend, sel_fmodel1.size(), fmodel1_fom_bin_av, fmodel2_fom_bin_av, fmodel1_alpha_bin_av, fmodel2_alpha_bin_av, fmodel1_phases_bin_av, fmodel2_phases_bin_av, fmodel1_phase_errors_bin_av, fmodel2_phase_errors_bin_av, diff_phases_bin_av))
             
         #initiate plot
-        fig, axs = plt.subplots(3, 3, figsize=(10, 10))
+        fig, axs = plt.subplots(4, 3, figsize=(10, 10))
+        model1_color = "tab:red"
+        model1_av_color = "red"
+        model2_color = "tab:blue"
+        model2_av_color = "blue"
+        correlation_color = "tab:green"
         
         #plot the updated and f_model_fom
         #in function of reflection
-        axs[0,0].scatter(range(fmodel1_fom.data().size()), fmodel1_fom.data(), color = "tab:blue", label="{:s} fom.\n Average: {:.2f}".format(fmodel_1_prefix_alt,np.mean(fmodel1_fom.data())), marker = ".", alpha=0.1, zorder=1)
-        axs[0,0].scatter(range(fmodel2_fom.data().size()), fmodel2_fom.data(), color = "tab:red", label="{:s} fom.\n Average: {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_fom.data())), marker = ".", zorder=0, alpha=0.1)
+        axs[0,0].scatter(range(fmodel1_fom.data().size()), fmodel1_fom.data(), color = model1_color, label="{:s} fom.\n Average: {:.2f}".format(fmodel_1_prefix_alt,np.mean(fmodel1_fom.data())), marker = ".", alpha=0.1, zorder=1)
+        axs[0,0].scatter(range(fmodel2_fom.data().size()), fmodel2_fom.data(), color = model2_color, label="{:s} fom.\n Average: {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_fom.data())), marker = ".", zorder=0, alpha=0.1)
         axs[0,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        axs[0,0].plot(range(fmodel1_fom.data().size()), flex.double(fmodel1_fom.data().size(), np.mean(fmodel1_fom.data())), color="blue", zorder=3)
-        axs[0,0].plot(range(fmodel2_fom.data().size()), flex.double(fmodel2_fom.data().size(), np.mean(fmodel2_fom.data())), color="red", zorder=2)
+        axs[0,0].plot(range(fmodel1_fom.data().size()), flex.double(fmodel1_fom.data().size(), np.mean(fmodel1_fom.data())), color=model1_av_color, zorder=3)
+        axs[0,0].plot(range(fmodel2_fom.data().size()), flex.double(fmodel2_fom.data().size(), np.mean(fmodel2_fom.data())), color=model2_av_color, zorder=2)
         axs[0,0].set_xlabel("Reflection")
         axs[0,0].set_ylabel("fom")
         axs[0,0].set_ylim(-0.05, 1.05)
         axs[0,0].ticklabel_format(style="sci")
         
         #in function of resolution
-        axs[0,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_fom_bin_lst, color = "tab:blue", label="{:s} <fom>" .format(fmodel_1_prefix_alt), marker = ".", zorder=1)
-        axs[0,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_fom_bin_lst, color = "tab:red", label="{:s} <fom>".format(fmodel_2_prefix_alt), marker = ".", zorder=0)
+        axs[0,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_fom_bin_lst, color = model1_color, label="{:s} <fom>" .format(fmodel_1_prefix_alt), marker = ".", zorder=1)
+        axs[0,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_fom_bin_lst, color = model2_color, label="{:s} <fom>".format(fmodel_2_prefix_alt), marker = ".", zorder=0)
         axs[0,1].set_xlim(np.max(fmodel1_bin_res_cent_lst[1:]), np.min(fmodel1_bin_res_cent_lst[1:]))
         axs[0,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[0,1].set_xlabel("Resolution (A)")
@@ -454,7 +483,7 @@ def compare_phases_and_fom(fmodel_1,
         
         #correlation
         CC_fom = pearsonr(fmodel1_fom.data(), fmodel2_fom.data())[0]
-        axs[0,2].scatter(fmodel1_fom.data(), fmodel2_fom.data(), color = "tab:blue", marker = ".", label="fom PearsonR = {:.2f}".format(CC_fom))
+        axs[0,2].scatter(fmodel1_fom.data(), fmodel2_fom.data(), color = correlation_color, marker = ".", label="fom PearsonR = {:.2f}".format(CC_fom))
         axs[0,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[0,2].set_xlabel("{:s} fom".format(fmodel_1_prefix_alt))
         axs[0,2].set_ylabel("{:s} fom".format(fmodel_2_prefix_alt))
@@ -463,19 +492,19 @@ def compare_phases_and_fom(fmodel_1,
                 
         #plot the updated alpha (D)
         #in function of reflection
-        axs[1,0].scatter(range(fmodel1_alpha.data().size()), fmodel1_alpha.data(), color = "tab:blue", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_1_prefix_alt, np.mean(fmodel1_alpha.data())), marker = ".", alpha=0.1, zorder=1)
-        axs[1,0].scatter(range(fmodel2_alpha.data().size()), fmodel2_alpha.data(), color = "tab:red", label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_alpha.data())), marker = ".", zorder=0, alpha=0.1)
+        axs[1,0].scatter(range(fmodel1_alpha.data().size()), fmodel1_alpha.data(), color = model1_color, label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_1_prefix_alt, np.mean(fmodel1_alpha.data())), marker = ".", alpha=0.1, zorder=1)
+        axs[1,0].scatter(range(fmodel2_alpha.data().size()), fmodel2_alpha.data(), color = model2_color, label="{:s} alpha (D).\n Average: {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_alpha.data())), marker = ".", zorder=0, alpha=0.1)
         axs[1,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        axs[1,0].plot(range(fmodel1_alpha.data().size()), flex.double(fmodel1_alpha.data().size(), np.mean(fmodel1_alpha.data())), color="blue", zorder=3)
-        axs[1,0].plot(range(fmodel2_alpha.data().size()), flex.double(fmodel2_alpha.data().size(), np.mean(fmodel2_alpha.data())), color="red", zorder=2)
+        axs[1,0].plot(range(fmodel1_alpha.data().size()), flex.double(fmodel1_alpha.data().size(), np.mean(fmodel1_alpha.data())), color=model1_av_color, zorder=3)
+        axs[1,0].plot(range(fmodel2_alpha.data().size()), flex.double(fmodel2_alpha.data().size(), np.mean(fmodel2_alpha.data())), color=model2_av_color, zorder=2)
         axs[1,0].set_xlabel("Reflection")
         axs[1,0].set_ylabel("alpha (D)")
         #axs[1,1].set_ylim(0, 1)
         axs[1,0].ticklabel_format(style="sci")
         
         #in function of resolution
-        axs[1,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_alpha_bin_lst, color = "tab:blue", label="{:s} <alpha (D)> ".format(fmodel_1_prefix_alt), marker = ".", zorder=1)
-        axs[1,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_alpha_bin_lst, color = "tab:red", label="{:s} <alpha (D)>".format(fmodel_2_prefix_alt), marker = ".", zorder=0)
+        axs[1,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_alpha_bin_lst, color = model1_color, label="{:s} <alpha (D)> ".format(fmodel_1_prefix_alt), marker = ".", zorder=1)
+        axs[1,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_alpha_bin_lst, color = model2_color, label="{:s} <alpha (D)>".format(fmodel_2_prefix_alt), marker = ".", zorder=0)
         axs[1,1].set_xlim(np.max(fmodel1_bin_res_cent_lst[1:]), np.min(fmodel1_bin_res_cent_lst[1:]))
         axs[1,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[1,1].set_xlabel("Resolution (A)")
@@ -483,7 +512,7 @@ def compare_phases_and_fom(fmodel_1,
 
         #correlation
         CC_alpha = pearsonr(fmodel1_alpha.data(), fmodel2_alpha.data())[0]
-        axs[1,2].scatter(fmodel1_alpha.data(), fmodel2_alpha.data(), color = "tab:blue", marker = ".", label="alpha (D) PearsonR = {:.2f}".format(CC_alpha))
+        axs[1,2].scatter(fmodel1_alpha.data(), fmodel2_alpha.data(), color = correlation_color, marker = ".", label="alpha (D) PearsonR = {:.2f}".format(CC_alpha))
         axs[1,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[1,2].set_xlabel("{:s} alpha (D)".format(fmodel_1_prefix_alt))
         axs[1,2].set_ylabel("{:s} alpha (D)".format(fmodel_2_prefix_alt))
@@ -492,26 +521,26 @@ def compare_phases_and_fom(fmodel_1,
                 
         #plot the phase and phase error
         #in function of reflection
-        axs[2,0].scatter(range(fmodel1_phases.data().size()), fmodel1_phases.data(), color = "tab:blue", label = "{:s} phases.\n Average = {:.2f}".format(fmodel_1_prefix_alt, np.mean(fmodel1_phases.data())), marker = ".")
-        axs[2,0].scatter(range(fmodel2_phases.data().size()), fmodel2_phases.data(), color = "tab:red", label = "{:s} phases.\n Average = {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_phases.data())), marker = ".")
+        axs[2,0].scatter(range(fmodel1_phases.data().size()), fmodel1_phases.data(), color = model1_color, label = "{:s} phases.\n Average = {:.2f}".format(fmodel_1_prefix_alt, np.mean(fmodel1_phases.data())), marker = ".")
+        axs[2,0].scatter(range(fmodel2_phases.data().size()), fmodel2_phases.data(), color = model2_color, label = "{:s} phases.\n Average = {:.2f}".format(fmodel_2_prefix_alt, np.mean(fmodel2_phases.data())), marker = ".")
         axs[2,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-        axs[2,0].plot(range(fmodel1_phases.data().size()), flex.double(fmodel1_phases.data().size(), np.mean(fmodel1_phases.data())), color="blue", zorder=3)
-        axs[2,0].plot(range(fmodel2_phases.data().size()), flex.double(fmodel2_phases.data().size(), np.mean(fmodel2_phases.data())), color="blue", zorder=4)
+        axs[2,0].plot(range(fmodel1_phases.data().size()), flex.double(fmodel1_phases.data().size(), np.mean(fmodel1_phases.data())), color=model1_av_color, zorder=3)
+        axs[2,0].plot(range(fmodel2_phases.data().size()), flex.double(fmodel2_phases.data().size(), np.mean(fmodel2_phases.data())), color=model2_av_color, zorder=4)
         axs[2,0].set_xlabel("Reflection")
         axs[2,0].set_ylabel("Phase")
         axs[2,0].set_ylim(-2*math.pi, 2*math.pi)
         axs[2,0].ticklabel_format(axis="x", style="sci")
         ax2 = axs[2,0].twinx()
-        ax2.fill_between(range(fmodel1_phases.data().size()), (fmodel1_phases.data()-fmodel1_phase_errors), (fmodel1_phases.data()+fmodel1_phase_errors), color="tab:blue", alpha=0.2, label='phase error')
-        ax2.fill_between(range(fmodel2_phases.data().size()), (fmodel2_phases.data()-fmodel2_phase_errors), (fmodel2_phases.data()+fmodel2_phase_errors), color="tab:red", alpha=0.2, label='phase error')
+        ax2.fill_between(range(fmodel1_phases.data().size()), (fmodel1_phases.data()-fmodel1_phase_errors), (fmodel1_phases.data()+fmodel1_phase_errors), color=model1_color, alpha=0.2, label='phase error')
+        ax2.fill_between(range(fmodel2_phases.data().size()), (fmodel2_phases.data()-fmodel2_phase_errors), (fmodel2_phases.data()+fmodel2_phase_errors), color=model2_color, alpha=0.2, label='phase error')
         #ax2.tick_params(axis='y')
         ax2.tick_params(top=False, labeltop=False, left=False, labelleft=False, right=False, labelright=False, bottom=False, labelbottom=False)
         ax2.set_ylabel('Phase error')
         ax2.set_ylim(-2*math.pi, 2*math.pi)
         
         #in function of resolution
-        axs[2,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_phases_bin_lst, color = "tab:blue", label = "{:s} <phases>".format(fmodel_1_prefix_alt), marker = ".")
-        axs[2,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_phases_bin_lst, color = "tab:red", label = "{:s} <phases>".format(fmodel_2_prefix_alt), marker = ".")
+        axs[2,1].scatter(fmodel1_bin_res_cent_lst, fmodel1_phases_bin_lst, color = model1_color, label = "{:s} <phases>".format(fmodel_1_prefix_alt), marker = ".")
+        axs[2,1].scatter(fmodel2_bin_res_cent_lst, fmodel2_phases_bin_lst, color = model2_color, label = "{:s} <phases>".format(fmodel_2_prefix_alt), marker = ".")
         axs[2,1].set_xlim(np.max(fmodel1_bin_res_cent_lst[1:]), np.min(fmodel1_bin_res_cent_lst[1:]))
         axs[2,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[2,1].set_xlabel("Resolution (A)")
@@ -525,12 +554,38 @@ def compare_phases_and_fom(fmodel_1,
     
         #correlation
         CC_phase = pearsonr(fmodel1_phases.data(), fmodel2_phases.data())[0]
-        axs[2,2].scatter(fmodel1_phases.data(), fmodel2_phases.data(), color = "tab:blue", marker = ".", label="phases PearsonR = {:.2f}".format(CC_phase))
+        axs[2,2].scatter(fmodel1_phases.data(), fmodel2_phases.data(), color = correlation_color, marker = ".", label="phases PearsonR = {:.2f}".format(CC_phase))
         axs[2,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         axs[2,2].set_xlabel("{:s} phase".format(fmodel_1_prefix_alt))
         axs[2,2].set_ylabel("{:s} phase".format(fmodel_2_prefix_alt))
         axs[2,2].set_ylim(0, 1)
         axs[2,2].set_xlim(0, 1)
+        
+        #plot the phase difference
+        #in function of reflection
+        axs[3,0].scatter(range(diff_phases.size()), diff_phases, color = model1_color, label = "Phase differences.\n Average = {:.2f}".format(np.mean(diff_phases)), marker = ".")
+        axs[3,0].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+        axs[3,0].plot(range(diff_phases.size()), flex.double(diff_phases.size(), np.mean(diff_phases)), color=model1_av_color, zorder=3)
+        axs[3,0].set_xlabel("Reflection")
+        axs[3,0].set_ylabel("Phase difference {:s} \n {:s}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt))
+        #axs[3,0].set_ylim(-2*math.pi, 2*math.pi)
+        axs[3,0].ticklabel_format(axis="x", style="sci")
+        
+        #in function of resolution
+        axs[3,1].scatter(fmodel2_bin_res_cent_lst, diff_phases_bin_lst, color = model1_color, label="Phase differences.", marker = ".", zorder=0)
+        axs[3,1].set_xlim(np.max(fmodel2_bin_res_cent_lst[1:]), np.min(fmodel2_bin_res_cent_lst[1:]))
+        axs[3,1].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+        axs[3,1].set_xlabel("Resolution (A)")
+        axs[3,1].set_ylabel("Phase difference {:s} \n {:s}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt))
+        
+        #correlation
+        CC_phase_diff = pearsonr(fmodel1_phases.data(), diff_phases)[0]
+        axs[3,2].scatter(fmodel1_phases.data(), diff_phases, color = correlation_color, marker = ".", label="Phases PearsonR = {:.2f}".format(CC_phase_diff))
+        axs[3,2].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
+        axs[3,2].set_xlabel("{:s} phase".format(fmodel_1_prefix_alt))
+        axs[3,2].set_ylabel("Phase difference {:s} \n {:s}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt))
+        axs[3,2].set_ylim(0, 1)
+        axs[3,2].set_xlim(0, 1)        
         
         fig.suptitle("{:s}: {:s}\n{:s}: {:s}".format(fmodel_1_prefix_alt, fmodel_1_prefix, fmodel_2_prefix_alt, fmodel_2_prefix), ha='left', x=0.05)
     
@@ -541,17 +596,18 @@ def compare_phases_and_fom(fmodel_1,
         print("{:s} {:s} fom PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_fom))
         print("{:s} {:s} alpha (d) PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_alpha))
         print("{:s} {:s} phase PearsonR = {:.2f}".format(fmodel_1_prefix_alt, fmodel_2_prefix_alt, CC_phase))
+        print("{:s} {:s} phase PearsonR = {:.2f}".format(fmodel_1_prefix_alt, "phase difference", CC_phase_diff))
         
     
     print("\n------------------------------------")    
-    return CC_fom, CC_alpha, CC_phase
+    return CC_fom, CC_alpha, CC_phase, CC_phase_diff
     
     
 def plot_CCs(CC_array, model_names, prefix="Correlations", outdir = os.getcwd()):
     """
     Plot the evolution of the CCs for the different models
     """
-    CC_names = ["CC_fom", "CC_alpha", "CC_phase"]
+    CC_names = ["CC_fom", "CC_alpha", "CC_phase", "CC_phase_difference"]
     
     if len(CC_array.shape) > 1:
         n = CC_array.shape[0]
@@ -568,9 +624,9 @@ def plot_CCs(CC_array, model_names, prefix="Correlations", outdir = os.getcwd())
         fig, axs = plt.subplots(len(CC_names), 1, figsize=(10, 10))
         for i in range(len(CC_names)):
             if n == 1:
-                axs[i].scatter(range(1,m+1), CC_array[0][i], color = "tab:blue", marker = "o", label = CC_names[i])
+                axs[i].scatter(range(1,m+1), CC_array[0][i], color = "tab:green", marker = "o", label = CC_names[i])
             else:
-                axs[i].scatter(range(1,m+1), CC_array[:,i], color = "tab:blue", marker = "o", label = CC_names[i])
+                axs[i].scatter(range(1,m+1), CC_array[:,i], color = "tab:green", marker = "o", label = CC_names[i])
             #axs[i].legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
             axs[i].set_xlabel("Model")
             axs[i].set_ylabel(CC_names[i])
@@ -704,11 +760,12 @@ def run(pdb, mtz, other_models = [], other_data = [], phase_info = True, compare
             i+=1
             if i == 1000: 
                 break
+            
         base = "correlations_{:s}_scale_update".format(m_ref.prefix)
         prefix_scale_update = base
         i = 1
         while os.path.isfile("{:s}/phase_info_{:s}.png".format(outdir, prefix_scale_update)):
-            prefix_scale_update = "{:s}_{:d}".format(prefix_scale_update, i)
+            prefix_scale_update = "{:s}_{:d}".format(base, i)
             i+=1
             if i == 1000: 
                 break
