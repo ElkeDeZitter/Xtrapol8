@@ -643,12 +643,11 @@ class MainFrame(wx.Frame):
         self.fill_map_types(user_params)
         neg_N_missing = user_params.f_and_maps.negative_and_missing
         neg, fill = neg_N_missing.split('_')[0:2]
-        #if neg in ['fill', 'no']:
-            #tabExt.negChoice.SetStringSelection('--')
-        #else:
-            #tabExt.negChoice.SetStringSelection(neg)
-        tabExt.negChoice.SetStringSelection(neg)
-        if fill == 'no':
+        if neg in ['fill', 'no']:
+            tabExt.negChoice.SetStringSelection('keep')
+        else:
+            tabExt.negChoice.SetStringSelection(neg)
+        if (fill == 'no' or neg == 'no'):
             tabExt.missChoice.SetSelection(1)
         else:
             tabExt.missChoice.SetSelection(0)
