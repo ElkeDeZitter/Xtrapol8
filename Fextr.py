@@ -235,8 +235,11 @@ map_explorer{
         .expert_level = 0
     use_occupancy_from_distance_analysis = False
         .type = bool
-        .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis.
+        .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis. This keyword will become obselete in future Xtrapol8 versions, use occupancy_estimation choice instead.
         .expert_level = 1
+    occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis
+        .type = choice(multi=False)
+        .help = Select a main method for the occupancy estimation in Xtrapol8. Take care that the distance_analysis method can only be used in calm_and_curious mode. This keyword replaces the use_occupancy_from_distance_analysis keyword which will become obsolete in future Xtrapol8 versions.
     }
 refinement{
     run_refinement = True
@@ -2127,18 +2130,19 @@ def run(args):
     params = input_objects.work.extract()
     #modified_phil = master_phil.format(python_object=params)
     
+    remarks = []
     #Check if non-phenix programs can be found:
     if check_program_path('coot') == False:
-        print("COOT not found.")
-        print("COOT not found.", file=log)
+        remark = "COOT not found."
+        remarks.append(remark)
     if check_program_path('scaleit') == False:
-        print("scaleit not found. Data will not be scaled.")
-        print("scaleit not found. Data will not be scaled.", file=log)
+        remark = "scaleit not found. Data will not be scaled."
+        remarks.append(remark)
         params.scaling.b_scaling = 'no'
     if params.refinement.use_refmac_instead_of_phenix:
         if (check_program_path('refmac5') and check_program_path('coot')) == False:
-            print("refmac and/or COOT not found. Phenix will be used for refinement.")
-            print("refmac and/or COOT not found. Phenix will be used for refinement.", file=log)
+            remark = "refmac and/or COOT not found. Phenix will be used for refinement."
+            remarks.append(remark)
             params.refinement.use_refmac_instead_of_phenix = False
             
     #specify extrapolated structure factors and map types
@@ -2173,8 +2177,8 @@ def run(args):
         qFoFo_weight = False
         kFoFo_weight = True
     else:
-        print("%s not defined. Q-weighting will be applied." %(params.f_and_maps.fofo_type.__phil_path__()), file=log)
-        print("%s not defined. Q-weighting will be applied." %(params.f_and_maps.fofo_type.__phil_path__()))
+        remark = "%s not defined. Q-weighting will be applied." %(params.f_and_maps.fofo_type.__phil_path__())
+        remarks.append(remark)
         qFoFo_weight = True
         kFoFo_weight = False
 
@@ -2194,22 +2198,39 @@ def run(args):
     if params.f_and_maps.all_maps: #calculate all Fextr map types
         qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = True
         
+    #convert the old use_occupancy_from_distance_analysis to the new occupancy_estimation keyword
+    if params.map_explorer.use_occupancy_from_distance_analysis == True:
+        remark = "map_explorer.use_occupancy_from_distance_analysis will become obsolete. Use map_explorer.occupancy_estimation = distance_analysis in the future."
+        remarks.append(remark)
+        params.map_explorer.occupancy_estimation = "distance_analysis"
+        
+    #change occupancy estimation method to the difference_map_maximization if distance_analysis is set but refinement not run
+    if (params.refinement.run_refinement == False and params.map_explorer.occupancy_estimation == 'distance_analysis'):
+        remark = "Distance_analysis cannot be carried out because refinement.run_refinement = False. The difference_map_maximization method will be used."
+        remarks.append(remark)
+        params.map_explorer.occupancy_estimation = 'difference_map_maximization'
+        
     #if all map types being false:
-    if qFextr_map == qFgenick_map == qFextr_calc_map == Fextr_map == Fgenick_map == Fextr_calc_map == kFextr_map == kFgenick_map == kFextr_calc_map == False and params.f_and_maps.fast_and_furious == False: 
-        print('The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr', file=log)
-        print('The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr')
+    if qFextr_map == qFgenick_map == qFextr_calc_map == Fextr_map == Fgenick_map == Fextr_calc_map == kFextr_map == kFgenick_map == kFextr_calc_map == False and params.f_and_maps.fast_and_furious == False:
+        remark = 'The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr.'
+        remarks.append(remark)
         qFextr_map = True
     #if fast_and_furious mode: overwrite all F and map setting to default:
     if params.f_and_maps.fast_and_furious:
+        remark = "fast_and_furious mode: some parameters will be reset to their default values."
+        remarks.append(remark)
         #change parameters for Xtrapol8_out.phil
         params.f_and_maps.fofo_type = 'qfofo'
         params.f_and_maps.f_extrapolated_and_maps = ['qfextr']
         params.f_and_maps.only_no_weight = params.f_and_maps.all_maps = params.f_and_maps.only_kweight = params.f_and_maps.only_qweight = False
-        #change working parameters
+        params.map_explorer.use_occupancy_from_distance_analysis = False
+        if params.map_explorer.occupancy_estimation == 'distance_analysis':
+            params.map_explorer.occupancy_estimation = 'difference_map_maximization'
+        params.f_and_maps.negative_and_missing='truncate_and_fill'
+        #change other working parameters
         qFoFo_weight = qFextr_map = True
         kFoFo_weight = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
-        params.map_explorer.use_occupancy_from_distance_analysis = False
-        params.f_and_maps.negative_and_missing='truncate_and_fill'
+
                 
     #Bring all maptypes to be calculated together in list instead of using loose varaibles:
     all_maptypes   = ['qFextr_map','Fextr_map', 'qFgenick_map', 'Fgenick_map', 'qFextr_calc_map', 'Fextr_calc_map', 'kFextr_map', 'kFgenick_map', 'kFextr_calc_map']
@@ -2238,12 +2259,24 @@ def run(args):
         occ_lst = params.occupancies.list_occ
     occ_lst.sort()
     if len(occ_lst) == 0:
-        print("No input occupancies found. Xtrapol8 will stop after the FoFo calculation.")
+        remark = "No input occupancies found. Xtrapol8 will stop after the FoFo calculation."
+        remarks.append(remark)
         params.output.generate_fofo_only = True
         params.occupancies.list_occ = None
     else:
         params.occupancies.list_occ = occ_lst
     ################################################################
+    if len(remarks) > 0:
+        print('-----------------------------------------', file=log)
+        print("REMARKS", file=log)
+        print('-----------------------------------------', file=log)
+        print("\n".join(remarks), file=log)
+        
+        print('-----------------------------------------')
+        print("REMARKS")
+        print('-----------------------------------------')
+        print("\n".join(remarks))
+        #############################################################
     
     #Add all arguments to log-file
     print('-----------------------------------------', file=log)
@@ -2959,9 +2992,11 @@ def run(args):
             realref_lst    = Fextr_calc_realref_lst   
             map_expl_lst   = Fextr_calc_map_expl_fles 
 
-        #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
-        #alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], FoFo_ref, mp_type, log=log).estimate_alpha()
-        alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], map_expl_lst[0], mp_type, log=log).estimate_alpha()
+        if params.map_explorer.occupancy_estimation in ("difference_map_maximization", "distance_analysis"):
+            #in case of distance_analysis alpha and occ will be overwritten if the requirements for distance_analysis are met (calm-and-curious, run_refinement)
+            alpha, occ, _, _ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], map_expl_lst[0], mp_type, log=log).estimate_alpha()
+        elif params.map_explorer.occupancy_estimation == "difference_map_PearsonCC":
+            _, _, alpha, occ = plotalpha(params.occupancies.list_occ, map_expl_lst[1:], map_expl_lst[0], mp_type, log=log).estimate_alpha()
         
         if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
             # If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
@@ -2986,8 +3021,9 @@ def run(args):
                 pdb_list = realref_lst
                 
             #Estimate alpha and occupancy based on the distances of the list with PDB files with the input model.
-            #Overwrite the earlier found alpha and occupancy if use_occupancy_from_distance_analysis is True
-            if params.map_explorer.use_occupancy_from_distance_analysis:
+            #Overwrite the earlier found alpha and occupancy if params.map_explorer.occupancy_estimation = "distance_analysis"
+            #if params.map_explorer.use_occupancy_from_distance_analysis:
+            if params.map_explorer.occupancy_estimation == "distance_analysis":
                 alpha, occ = Distance_analysis(pdb_list, params.occupancies.list_occ, resids_lst= residlst, use_waters = distance_use_waters, outsuffix = mp_type, log = log).extract_alpha()
             else:
                 _,_ = Distance_analysis(pdb_list, params.occupancies.list_occ, resids_lst= residlst, use_waters = distance_use_waters, outsuffix = mp_type, log = log).extract_alpha()
@@ -3104,13 +3140,15 @@ def run(args):
     occ_pickle.close()
         
       
-    print("Summary of occupancy determination:", file=log)
+    print("Summary of occupancy estimation:", file=log)
+    print("Method:  {:s}".format(params.map_explorer.occupancy_estimation),file=log)
     print("Map type       Occupancy", file=log)
     for k in occ_overview:
         print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]), file=log)
     print("-> Optimal occupancy of triggered state %.3f." %(occ), file=log)
     
-    print("OCCUAPNCY DETERMINATION SUMMARY")
+    print("OCCUPANCY ESTIMATION SUMMARY")
+    print("Method:  {:s}".format(params.map_explorer.occupancy_estimation))
     print("Map type       Occupancy")
     for k in occ_overview:
         print("{:<15} {:>5.3f}".format(k, occ_overview[k][0]))

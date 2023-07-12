@@ -158,8 +158,11 @@ class plotalpha(object):
         elif np.max(self.alphas[goodcc]) != 0:
             print("No good alpha value could be found based on map_explorer. The alpha value based on the Pearson correlation between FoFo and mFextr-DF will be used instead. Consider changing map_explorer parameters and run again.")
             print("No good alpha value could be found based on map_explorer. The alpha value based on the Pearson correlation between FoFo and mFextr-DFc will be used instead. Consider changing map_explorer parameters and run again.", file=self.log)
-            a = acc = np.max(self.alphas[goodcc])
-            o = occ = np.max(self.occupancies[goodcc])
+            a = 1
+            o = 1
+            acc = np.max(self.alphas[goodcc])
+            occ = np.max(self.occupancies[goodcc])
+
             self.alphafound = True
         else:
             print("No good alpha value could be found. Best alpha will be set to 1, occupancy will be set to 1 and subsequently corrected to the highest value in the input list. Consider changing map_explorer parameters and run again.", file=self.log)
@@ -354,14 +357,14 @@ class plotalpha(object):
         #print("Kyprianos alphadetermination", file=self.log)
         #self.alpha, self.occ = self.alphadetermination_kyp()
         #if self.log not in [sys.stdout, None]:
-        print("Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ), file=self.log)
-        print("Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ))
+        print("Difference map maximization: Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ), file=self.log)
+        print("Difference map maximization: Best alpha value is %.3f, meaning an occupancy of %.3f"%(self.alpha, self.occ))
 
         #if self.log not in [sys.stdout, None]:
-        print("Pearson CC: Best alpha value is %.3f, meaning an occupancy of %.3f" % (self.alpha_CC, self.occ_CC), file=self.log)
-        print("Pearson CC: Best alpha value is %.3f, meaning an occupancy of %.3f" % (self.alpha_CC, self.occ_CC))
+        print("Difference map PearsonCC: Best alpha value is %.3f, meaning an occupancy of %.3f" % (self.alpha_CC, self.occ_CC), file=self.log)
+        print("Difference map PearsonCC: Best alpha value is %.3f, meaning an occupancy of %.3f" % (self.alpha_CC, self.occ_CC))
 
         self.plot_alpha_determination('alpha_occupancy_determination_%s' %(self.outsuffix))
         
-        return self.alpha, self.occ
+        return self.alpha, self.occ, self.alpha_CC, self.occ_CC
 
