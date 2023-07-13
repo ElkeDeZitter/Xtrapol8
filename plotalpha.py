@@ -331,6 +331,8 @@ class plotalpha(object):
     
     def estimate_alpha(self):
         #self.get_integration_lists()
+        print("DIFEFRENCE MAP ANALYSIS")
+        print("DIFEFRENCE MAP ANALYSIS", file=self.log)
         print("mFext-DFc maps          | Sum of selected integrated peaks | Pearson CC", file=self.log)
         print("Occupancy       alpha         absolute   normalized", file=self.log)
         print("mFext-DFc maps          | Sum of selected integrated peaks | Pearson CC")

@@ -1032,15 +1032,16 @@ class FobsFobs(object):
             maptype = 'FoFo'
             F = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel)
             #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
-        self.mtz_name, self.ccp4_name, self.xplor_name = F.write_FoFo_output()
+        #self.mtz_name, self.ccp4_name, self.xplor_name = F.write_FoFo_output()
+        self.mtz_name, self.ccp4_name = F.write_FoFo_output()
         print("{:s} maps:".format(maptype))
         print("  mtz-format: {:s}".format(self.mtz_name))
         print("  ccp4-format: {:s}".format(self.ccp4_name))
-        print("  xplor-format: {:s}".format(self.xplor_name))
+        #print("  xplor-format: {:s}".format(self.xplor_name))
         print("{:s} maps:".format(maptype), file=log)
         print("  mtz-format: {:s}".format(self.mtz_name), file=log)
         print("  ccp4-format: {:s}".format(self.ccp4_name), file=log)
-        print("  xplor-format: {:s}".format(self.xplor_name), file=log)
+        #print("  xplor-format: {:s}".format(self.xplor_name), file=log)
 
 
         self.crystal_gridding = F.crystal_gridding
@@ -1190,24 +1191,24 @@ class Fextrapolate(object):
         return ((self.fobs_on.sigmas()*self.alf)**2+(self.fobs_off.sigmas()*(1-self.alf))**2)**(0.5)
     
     def message(self):
-        print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf), file=log)
-        print("---Calculating %s type of structure factors and maps for occupancy %.3f (alpha = %.3f)---" %(self.maptype, self.occ, self.alf))
+        print("\n---CALCULATING %s TYPE OF ESFAS AND MAPS FOR OCCUPANCY %.3f (ALPHA = %.3f)---" %(self.maptype.upper(), self.occ, self.alf), file=log)
+        print("\n---CALCULATING %s TYPE OF ESFAS AND MAPS FOR OCCUPANCY %.3f (ALPHA = %.3f)---" %(self.maptype.upper(), self.occ, self.alf))
         
     #Next come several functions for the handling of negative reflections
     def negatives_reject(self, ms):
         """
         Remove negative reflections. Should be called in case of "reject_and_fill" or "reject_no_fill"
         """
-        print("Negative reflections will be removed")
-        print("Negative reflections will be removed",file=log)
+        print("Negative ESFAs will be removed")
+        print("Negative ESFAs will be removed",file=log)
         return ms.select(ms.data()>=0)
         
     def negatives_zero(self, ms):
         """
         Set negative reflections to zero. Should be called in case of "zero_and_fill" or "zero_no_fill"
         """
-        print("Negative reflections will be set to 0")
-        print("Negative reflections will be set to 0",file=log)
+        print("Negative ESFAs will be set to 0")
+        print("Negative ESFAs will be set to 0",file=log)
         data = ms.data().deep_copy()
         data.set_selected(~(ms.data()>=0),0)
         sigmas = ms.sigmas().deep_copy()
@@ -1230,8 +1231,8 @@ class Fextrapolate(object):
         """
         Replace the negative reflections by fcalc. Should be called in case of "fcalc_and_fill" or "fcalc_no_fill"
         """
-        print("Negative reflecitons replaced by Fcalc")
-        print("Negative reflecitons replaced by Fcalc",file=log)        
+        print("Negative ESFAs replaced by Fcalc")
+        print("Negative ESFAs replaced by Fcalc",file=log)        
         data = ms.data().deep_copy()
         sel = ms.data()<0
         data.set_selected(sel, self.fmodel_fobs_off.f_model().amplitudes().data())
@@ -1243,8 +1244,8 @@ class Fextrapolate(object):
         """
         Replace the negative reflections by Fobs_reference. Should be called in case of "fref_and_fill" or "fref_no_fill"
         """
-        print("Negative reflecitons replaced by Foff")
-        print("Negative reflecitons replaced by Foff",file=log)        
+        print("Negative ESFAs replaced by Foff")
+        print("Negative ESFAs replaced by Foff",file=log)        
         data = ms.data().deep_copy()
         sel = ms.data()<0
         data.set_selected(sel, self.fmodel_fobs_off.f_obs().data())
@@ -1259,8 +1260,8 @@ class Fextrapolate(object):
         2) run truncate to convert from I back to F and thus estimate Fs based on French-Wilson distrubtion and relations
         This means that also the values of the possitive reflecions are altered in order to fulfill the Wilson distrubtions
         """
-        print("Square Fs to estimate Is, but keep sign of Fs")
-        print("Square Fs to estimate Is, but keep sign of Fs", file=log)
+        print("Square ESFAs to estimate Is, but keep sign of Fs")
+        print("Square ESFAs to estimate Is, but keep sign of Fs", file=log)
         I_data = ms.data()**2
         I_data.set_selected(ms.data()<0, I_data*(-1))
         I_sigmas = ms.sigmas()*ms.data()
@@ -1291,8 +1292,8 @@ class Fextrapolate(object):
             else:
                 new_neg_refl_handle = "reject_and_fill"
                 #new_neg_refl_handle = "keep_and_fill"
-            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative reflections and their very high absolute value. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
+            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
+            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             Corrected_Fs = self.negatives_reject(ms)
         else:
             Corrected_Fs = Corrected_Fs.map_to_asu()
@@ -1318,19 +1319,17 @@ class Fextrapolate(object):
         print("\n************Calculate maps************", file=log)
         name_out = "{:s}_keep_no_fill".format(self.name_out)
         FM = Filesandmaps(ms, self.rfree, self.maptype, name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
+        print("Electron density map in which the negative calculated ESFAs are preserved, and without filling of missing reflections:")
+        print("Electron density map in which the negative calculated ESFAs are preserved, and without filling of missing reflections:", file=log)
         try:
             mtz_name, ccp4_name_2FoFc, ccp4_name_FoFc = FM.write_Fextr_maps(fill_missing=False)
-            print("\nElectron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:")
-            print("\nElectron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:", file=log)
             print("  mtz-format: {:s}".format(mtz_name))
             print("  mtz-format: {:s}".format(mtz_name), file=log)
             print("  ccp4-format: {:s} and {:s}".format(ccp4_name_2FoFc, ccp4_name_FoFc))
             print("  ccp4-format: {:s} and {:s}".format(ccp4_name_2FoFc, ccp4_name_FoFc), file=log)
         except AssertionError:
-            print("Electron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:")
-            print("Electron density map in which the reflections with negative amplitude are preserved, and without filling of missing reflections:", file=log)
-            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. The map will not be calculated.")
-            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. The map will not be calculated.", file=log)
+            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative ESFAs. The maps cannot be calculated.")
+            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative ESFAs. The maps cannot be calculated.", file=log)
             
         os.chdir(indir)
             
@@ -1340,21 +1339,21 @@ class Fextrapolate(object):
         Whether missing reflections are automatically filled depends on the negative_and_missing strategy.
         If the map cannot be calculated because the number of negatives is too high, then negatives will be rejected and a new attempt for map calculation will be carried out. A warning will be given.
         ESFAs are written in mtz format.
-        Maps are calculated in mtz, ccp4 and xplor format. Xplor format will be removed from Xtrapol8 in future versions.
+        Maps are calculated in mtz, ccp4 format. Xplor format are removed from Xtrapol8 and all lines are commented
         """
         neg_neflecions_binning(ms, self.maptype, log=log)
         neg_reflections = ms.select(~(ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
-        print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
+        print("Total number of negative ESFAs: %d (%.2f %% of the data)"
                 %(neg_reflections.data().size(), neg_reflections.data().size()/ms.data().size() *100))
-        print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
+        print("Total number of negative ESFAs: %d (%.2f %% of the data)"
                 %(neg_reflections.data().size(), neg_reflections.data().size()/ms.data().size() *100),file=log)
         
         print("\n************Write reflection files and calculate maps************")
         print("\n************Write reflection files and calculate maps************", file=log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=log)
-            print("Negative reflection handling:")
+            print("Negative ESFAs handling:", file=log)
+            print("Negative ESFAs handling:")
             if self.neg_refl_handle in ['reject_no_fill', 'reject_and_fill']:
                 fextr_ms = self.negatives_reject(ms)
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
@@ -1395,14 +1394,15 @@ class Fextrapolate(object):
                 new_neg_refl_handle = "reject_no_fill"
             else:
                 new_neg_refl_handle = "reject_and_fill"
-            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative reflections. The negative reflections will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
+            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative ESFAs. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
+            print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative ESFAs. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             fextr_ms = self.negatives_reject(self.fextr_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
             self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
                   
-        self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
+        #self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
+        self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc = fm
         print("\nESFAs and extraplated electron density maps:")
         print("\nESFAs and extraplated electron density maps:", file=log)
         print("  ESFAs in mtz-format: {:s}".format(self.F_name))
@@ -1411,8 +1411,8 @@ class Fextrapolate(object):
         print("  electron density in mtz-format: {:s}".format(self.mtz_name), file=log)
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc))
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc), file=log)
-        print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc))
-        print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc), file=log)
+        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc))
+        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc), file=log)
         
     #Next come several functions to calculate the three types of extrapolated structure factors 
     def fextr(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
@@ -1472,15 +1472,15 @@ class Fextrapolate(object):
         neg_neflecions_binning(self.fgenick_ms, self.maptype, log=log)
         neg_reflections = self.fgenick_ms.select(~(self.fgenick_ms.data()>=0))
         dump_negative_stats(self.occ, self.maptype, self.fgenick_ms.data().size(), neg_reflections.data().size(), outdir_for_negstats)
-        print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100))
-        print("Total number of reflections with negative amplitude: %d (%.2f %% of the data)"
+        print("Total number of negative ESFAs: %d (%.2f %% of the data)" %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100))
+        print("Total number of negative ESFAs: %d (%.2f %% of the data)"
                 %(neg_reflections.data().size(), neg_reflections.data().size()/self.fgenick_ms.data().size() *100), file=log)
         
         print("\n************Write reflection files and calculate maps************")
         print("\n************Write reflection files and calculate maps************", file=log)
         if neg_reflections.data().size() > 0:
-            print("Negative reflection handling:", file=log)
-            print("Negative reflection handling:")
+            print("Negative ESFAs handling:", file=log)
+            print("Negative ESFAs handling:")
             self.fgenick_ms = self.negatives_reject(self.fgenick_ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(self.fgenick_ms)
             self.FM = Filesandmaps(self.fgenick_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
@@ -1488,7 +1488,8 @@ class Fextrapolate(object):
             self.FM = Filesandmaps(self.fgenick_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
                 
         fm = self.FM.write_Fgenick_output()
-        self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
+        #self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
+        self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc = fm
 
         print("\nESFAs and extraplated electron density maps:")
         print("\nESFAs and extraplated electron density maps:", file=log)
@@ -1498,8 +1499,8 @@ class Fextrapolate(object):
         print("  electron density in mtz-format: {:s}".format(self.mtz_name), file=log)
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc))
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc), file=log)
-        print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc))
-        print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc), file=log)
+        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc))
+        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc), file=log)
 
         
     def fextr_calc(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
@@ -1974,7 +1975,7 @@ class Filesandmaps(object):
         """
         mtz_name   = '%s_m%s.mtz' %(self.prefix, self.maptype)
         ccp4_name  = '%s_m%s.ccp4' %(self.prefix, self.maptype)
-        xplor_name = '%s_m%s.map' %(self.prefix, self.maptype)
+        #xplor_name = '%s_m%s.map' %(self.prefix, self.maptype)
         
         edm = map_tools_Millerset.electron_density_map(fobs_in=self.ms, fmodel_2=self.fmodel_ref)
         mc_mfofo = edm.map_coefficients(map_type='mfo')
@@ -1992,16 +1993,16 @@ class Filesandmaps(object):
           buffer     = 5.0,
           file_name  = ccp4_name)
 
-        #fft_map_mfofo.as_xplor_map(file_name = xplor_name) #works too but below is how xplor-files arewritten with mtz2map
-        mmtbx.maps.utils.write_xplor_map(
-            sites_cart = self.sites_cart,
-            unit_cell  = fft_map_mfofo.unit_cell(),
-            map_data   = fft_map_mfofo.real_map(),
-            n_real     = fft_map_mfofo.n_real(),
-            buffer     = 5.0,
-            file_name  = xplor_name)
+        ##fft_map_mfofo.as_xplor_map(file_name = xplor_name) #works too but below is how xplor-files arewritten with mtz2map
+        #mmtbx.maps.utils.write_xplor_map(
+            #sites_cart = self.sites_cart,
+            #unit_cell  = fft_map_mfofo.unit_cell(),
+            #map_data   = fft_map_mfofo.real_map(),
+            #n_real     = fft_map_mfofo.n_real(),
+            #buffer     = 5.0,
+            #file_name  = xplor_name)
         
-        return mtz_name, ccp4_name, xplor_name
+        return mtz_name, ccp4_name #, xplor_name
         
     def write_Fextr_maps(self, fill_missing=True):
         """
@@ -2040,8 +2041,8 @@ class Filesandmaps(object):
         self.mtz_name         = '%s_2m%s-DFc_m%s-DFc.mtz' %(self.prefix, self.maptype, self.maptype)
         self.ccp4_name_2FoFc  = '%s_2m%s-DFc.ccp4' %(self.prefix, self.maptype)
         self.ccp4_name_FoFc   = '%s_m%s-DFc.ccp4' %(self.prefix, self.maptype)
-        self.xplor_name_2FoFc = '%s_2m%s-DFc.map' %(self.prefix, self.maptype)
-        self.xplor_name_FoFc  = '%s_m%s-DFc.map' %(self.prefix, self.maptype)
+        #self.xplor_name_2FoFc = '%s_2m%s-DFc.map' %(self.prefix, self.maptype)
+        #self.xplor_name_FoFc  = '%s_m%s-DFc.map' %(self.prefix, self.maptype)
         
         self.mtz_file_Fs()
                 
@@ -2059,9 +2060,10 @@ class Filesandmaps(object):
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing = False) #mfodfc mapcoefs defined
         mc_2mfodfc = edm.map_coefficients(map_type='2mfo-dfc', isotropize=True, fill_missing = fill_missing) #2mfodfc mapcoefs defined
         self.mtz_mapcoefs(mc_2mfodfc, mc_mfodfc)
-        self.ccp4_xplor_mapcoefs(mc_2mfodfc, mc_mfodfc)
+        #self.ccp4_xplor_mapcoefs(mc_2mfodfc, mc_mfodfc)
+        self.ccp4_mapcoefs(mc_2mfodfc, mc_mfodfc)
         
-        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc
+        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
         
     def write_Fgenick_output(self):
         """
@@ -2072,8 +2074,8 @@ class Filesandmaps(object):
         self.mtz_name         = '%s_m%s_m%s-DFc.mtz' %(self.prefix, self.maptype, self.maptype)
         self.ccp4_name_2FoFc  = '%s_m%s.ccp4' %(self.prefix, self.maptype)
         self.ccp4_name_FoFc   = '%s_m%s-DFc.ccp4' %(self.prefix, self.maptype)
-        self.xplor_name_2FoFc = '%s_m%s.map' %(self.prefix, self.maptype)
-        self.xplor_name_FoFc  = '%s_m%s-DFc.map' %(self.prefix, self.maptype)
+        #self.xplor_name_2FoFc = '%s_m%s.map' %(self.prefix, self.maptype)
+        #self.xplor_name_FoFc  = '%s_m%s-DFc.map' %(self.prefix, self.maptype)
         
         self.mtz_file_Fs()
         
@@ -2091,9 +2093,10 @@ class Filesandmaps(object):
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing= False)
         mc_mfo = edm.map_coefficients(map_type='mfo', isotropize=True, fill_missing= False)
         self.mtz_mapcoefs(mc_mfo, mc_mfodfc)
-        self.ccp4_xplor_mapcoefs(mc_mfo, mc_mfodfc)
+        #self.ccp4_xplor_mapcoefs(mc_mfo, mc_mfodfc)
+        self.ccp4_mapcoefs(mc_mfo, mc_mfodfc)
         
-        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc
+        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
 def run(args):
     
@@ -2200,7 +2203,7 @@ def run(args):
         
     #convert the old use_occupancy_from_distance_analysis to the new occupancy_estimation keyword
     if params.map_explorer.use_occupancy_from_distance_analysis == True:
-        remark = "map_explorer.use_occupancy_from_distance_analysis will become obsolete. Use map_explorer.occupancy_estimation = distance_analysis in the future."
+        remark = "map_explorer.use_occupancy_from_distance_analysis will become obsolete. Use map_explorer.occupancy_estimation=distance_analysis in the future."
         remarks.append(remark)
         params.map_explorer.occupancy_estimation = "distance_analysis"
         
@@ -2502,7 +2505,7 @@ def run(args):
     print("CALCULATE (WEIGHTED) FO-FO FOURIER DIFFERENCE MAP", file=log)
     print('-----------------------------------------', file=log)
         
-    #calculate Fo-Fo and write map coefficients to mtz, ccp4 and xplor file
+    #calculate Fo-Fo and write map coefficients to mtz, ccp4
     FoFo = FobsFobs(DH.fobs_on_scaled, DH.fobs_off_scaled)
     FoFo.calculate_fdiff(kweight_scale = params.f_and_maps.kweight_scale)
     FoFo.write_maps(DH.fmodel, DH.rfree, outname, qweighting=qFoFo_weight, kweighting=kFoFo_weight)
@@ -2513,7 +2516,7 @@ def run(args):
     
     ################################################################
 
-    #Use xplor map to find and integrate the peaks, annotate the peaks to residues and keep a list with the most important residues only based on a user-defined Z-score level
+    #Use ccp4 map to find and integrate the peaks, annotate the peaks to residues and keep a list with the most important residues only based on a user-defined Z-score level
     print("\n************Map explorer************", file=log)
     print("\n************Map explorer************")
     if params.map_explorer.radius == None:
@@ -2684,7 +2687,7 @@ def run(args):
             
             #Depending on maptype, do following steps:
             #1) calculate the structure factors, write out to mtz file, handle negative reflections and generate associated plots or write to pickle file for later usuage
-            #   calculate map coefficients and write to mtz, xplor and ccp4 files (latter only for mFo-DFc type)
+            #   calculate map coefficients and write to mtz and ccp4 files (latter only for mFo-DFc type)
             #2) get stats and write to pickle file in order to generate plot afterwards with all map types and occupancies
             #3) compute signal to noise and plot
             #As same steps are repeated, but with a sifferent Fextr-function, I should think of a more clever way to reduce the redundancy here (and in following if clauses)
@@ -2728,10 +2731,10 @@ def run(args):
             else:
                 print("%s not recognised as extrapolated map type" % mp)
                         
-            #Use xplor map of type mFo-DFc to find and integrate the peaks, annotate the peaks to residues
+            #Use ccp4 map of type mFo-DFc to integrate the masked map
             print("\n************Map explorer************", file=log)
             print("\n************Map explorer************")
-            #map_expl_out = map_explorer(Fextr.xplor_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
+            #map_expl_out = map_explorer(Fextr.ccp4_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
             data = ccp4_map.map_reader(file_name=Fextr.ccp4_name_FoFc).data.as_numpy_array()
             pos = 0
             neg = 0
@@ -2927,8 +2930,8 @@ def run(args):
     occ_overview = {}
     for mp in reversed_maptypes:
         mp_type = mp.split("_map")[0]
-        print("---%s---"%(mp_type))
-        print("---%s---"%(mp_type), file= log)
+        print("---%s---\n"%(mp_type.upper()))
+        print("---%s---\n"%(mp_type.upper()), file= log)
         
         if mp in ('qFextr_map','qFgenick_map','qFextr_calc_map'):
             dir_prefix = 'qweight_occupancy'
@@ -3311,16 +3314,18 @@ def run(args):
     modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
     
     print('-----------------------------------------')
-    print("DONE! PLEASE INSPECT THE OUTPUT AND RERUN WITH DIFFERENT PARAMETERS IF NECESSARY.")
+    print("XTRAPOL8 DONE!")
     print('-----------------------------------------')
+    print("Please inspect the output and rerun with different parameters if necessary")
     
     print('-----------------------------------------', file=log)
-    print("DONE! PLEASE INSPECT THE OUTPUT AND RERUN WITH DIFFERENT PARAMETERS IF NECESSARY.", file=log)
+    print("XTRAPOL8 DONE!", file=log)
     print('-----------------------------------------',file=log)
+    print("Please inspect the output and rerun with different parameters if necessary", file=log)
     
     if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
-        print("Pymol script with models and maps in %s/pymol_movie.py."%(outdir), file=log)
-        print("Pymol script with models and maps in %s/pymol_movie.py."%(outdir))
+        print("Pymol script with models and maps: %s/pymol_movie.py."%(outdir), file=log)
+        print("Pymol script with models and maps: %s/pymol_movie.py."%(outdir))
     print("Coot script with models and maps in each output directory associated with estimated occupancy (coot_all_<maptype>.py).", file=log)
     print("Coot script with models and maps in each output directory associated with estimated occupancy (coot_all_<maptype>.py).")
 
