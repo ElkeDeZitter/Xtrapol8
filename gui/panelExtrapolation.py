@@ -209,14 +209,25 @@ class TabExtrapolation(ScrolledPanel):
                                    size=(width_TextCtrl, 20))
         self.ZscoreTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "2.0", style=wx.TE_PROCESS_ENTER,
                                      size=(width_TextCtrl, 20))
+        
+        self.occ_est = wx.StaticText(self, wx.ID_ANY, "Occupancy estimation", size=(180, 20))
+        self.occ_est.SetFont(defont)
+        self.occ_list_all = ["difference_map_maximization", "difference_map_PearsonCC", "distance_analysis"]
+        self.occ_list_noref = ["difference_map_maximization", "difference_map_PearsonCC"]
+        self.OccEstimation = wx.Choice(self, wx.ID_ANY, choices=self.occ_list_all, name = "Occupancy estimation")
+        self.OccEstimation.SetFont(defont)
+        self.OccEstimation.SetSelection(0)
 
-        MES_fgs = wx.FlexGridSizer(rows=2, cols=5, vgap=10, hgap=10)
-        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl])
+        
+
+        MES_fgs = wx.FlexGridSizer(rows=3, cols=5, vgap=10, hgap=10)
+        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl, self.occ_est, self.OccEstimation])
         self.MES.AddSpacer(5)
         self.MES.Add(MES_fgs)
         self.MES.AddSpacer(10)
-        self.DistanceAnalysis = wx.CheckBox(self, wx.ID_ANY, "Use occupancy from distance analysis")
-        self.MES.Add(self.DistanceAnalysis)
+        #self.MES.Add(self.OccEstimation)
+        #self.DistanceAnalysis = wx.CheckBox(self, wx.ID_ANY, "Use occupancy from distance analysis")
+        #self.MES.Add(self.DistanceAnalysis)
 
         NM = wx.StaticBox(self, 1, "Negative and Missing reflections", size=(800, 200))
         self.NM = wx.StaticBoxSizer(NM, wx.VERTICAL)
@@ -346,7 +357,13 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Layout()
         self.negChoice.Enable()
         self.missChoice.Enable()
-        self.DistanceAnalysis.Enable()
+        #self.DistanceAnalysis.Enable() 
+        OccEst_ini = self.OccEstimation.GetStringSelection()
+        self.OccEstimation.SetItems(self.occ_list_all)
+        if OccEst_ini in self.occ_list_all:
+            self.OccEstimation.SetStringSelection(OccEst_ini)
+        self.OccEstimation.Show()
+        self.occ_est.Show()
         if not self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Show(self.occ_sizer_final)
             self.FinalSizer.Layout()
@@ -377,8 +394,14 @@ class TabExtrapolation(ScrolledPanel):
         self.missChoice.Disable()
         #if not self.DistanceAnalysis.IsShown():
             #self.DistanceAnalysis.Show()
-        self.DistanceAnalysis.SetValue(False)
-        self.DistanceAnalysis.Disable()
+        #self.DistanceAnalysis.SetValue(False)
+        #self.DistanceAnalysis.Disable()
+        OccEst_ini = self.OccEstimation.GetStringSelection()
+        self.OccEstimation.SetItems(self.occ_list_noref)
+        if OccEst_ini in self.occ_list_noref:
+            self.OccEstimation.SetStringSelection(OccEst_ini)
+        self.OccEstimation.Show()
+        self.occ_est.Show()
         if not self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Show(self.occ_sizer_final)
             self.FinalSizer.Layout()
@@ -392,9 +415,9 @@ class TabExtrapolation(ScrolledPanel):
         if self.FinalSizer.IsShown(self.NM):
             self.FinalSizer.Hide(self.NM)
             self.FinalSizer.Layout()
-        self.DistanceAnalysis.SetValue(False)
-        self.DistanceAnalysis.Disable()
-        #self.DistanceAnalysis.Hide()
+        #self.DistanceAnalysis.SetValue(False)
+        self.OccEstimation.Hide()
+        self.occ_est.Hide()
         
         if self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Hide(self.occ_sizer_final)
