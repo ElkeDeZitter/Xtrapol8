@@ -120,6 +120,7 @@ class TabExtrapolation(ScrolledPanel):
         MNS_sizer.AddSpacer(30)
         MNS_sizer.Add(kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         MNS_sizer.Add(self.kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        
         ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling : ", size=(140, -1))
         self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"])
         self.ScalingChoice.SetSelection(2)
@@ -128,7 +129,7 @@ class TabExtrapolation(ScrolledPanel):
         S_sizer = wx.BoxSizer(wx.HORIZONTAL)
         S_sizer.Add(ScalingTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         S_sizer.Add(self.ScalingChoice, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-
+        
         MNS_final = wx.StaticBoxSizer(Maps, wx.VERTICAL)
         MNS_final.AddSpacer(10)
         MNS_final.Add(MNS_sizer)
@@ -245,6 +246,32 @@ class TabExtrapolation(ScrolledPanel):
         NM_fgs.AddMany([neg, self.negChoice, blank, missing, self.missChoice])
         self.NM.AddSpacer(5)
         self.NM.Add(NM_fgs)
+        
+        ########################
+        ### Scaling Resolution ###
+        ########################
+
+        SR = wx.StaticBox(self, 1, "Scaling resolution", size=(800, 200))
+        self.SR = wx.StaticBoxSizer(SR, wx.HORIZONTAL)
+        ScalingHighResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling high resolution :", size=(180, -1))
+        ScalingHighResTxt.SetFont(defont)
+        self.ScalingHighRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 20))
+        ScalingLowResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling low resolution :", size=(180, -1))
+        ScalingLowResTxt.SetFont(defont)
+        self.ScalingLowRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 20))
+        SR_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
+        SR_fgs.AddMany([ScalingLowResTxt, self.ScalingLowRes, blank, ScalingHighResTxt, self.ScalingHighRes])
+        self.SR.AddSpacer(5)
+        self.SR.Add(SR_fgs)
+        
+        #self.SR.Add(ScalingLowResTxt, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        #self.SR.Add(self.ScalingLowRes, 0, wx.ALL  | wx.ALIGN_CENTER_VERTICAL, 10)
+        #self.SR.Add(ScalingHighResTxt, 0, wx.LEFT| wx.ALIGN_CENTER_VERTICAL, 10)
+        #self.SR.Add(self.ScalingHighRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        
+        ########################
+        ### Final layout ###
+        ########################
 
         self.FinalSizer = wx.BoxSizer(wx.VERTICAL)
         self.FinalSizer.Add(self.X8Modes, 0, wx.ALL, 10)
@@ -256,6 +283,8 @@ class TabExtrapolation(ScrolledPanel):
         self.FinalSizer.Hide(self.MES)
         self.FinalSizer.Add(self.NM, 0, wx.ALL, 10)
         self.FinalSizer.Hide(self.NM)
+        self.FinalSizer.Add(self.SR, 0, wx.ALL, 10)
+        self.FinalSizer.Hide(self.SR)
         self.SetSizer(self.FinalSizer)
         self.SetAutoLayout(True)
 
@@ -310,12 +339,14 @@ class TabExtrapolation(ScrolledPanel):
         if not self.FinalSizer.IsShown(self.MES):
             self.FinalSizer.Show(self.MES)
             self.FinalSizer.Show(self.NM)
+            self.FinalSizer.Show(self.SR)
             self.ExpertMode.SetLabel("Expert Mode")
             #self.FinalSizer.Layout()
             self.expert = True
         else:
             self.FinalSizer.Hide(self.MES)
             self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Hide(self.SR)
             self.ExpertMode.SetLabel("Expert Mode ?")
             self.expert = False
         self.FinalSizer.Layout()
@@ -362,8 +393,9 @@ class TabExtrapolation(ScrolledPanel):
         self.OccEstimation.SetItems(self.occ_list_all)
         if OccEst_ini in self.occ_list_all:
             self.OccEstimation.SetStringSelection(OccEst_ini)
-        self.OccEstimation.Show()
-        self.occ_est.Show()
+        if self.FinalSizer.IsShown(self.MES):
+            self.OccEstimation.Show()
+            self.occ_est.Show()
         if not self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Show(self.occ_sizer_final)
             self.FinalSizer.Layout()
@@ -400,8 +432,9 @@ class TabExtrapolation(ScrolledPanel):
         self.OccEstimation.SetItems(self.occ_list_noref)
         if OccEst_ini in self.occ_list_noref:
             self.OccEstimation.SetStringSelection(OccEst_ini)
-        self.OccEstimation.Show()
-        self.occ_est.Show()
+        if self.FinalSizer.IsShown(self.MES):
+            self.OccEstimation.Show()
+            self.occ_est.Show()
         if not self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Show(self.occ_sizer_final)
             self.FinalSizer.Layout()

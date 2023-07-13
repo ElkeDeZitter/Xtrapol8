@@ -664,7 +664,19 @@ class MainFrame(wx.Frame):
             user_params.map_explorer.use_occupancy_from_distance_analysis == True):
                 tabExt.OccEstimation.SetSelection(0)
         #tabExt.DistanceAnalysis.SetValue(user_params.map_explorer.use_occupancy_from_distance_analysis)
-
+        
+        #Scaling resolution boundaries
+        if user_params.scaling.high_resolution is not None:
+            try:
+                tabExt.ScalingHighRes.SetValue("%4.2f" % float(user_params.scaling.high_resolution))
+            except ValueError:
+                pass
+        if user_params.scaling.low_resolution is not None:
+            try:
+                tabExt.ScalingLowRes.SetValue("%4.2f" % float(user_params.scaling.low_resolution))
+            except ValueError:
+                pass
+        
     def SetWidgetsTabRef(self, user_params):
         # Refinement        
         tabRef = self.notebook.Configure.tabRefine
@@ -978,6 +990,24 @@ class MainFrame(wx.Frame):
 
         tobeparsed += "f_and_maps.negative_and_missing = %s_%s\n" % (neg, missing)
         ###########################################
+        
+        ###########################################
+        ### Scaling Resolution ###
+        ###########################################
+        if len(tabExt.ScalingLowRes.GetValue()) > 0:
+            SR_low = tabExt.ScalingLowRes.GetValue()
+        else:
+            SR_low = "None"
+        if len(tabExt.ScalingHighRes.GetValue()) > 0:
+            SR_high = tabExt.ScalingHighRes.GetValue()
+        else:
+            SR_high = "None"
+        
+        tobeparsed += "scaling.high_resolution = %s\n" %(SR_low) +\
+            "scaling.low_resolution = %s\n" %(SR_high)
+        
+        #tobeparsed += "scaling.high_resolution = %s\n" %(tabExt.ScalingHighRes.GetStringSelection()) +\
+            #"scaling.low_resolution = %s\n" %(tabExt.ScalingLowRes.GetStringSelection())
 
         ########################
         ### Phenix - Ref_tab ###
