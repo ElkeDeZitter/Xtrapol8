@@ -346,7 +346,7 @@ refinement{
             .expert_level = 2
             cycles = 3
             .type = int
-            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT.
+            .help = number of dm cycles (ncycle keyword). Use a lot of cycles when combine=PERT and only few cycles when combine=OMIT.
             .expert_level = 2
             }
         }
@@ -437,7 +437,7 @@ refinement{
             .expert_level = 2
             cycles = 3
             .type = int
-            .help = number of dm cycles (ncycle keyword). Use only few cycles in case of combine=OMIT.
+            .help = number of dm cycles (ncycle keyword). Use a lot of cycles when combine=PERT and only few cycles when combine=OMIT
             .expert_level = 2
             }
         }
