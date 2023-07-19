@@ -50,7 +50,8 @@ If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle,
 
 ## New in version 1.2.0
 * Untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. 
-* Resolution boundaries for scaling can be specified <br />
+* Resolution boundaries for scaling can be specified.
+
 See release notes and manual for more info and other new features.
 
 <!-- GETTING STARTED -->
