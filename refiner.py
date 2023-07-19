@@ -196,6 +196,9 @@ map_explorer{
         .type = bool
         .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis.
         .expert_level = 1
+    occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis
+        .type = choice(multi=False)
+        .help = Select a main method for the occupancy estimation in Xtrapol8. Take care that the distance_analysis method can only be used in calm_and_curious mode. This keyword replaces the use_occupancy_from_distance_analysis keyword which will become obsolete in future Xtrapol8 versions.
     }
 refinement{
     run_refinement = True
@@ -1026,6 +1029,10 @@ def run(args):
     if Xtrapol8_params.f_and_maps.all_maps: #calculate all Fextr map types
         qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = True
 
+    #convert the old use_occupancy_from_distance_analysis to the new occupancy_estimation keyword
+    if Xtrapol8_params.map_explorer.use_occupancy_from_distance_analysis == True:
+        Xtrapol8_params.map_explorer.occupancy_estimation = "distance_analysis"
+
     #if all map types being false:
     if qFextr_map == qFgenick_map == qFextr_calc_map == Fextr_map == Fgenick_map == Fextr_calc_map == kFextr_map == kFgenick_map == kFextr_calc_map == False and Xtrapol8_params.f_and_maps.fast_and_furious == False: 
         print('The combination of arguments used to define extrapolated structure factors and maps leads to no calculations at all. The default will be applied: qFextr', file=log)
@@ -1041,6 +1048,8 @@ def run(args):
         qFoFo_weight = qFextr_map = True
         kFoFo_weight = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
         Xtrapol8_params.map_explorer.use_occupancy_from_distance_analysis = False
+        if Xtrapol8_params.map_explorer.occupancy_estimation == 'distance_analysis':
+            Xtrapol8_params.map_explorer.occupancy_estimation = 'difference_map_maximization'
         Xtrapol8_params.f_and_maps.negative_and_missing='truncate_and_fill'
                 
     #Bring all maptypes to be calculated together in list instead of using loose varaibles:
