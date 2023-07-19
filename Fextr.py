@@ -1285,15 +1285,15 @@ class Fextrapolate(object):
         else:
             Corrected_Fs = Extrapolated_column_extraction(outname, labels, log).get_Fs_from_reflection_file_converter()
         
-        if Corrected_Fs==None:
+        if (Corrected_Fs==None or Corrected_Fs.size()==0):
             if "no_fill" in self.neg_refl_handle:
                 new_neg_refl_handle = "reject_no_fill"
                 #new_neg_refl_handle = "keep_no_fill"
             else:
                 new_neg_refl_handle = "reject_and_fill"
                 #new_neg_refl_handle = "keep_and_fill"
-            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
-            print("Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
+            print("   Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
+            print("   Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             Corrected_Fs = self.negatives_reject(ms)
         else:
             Corrected_Fs = Corrected_Fs.map_to_asu()
@@ -1396,7 +1396,8 @@ class Fextrapolate(object):
                 new_neg_refl_handle = "reject_and_fill"
             print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative ESFAs. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
             print("  Cannot update and calculate scales for electron density maps. The reason might be the high number of negative ESFAs. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
-            fextr_ms = self.negatives_reject(self.fextr_ms)
+            #fextr_ms = self.negatives_reject(self.fextr_ms)
+            fextr_ms = self.negatives_reject(ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
             self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
