@@ -36,14 +36,7 @@ from __future__ import absolute_import, division, print_function
 from cctbx.array_family import flex
 from cctbx import miller
 from cctbx import maptbx
-from libtbx.utils import null_out
 import mmtbx.map_tools
-import libtbx
-import random
-import boost.python
-from six.moves import range
-mmtbx_f_model_ext = boost.python.import_ext("mmtbx_f_model_ext")
-import mmtbx.masks
 
 class combine(object):
   def __init__(self,

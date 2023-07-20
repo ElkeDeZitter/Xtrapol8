@@ -644,10 +644,10 @@ class MainFrame(wx.Frame):
         neg_N_missing = user_params.f_and_maps.negative_and_missing
         neg, fill = neg_N_missing.split('_')[0:2]
         if neg in ['fill', 'no']:
-            tabExt.negChoice.SetStringSelection('--')
+            tabExt.negChoice.SetStringSelection('keep')
         else:
             tabExt.negChoice.SetStringSelection(neg)
-        if fill == 'no':
+        if (fill == 'no' or neg == 'no'):
             tabExt.missChoice.SetSelection(1)
         else:
             tabExt.missChoice.SetSelection(0)
@@ -656,8 +656,27 @@ class MainFrame(wx.Frame):
         tabExt.peak_integration_floorTextCtrl.SetValue(str(user_params.map_explorer.peak_integration_floor))
         tabExt.RadiusTextCtrl.SetValue(str(user_params.map_explorer.radius))
         tabExt.ZscoreTextCtrl.SetValue(str(user_params.map_explorer.z_score))
-        tabExt.DistanceAnalysis.SetValue(user_params.map_explorer.use_occupancy_from_distance_analysis)
-
+        tabExt.OccEstimation.SetStringSelection(user_params.map_explorer.occupancy_estimation)
+        if user_params.map_explorer.use_occupancy_from_distance_analysis:
+            tabExt.OccEstimation.SetSelection(2)
+        if user_params.f_and_maps.fast_and_furious is True:
+            if (user_params.map_explorer.occupancy_estimation == 'distance_analysis' or 
+            user_params.map_explorer.use_occupancy_from_distance_analysis == True):
+                tabExt.OccEstimation.SetSelection(0)
+        #tabExt.DistanceAnalysis.SetValue(user_params.map_explorer.use_occupancy_from_distance_analysis)
+        
+        #Scaling resolution boundaries
+        if user_params.scaling.high_resolution is not None:
+            try:
+                tabExt.ScalingHighRes.SetValue("%4.2f" % float(user_params.scaling.high_resolution))
+            except ValueError:
+                pass
+        if user_params.scaling.low_resolution is not None:
+            try:
+                tabExt.ScalingLowRes.SetValue("%4.2f" % float(user_params.scaling.low_resolution))
+            except ValueError:
+                pass
+        
     def SetWidgetsTabRef(self, user_params):
         # Refinement        
         tabRef = self.notebook.Configure.tabRefine
@@ -703,7 +722,7 @@ class MainFrame(wx.Frame):
         tabRef.jelly_body_refinement.SetStringSelection(str(user_params.refinement.refmac_keywords.restraints.jelly_body_refinement))
         tabRef.jbs_TextCtrl.SetValue(str(user_params.refinement.refmac_keywords.restraints.jelly_body_sigma))
 
-        print(len(user_params.refinement.refmac_keywords.restraints.jelly_body_additional_restraints))
+        #print(len(user_params.refinement.refmac_keywords.restraints.jelly_body_additional_restraints))
         jb_add_restraints_lst = user_params.refinement.refmac_keywords.restraints.jelly_body_additional_restraints
         if len(jb_add_restraints_lst) == 0:
             jb_add_restraints = "None"
@@ -949,7 +968,8 @@ class MainFrame(wx.Frame):
                       "map_explorer.peak_detection_threshold = %s\n" % self.get_txtctrl_values(tabExt.peak_detection_thresholdTextCtrl) + \
                       "map_explorer.radius = %s\n" % self.get_txtctrl_values(tabExt.RadiusTextCtrl) + \
                       "map_explorer.z_score = %s\n" % self.get_txtctrl_values(tabExt.ZscoreTextCtrl) + \
-                      "map_explorer.use_occupancy_from_distance_analysis = %s\n" % tabExt.DistanceAnalysis.GetValue()
+                      "map_explorer.occupancy_estimation = %s\n" %(tabExt.OccEstimation.GetStringSelection())
+                      #"map_explorer.use_occupancy_from_distance_analysis = %s\n" % tabExt.DistanceAnalysis.GetValue()
         #TODO: user_params.map_explorer.use_occupancy_from_distance_analysis = ?
         ##############################
 
@@ -959,17 +979,35 @@ class MainFrame(wx.Frame):
         neg = self.notebook.Configure.tabExt.negChoice.GetStringSelection()
         missing = self.notebook.Configure.tabExt.missChoice.GetStringSelection()
         if missing == 'fill': missing = 'and_fill'
-        if neg == '--':
-            if missing == 'and_fill':
-                neg = 'fill'
-                missing = 'missing'
-            else:
-                neg = 'no'
-                missing = 'fill'
+        #if neg == '--':
+            #if missing == 'and_fill':
+                #neg = 'fill'
+                #missing = 'missing'
+            #else:
+                #neg = 'no'
+                #missing = 'fill'
 
 
         tobeparsed += "f_and_maps.negative_and_missing = %s_%s\n" % (neg, missing)
         ###########################################
+        
+        ###########################################
+        ### Scaling Resolution ###
+        ###########################################
+        if len(tabExt.ScalingLowRes.GetValue()) > 0:
+            SR_low = tabExt.ScalingLowRes.GetValue()
+        else:
+            SR_low = "None"
+        if len(tabExt.ScalingHighRes.GetValue()) > 0:
+            SR_high = tabExt.ScalingHighRes.GetValue()
+        else:
+            SR_high = "None"
+        
+        tobeparsed += "scaling.high_resolution = %s\n" %(SR_low) +\
+            "scaling.low_resolution = %s\n" %(SR_high)
+        
+        #tobeparsed += "scaling.high_resolution = %s\n" %(tabExt.ScalingHighRes.GetStringSelection()) +\
+            #"scaling.low_resolution = %s\n" %(tabExt.ScalingLowRes.GetStringSelection())
 
         ########################
         ### Phenix - Ref_tab ###

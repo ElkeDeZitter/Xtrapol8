@@ -42,11 +42,17 @@
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
-Xtrapol8 is software for the calculation of Fourier difference maps, extrapolated structure factors and estimation of the occupancy of at triggered state that occupies the crystal at low occupancy. It is based on the cctbx toolbox and uses some CCP4 programs. In order to run Xtrapol8, you will need to have a proper licence for Phenix and CCP4 and have both software suites installed. Please use Phenix 1.19 or higher.
+Xtrapol8 is software for the calculation of Fourier difference maps, extrapolated structure factor ampltiudes (ESFAs) and estimation of the occupancy of at triggered state that occupies the crystal at low occupancy. It is based on the cctbx toolbox and uses some CCP4 programs. In order to run Xtrapol8, you will need to have a proper licence for Phenix and CCP4 and have both software suites installed. Please use Phenix 1.19 or higher.
 
 An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4](https://www.youtube.com/watch?v=H21L3-M_ge4)
 
 If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1):640, 2022. 
+
+## New in version 1.2.0
+* Untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. 
+* Resolution boundaries for scaling can be specified.
+
+See release notes and manual for more info and other new features.
 
 <!-- GETTING STARTED -->
 ## Getting Started
@@ -157,14 +163,14 @@ _For more information, please have a look into the [GUI Manual](https://github.c
 
 Xtrapol8 is published under the [MIT License](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE)
 Xtrapol8 makes use of adapted cctbx modules, for which we additionally refer to the [cctbx license](https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt)
-The uer is responsible to legally correct obtain and install [ccp4](http://www.ccp4.ac.uk/download/), [Coot](http://www.ccp4.ac.uk/download/) and [Phenix](http://www.phenix-online.org/download/).
+The user is responsible to legally correct obtain and install [ccp4](http://www.ccp4.ac.uk/download/), [Coot](http://www.ccp4.ac.uk/download/) and [Phenix](http://www.phenix-online.org/download/).
 
 <!-- CONTACT -->
 ## Contact
 
 Elke De Zitter - elke.de-zitter@ibs.fr
 
-<!-- Nicolas Coquelle -  nicolas.coquelle@esrf.fr -->
+<!-- Nicolas Coquelle -  nicolas.coquelle@ibs.fr -->
 
 <!-- Thomas Barends - Thomas.Barends@mpimf-heidelberg.mpg.de -->
 

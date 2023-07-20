@@ -120,6 +120,7 @@ class TabExtrapolation(ScrolledPanel):
         MNS_sizer.AddSpacer(30)
         MNS_sizer.Add(kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         MNS_sizer.Add(self.kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        
         ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling : ", size=(140, -1))
         self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"])
         self.ScalingChoice.SetSelection(2)
@@ -128,7 +129,7 @@ class TabExtrapolation(ScrolledPanel):
         S_sizer = wx.BoxSizer(wx.HORIZONTAL)
         S_sizer.Add(ScalingTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         S_sizer.Add(self.ScalingChoice, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-
+        
         MNS_final = wx.StaticBoxSizer(Maps, wx.VERTICAL)
         MNS_final.AddSpacer(10)
         MNS_final.Add(MNS_sizer)
@@ -209,14 +210,25 @@ class TabExtrapolation(ScrolledPanel):
                                    size=(width_TextCtrl, 20))
         self.ZscoreTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "2.0", style=wx.TE_PROCESS_ENTER,
                                      size=(width_TextCtrl, 20))
+        
+        self.occ_est = wx.StaticText(self, wx.ID_ANY, "Occupancy estimation", size=(180, 20))
+        self.occ_est.SetFont(defont)
+        self.occ_list_all = ["difference_map_maximization", "difference_map_PearsonCC", "distance_analysis"]
+        self.occ_list_noref = ["difference_map_maximization", "difference_map_PearsonCC"]
+        self.OccEstimation = wx.Choice(self, wx.ID_ANY, choices=self.occ_list_all, name = "Occupancy estimation")
+        self.OccEstimation.SetFont(defont)
+        self.OccEstimation.SetSelection(0)
 
-        MES_fgs = wx.FlexGridSizer(rows=2, cols=5, vgap=10, hgap=10)
-        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl])
+        
+
+        MES_fgs = wx.FlexGridSizer(rows=3, cols=5, vgap=10, hgap=10)
+        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl, self.occ_est, self.OccEstimation])
         self.MES.AddSpacer(5)
         self.MES.Add(MES_fgs)
         self.MES.AddSpacer(10)
-        self.DistanceAnalysis = wx.CheckBox(self, wx.ID_ANY, "Use occupancy from distance analysis")
-        self.MES.Add(self.DistanceAnalysis)
+        #self.MES.Add(self.OccEstimation)
+        #self.DistanceAnalysis = wx.CheckBox(self, wx.ID_ANY, "Use occupancy from distance analysis")
+        #self.MES.Add(self.DistanceAnalysis)
 
         NM = wx.StaticBox(self, 1, "Negative and Missing reflections", size=(800, 200))
         self.NM = wx.StaticBoxSizer(NM, wx.VERTICAL)
@@ -224,7 +236,7 @@ class TabExtrapolation(ScrolledPanel):
         neg.SetFont(defont)
         missing = wx.StaticText(self, wx.ID_ANY, "Missing", size=(60, -1))
         missing.SetFont(defont)
-        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "--"])
+        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "keep"])
         self.negChoice.SetFont(defont)
         self.negChoice.SetSelection(0)
         self.missChoice = wx.Choice(self, wx.ID_ANY, choices=["fill", "no_fill"])
@@ -234,6 +246,32 @@ class TabExtrapolation(ScrolledPanel):
         NM_fgs.AddMany([neg, self.negChoice, blank, missing, self.missChoice])
         self.NM.AddSpacer(5)
         self.NM.Add(NM_fgs)
+        
+        ########################
+        ### Scaling Resolution ###
+        ########################
+
+        SR = wx.StaticBox(self, 1, "Scaling resolution", size=(800, 200))
+        self.SR = wx.StaticBoxSizer(SR, wx.HORIZONTAL)
+        ScalingHighResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling high resolution :", size=(180, -1))
+        ScalingHighResTxt.SetFont(defont)
+        self.ScalingHighRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 20))
+        ScalingLowResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling low resolution :", size=(180, -1))
+        ScalingLowResTxt.SetFont(defont)
+        self.ScalingLowRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 20))
+        SR_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
+        SR_fgs.AddMany([ScalingLowResTxt, self.ScalingLowRes, blank, ScalingHighResTxt, self.ScalingHighRes])
+        self.SR.AddSpacer(5)
+        self.SR.Add(SR_fgs)
+        
+        #self.SR.Add(ScalingLowResTxt, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
+        #self.SR.Add(self.ScalingLowRes, 0, wx.ALL  | wx.ALIGN_CENTER_VERTICAL, 10)
+        #self.SR.Add(ScalingHighResTxt, 0, wx.LEFT| wx.ALIGN_CENTER_VERTICAL, 10)
+        #self.SR.Add(self.ScalingHighRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        
+        ########################
+        ### Final layout ###
+        ########################
 
         self.FinalSizer = wx.BoxSizer(wx.VERTICAL)
         self.FinalSizer.Add(self.X8Modes, 0, wx.ALL, 10)
@@ -245,6 +283,8 @@ class TabExtrapolation(ScrolledPanel):
         self.FinalSizer.Hide(self.MES)
         self.FinalSizer.Add(self.NM, 0, wx.ALL, 10)
         self.FinalSizer.Hide(self.NM)
+        self.FinalSizer.Add(self.SR, 0, wx.ALL, 10)
+        self.FinalSizer.Hide(self.SR)
         self.SetSizer(self.FinalSizer)
         self.SetAutoLayout(True)
 
@@ -299,12 +339,14 @@ class TabExtrapolation(ScrolledPanel):
         if not self.FinalSizer.IsShown(self.MES):
             self.FinalSizer.Show(self.MES)
             self.FinalSizer.Show(self.NM)
+            self.FinalSizer.Show(self.SR)
             self.ExpertMode.SetLabel("Expert Mode")
             #self.FinalSizer.Layout()
             self.expert = True
         else:
             self.FinalSizer.Hide(self.MES)
             self.FinalSizer.Hide(self.NM)
+            self.FinalSizer.Hide(self.SR)
             self.ExpertMode.SetLabel("Expert Mode ?")
             self.expert = False
         self.FinalSizer.Layout()
@@ -346,7 +388,14 @@ class TabExtrapolation(ScrolledPanel):
             self.FinalSizer.Layout()
         self.negChoice.Enable()
         self.missChoice.Enable()
-        self.DistanceAnalysis.Enable()
+        #self.DistanceAnalysis.Enable() 
+        OccEst_ini = self.OccEstimation.GetStringSelection()
+        self.OccEstimation.SetItems(self.occ_list_all)
+        if OccEst_ini in self.occ_list_all:
+            self.OccEstimation.SetStringSelection(OccEst_ini)
+        if self.FinalSizer.IsShown(self.MES):
+            self.OccEstimation.Show()
+            self.occ_est.Show()
         if not self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Show(self.occ_sizer_final)
             self.FinalSizer.Layout()
@@ -377,8 +426,15 @@ class TabExtrapolation(ScrolledPanel):
         self.missChoice.Disable()
         #if not self.DistanceAnalysis.IsShown():
             #self.DistanceAnalysis.Show()
-        self.DistanceAnalysis.SetValue(False)
-        self.DistanceAnalysis.Disable()
+        #self.DistanceAnalysis.SetValue(False)
+        #self.DistanceAnalysis.Disable()
+        OccEst_ini = self.OccEstimation.GetStringSelection()
+        self.OccEstimation.SetItems(self.occ_list_noref)
+        if OccEst_ini in self.occ_list_noref:
+            self.OccEstimation.SetStringSelection(OccEst_ini)
+        if self.FinalSizer.IsShown(self.MES):
+            self.OccEstimation.Show()
+            self.occ_est.Show()
         if not self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Show(self.occ_sizer_final)
             self.FinalSizer.Layout()
@@ -392,9 +448,9 @@ class TabExtrapolation(ScrolledPanel):
         if self.FinalSizer.IsShown(self.NM):
             self.FinalSizer.Hide(self.NM)
             self.FinalSizer.Layout()
-        self.DistanceAnalysis.SetValue(False)
-        self.DistanceAnalysis.Disable()
-        #self.DistanceAnalysis.Hide()
+        #self.DistanceAnalysis.SetValue(False)
+        self.OccEstimation.Hide()
+        self.occ_est.Hide()
         
         if self.FinalSizer.IsShown(self.occ_sizer_final):
             self.FinalSizer.Hide(self.occ_sizer_final)

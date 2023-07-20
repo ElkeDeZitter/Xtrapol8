@@ -27,7 +27,7 @@ f_and_maps {
   fast_and_furious = False
   negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill \
                          fref_no_fill fcalc_and_fill fcalc_no_fill \
-                         fill_missing no_fill reject_and_fill reject_no_fill \
+                         keep_and_fill keep_no_fill reject_and_fill reject_no_fill \
                          zero_and_fill zero_no_fill
 }
 map_explorer {
@@ -35,7 +35,7 @@ map_explorer {
   peak_detection_threshold = 4.0
   radius = None
   z_score = 2.0
-  use_occupancy_from_distance_analysis = False
+  occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis
 }
 refinement {
   run_refinement = True
@@ -75,8 +75,8 @@ refinement {
     additional_real_space_keywords = None
     density_modification {
       density_modification = False
-      combine = *PERT OMIT
-      cycles = 10
+      combine = PERT *OMIT
+      cycles = 3
     }
   }
   refmac_keywords {
@@ -106,8 +106,8 @@ refinement {
     additional_refmac_keywords = None
     density_modification {
       density_modification = False
-      combine = *PERT OMIT
-      cycles = 10
+      combine = PERT *OMIT
+      cycles = 3
     }
   }
 }
