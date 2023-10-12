@@ -1088,7 +1088,10 @@ class Fextrapolate(object):
         self.fmodel_fobs_off = fmodel_fobs_off
         self.rfree           = rfree
         self.occ             = occ
-        self.alf             = 1/(self.occ)
+        try:
+          self.alf             = 1/(self.occ)
+        except:
+          self.alf = 0
         self.neg_refl_handle = neg_refl_handle
         self.indices         = fobs_off.indices()
         self.crystal_gridding= crystal_gridding

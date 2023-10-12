@@ -718,8 +718,12 @@ def plot_Fextr_sigmas(pickle_file='Fextr_binstats.pickle'):
         indices = np.where(alldata[:,2] == maptype)[0]
         for a in indices:
             occ, _, _, bin_res_cent_lst, fextr_data_lst, fextr_sigmas_lst, _, _ = alldata[a]
-            color_data  = plt.cm.Reds(int((np.log(1/occ))*100))
-            color_sigma = plt.cm.Blues(int((np.log(1/occ))*100))
+            if int(occ) == 0:
+              color_data  = plt.cm.Reds(int((np.log(1))*100))
+              color_sigma = plt.cm.Blues(int((np.log(1))*100))
+            else:
+              color_data  = plt.cm.Reds(int((np.log(1/occ))*100))
+              color_sigma = plt.cm.Blues(int((np.log(1/occ))*100))
             ax0.plot(bin_res_cent_lst[1:], fextr_data_lst[1:], marker = '.', color = color_data, label = '%s, occ = %.3f' %(maptype, occ))
             ax1.plot(bin_res_cent_lst[1:], fextr_sigmas_lst[1:], marker = 'x', linestyle='--', color = color_sigma, label = 'sig(%s), occ = %.3f' %(maptype, occ))
             #Specify the minimum and maximum value
