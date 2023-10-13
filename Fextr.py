@@ -1771,7 +1771,7 @@ class Fextrapolate(object):
         print("----------------")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
-        pdb_out_real = ref.coot_real_space_refinement(pdb_in, mtz_map, map_column_labels)
+        pdb_out_real = ref.coot_real_space_refinement_mtz(pdb_in, mtz_map, map_column_labels)
         print("output real space refinement:", file=log)
         print("----------------")
         print("output real space refinement:")
@@ -1785,8 +1785,9 @@ class Fextrapolate(object):
         print("----------------")
 
         if keywords.density_modification.density_modification:
-            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
-            pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_dm, 'PHIDM, FOMDM, FOFCWT, PHFOFCWT' )
+            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(ccp4_dm, pdb_out_rec))
+            pdb_out_rec_real = ref.coot_real_space_refinement_ccp4(pdb_out_rec, ccp4_dm)
             print("output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
@@ -1800,7 +1801,7 @@ class Fextrapolate(object):
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
+            pdb_out_rec_real = ref.coot_real_space_refinement_mtz(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
             print("output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
