@@ -1634,7 +1634,7 @@ class Fextrapolate(object):
                 print("    mtz-file not found. Density modification failed.")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
-        pdb_out_real = ref.phenix_real_space_refinement(mtz_map, pdb_in, column_labels)
+        pdb_out_real = ref.phenix_real_space_refinement_mtz(mtz_map, pdb_in, column_labels)
         print("Output real space refinement:", file=log)
         print("----------------")
         print("Output real space refinement:")
@@ -1648,8 +1648,10 @@ class Fextrapolate(object):
         print("----------------")
 
         if (keywords.density_modification.density_modification and os.path.isfile(mtz_dm)):
-            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
-            pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
+            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
+            _, high_res = ref.get_mtz_resolution(mtz_dm)
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(ccp4_dm, pdb_out_rec))
+            pdb_out_rec_real = ref.phenix_real_space_refinement_ccp4(ccp4_dm, pdb_out_rec, high_res)
             print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
@@ -1663,7 +1665,7 @@ class Fextrapolate(object):
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
+            pdb_out_rec_real = ref.phenix_real_space_refinement_mtz(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
             print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
