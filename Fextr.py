@@ -3089,14 +3089,14 @@ def run(args):
             else:
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
-            if params.refinement.phenix_keywords.density_modification.density_modification:
+            if ( params.refinement.phenix_keywords.density_modification.density_modification or params.refinement.refmac_keywords.density_modification.density_modification):
                 #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
                 mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
-            if params.refinement.refmac_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
-                append_if_file_exist(mtzs_for_coot, mtz_dm)
+            #if params.refinement.refmac_keywords.density_modification.density_modification:
+                #mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
+                #append_if_file_exist(mtzs_for_coot, mtz_dm)
             mtz_extr = ["%s/%s"%(occ_dir,fle) for fle in os.listdir(occ_dir) if outname in fle and fle.endswith('m%s-DFc.mtz'%(mp_type))][0]
             append_if_file_exist(mtzs_for_coot,os.path.abspath(mtz_extr))
 

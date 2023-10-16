@@ -793,7 +793,8 @@ eof' % (mtz_out, ccp4_map_name))
         cycles with the refined model from phenix.refine.
         """
         mtz_for_dm, pdb_for_dm = self.write_refmac_for_dm(pdb_in)
-        mtz_out_dm = re.sub(r"for_dm.mtz$", "dm.mtz", mtz_for_dm)
+        #mtz_out_dm = re.sub(r"for_dm.mtz$", "dm.mtz", mtz_for_dm)
+        mtz_out_dm = re.sub(r".pdb$", "_dm.mtz", pdb_in)
         if (os.path.isfile(mtz_for_dm) and os.path.isfile(pdb_for_dm)):
             log_file = re.sub(r".mtz$", ".log", mtz_out_dm)
             script_dm = self.write_density_modification_script(mtz_for_dm, pdb_for_dm, mtz_out_dm, log_file)
