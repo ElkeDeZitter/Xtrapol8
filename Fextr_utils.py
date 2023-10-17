@@ -215,7 +215,9 @@ def open_all_in_coot(FoFo, pdb_list, mtz_list, additional, outdir=os.getcwd(), s
                 mtz_content = any_file(mtz,force_type="hkl").file_object.file_content()
                 if '2FOFCWT' in mtz_content.column_labels(): #maps from refinement program
                     default_mtz_lines+='auto_read_make_and_draw_maps_from_mtz("%s")\n'%(mtz)
-                elif mtz_content.column_labels() == ['H', 'K', 'L', 'FP', 'SIGFP', 'PHIB', 'FOM', 'HLA', 'HLB', 'HLC', 'HLD', 'FWT', 'PHWT']: #from phenix.density_modification
+                elif 'FDM' in mtz_content.column_labels(): #maps from dm
+                    default_mtz_lines+='auto_read_make_and_draw_maps_from_mtz("%s")\n'%(mtz)
+                elif mtz_content.column_labels() == ['H', 'K', 'L', 'FP', 'SIGFP', 'PHIB', 'FOM', 'HLA', 'HLB', 'HLC', 'HLD', 'FWT', 'PHWT']: #from phenix.density_modification # not used anymore
                     default_mtz_lines+='auto_read_make_and_draw_maps_from_mtz("%s")\n'%(mtz)
                 else:
                     if mtz_content.column_types() == ['H', 'H', 'H', 'F', 'P', 'F', 'P']:

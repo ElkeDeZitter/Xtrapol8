@@ -289,7 +289,10 @@ eof' %(mtz_out, ccp4_map_name))
                                     ligand_refinement+=('refine_zone(0,"%s",%d,%d,"%s")\naccept_regularizement()\n'%(chain.id, res_group.resseq_as_int(), res_group.resseq_as_int(), atom_group.altloc))
         return ligand_refinement
 
-    def write_coot_input_real_space_refinement(self, pdb_in, mtz_in, column_labels):
+    def write_coot_input_real_space_refinement_mtz(self, pdb_in, mtz_in, column_labels):
+        """
+        Write input script for COOT based on the usage of an mtz file
+        """
         mtz_name = get_name(mtz_in)
         #if "/" in mtz_in:
             #mtz_name = re.search(r"\/(.+?)\.mtz", mtz_in).group(1).split("/")[-1]
@@ -333,12 +336,62 @@ coot_no_state_real_exit(1)' %(pdb_in, additional_lines, column_labels_0_F, colum
         #save_state_file_py("%s_coot_real_space_refined.py")\n\        
                 
         return script_out, pdb_out
+    
+    def write_coot_input_real_space_refinement_ccp4(self, pdb_in, ccp4_in):
+        """
+        Write input script for COOT based on the usage of a ccp4 file
+        """
+        ccp4_name = get_name(ccp4_in)
         
-    def coot_real_space_refinement(self, pdb_in, mtz_in, column_labels):
+        additional_lines = ""
+        for cif in self.additional.split():
+            if cif.endswith(".cif"):
+                additional_lines+='read_cif_dictionary("%s")\n'%(cif)
+
+        pdb_out = "%s_coot_real_space_refined.pdb"%(ccp4_name)
+        
+        script_out = 'coot_real_space_refinement.py'
+        i = open(script_out,'w')
+        i.write('handle_read_draw_molecule("%s")\n\
+%s\
+handle_read_ccp4_map("%s", 0)\n\
+set_refine_ramachandran_angles(1)\n\
+set_environment_distances_distance_limits(2.4,3.6)\n\
+set_ligand_water_to_protein_distance_limits(2.4,3.6)\n\
+set_refinement_immediate_replacement(1)\n\
+%s\
+set_matrix(20)\n\
+stepped_refine_protein(0,10)\n\
+accept_regularizement()\n\
+fit_waters(0)\n\
+accept_regularizement()\n\
+write_pdb_file(0,"%s")\n\
+coot_no_state_real_exit(1)' %(pdb_in, additional_lines, ccp4_in, self.ligands_refinement(), pdb_out))        
+                
+        #save_state_file_py("%s_coot_real_space_refined.py")\n\        
+                
+        return script_out, pdb_out
+ 
+        
+    def coot_real_space_refinement_mtz(self, pdb_in, mtz_in, column_labels):
+        """
+        Real space refinement within COOT based on an mtz file and spefic columns
+        """
         coot_log = '%s_coot.log' %(get_name(mtz_in))
-        script_coot, pdb_out = self.write_coot_input_real_space_refinement(pdb_in, mtz_in, column_labels)
+        script_coot, pdb_out = self.write_coot_input_real_space_refinement_mtz(pdb_in, mtz_in, column_labels)
         print('Running Real space refinement in COOT, output written to %s. Please wait...' %(coot_log))
         os.system("coot --no-graphics --script %s > %s" %(script_coot, coot_log)) #Use a second coot install to avoid interference with other coot windows that might already be open
         
         return pdb_out
-
+    
+    def coot_real_space_refinement_ccp4(self, pdb_in, ccp4_in):
+        """
+        Real space refinement within COOT based on a ccp4 file. No ambiguitiy stemming from multiple different columns
+        """
+        coot_log = '%s_coot.log' %(get_name(ccp4_in))
+        script_coot, pdb_out = self.write_coot_input_real_space_refinement_ccp4(pdb_in, ccp4_in)
+        print('Running Real space refinement in COOT, output written to %s. Please wait...' %(coot_log))
+        os.system("coot --no-graphics --script %s > %s" %(script_coot, coot_log)) #Use a second coot install to avoid interference with other coot windows that might already be open
+        
+        return pdb_out
+    

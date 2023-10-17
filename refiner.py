@@ -793,7 +793,8 @@ eof' % (mtz_out, ccp4_map_name))
         cycles with the refined model from phenix.refine.
         """
         mtz_for_dm, pdb_for_dm = self.write_refmac_for_dm(pdb_in)
-        mtz_out_dm = re.sub(r"for_dm.mtz$", "dm.mtz", mtz_for_dm)
+        #mtz_out_dm = re.sub(r"for_dm.mtz$", "dm.mtz", mtz_for_dm)
+        mtz_out_dm = re.sub(r".pdb$", "_dm.mtz", pdb_in)
         if (os.path.isfile(mtz_for_dm) and os.path.isfile(pdb_for_dm)):
             log_file = re.sub(r".mtz$", ".log", mtz_out_dm)
             script_dm = self.write_density_modification_script(mtz_for_dm, pdb_for_dm, mtz_out_dm, log_file)
@@ -802,25 +803,43 @@ eof' % (mtz_out, ccp4_map_name))
 
         return mtz_out_dm
     
-    def phenix_real_space_refinement(self, mtz_in, pdb_in, column_labels):
+    def get_phenix_version(self):
         """
+        Weird construction to get the phenix version. This is required since some parameter names change between versions
+        """
+        try:
+            phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
+        except ValueError:
+                phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
+        except AttributeError:
+            print('Update phenix! Verify that you are using at least Phenix.1.19.')
+            phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
+        
+        return phenix_version
+    
+    def get_mtz_resolution(self, mtz_in):
+        """
+        Easy extraction of the resolution boundaries of an mtz file
+        """
+        reflections = any_file(mtz_in, force_type="hkl", raise_sorry_if_errors=True)
+        low_res, high_res = reflections.file_content.file_content().max_min_resolution()
+         
+        return low_res, high_res
+
+    
+    def phenix_real_space_refinement_mtz(self, mtz_in, pdb_in, column_labels):
+        """
+        Real space refinement based on mtz file and specified column labels
         use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
         Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grap the version
         """       
         
         mtz_name = get_name(mtz_in)
             
-        #Spacify phenix version dependent parameters
-        try:
-            phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
-        except ValueError:
-                phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
-        except AttributeError:
-            print('Update phenix! Verify that you are using at least Phenix.1.17.')
-            phenix_version = 19 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
-            
+        #Specify phenix version dependent parameters
+        phenix_version = self.get_phenix_version()
         print("Phenix version 1.%d" %(phenix_version))
-        
+
         if phenix_version >= 19:
             output_prefix = 'output.prefix=%s_independent'%(mtz_name)
             model_format  = 'model_format=pdb'
@@ -859,6 +878,59 @@ eof' % (mtz_out, ccp4_map_name))
             outpdb = "not_a_file"
 
         return outpdb
+    
+    
+    def phenix_real_space_refinement_ccp4(self, ccp4_in, pdb_in, resolution):
+        """
+        Real space refinement based on ccp4 file
+        use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
+        Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grap the version
+        """       
+        
+        ccp4_name = get_name(ccp4_in)
+            
+        #Specify phenix version dependent parameters
+        phenix_version = self.get_phenix_version()
+        print("Phenix version 1.%d" %(phenix_version))
+
+        if phenix_version >= 19:
+            output_prefix = 'output.prefix=%s_independent'%(ccp4_name)
+            model_format  = 'model_format=pdb'
+            # outpdb        = "%s_independent_real_space_refined_000.pdb"%(ccp4_name)
+        else:
+            output_prefix = 'output.file_name_prefix=%s_independent'%(ccp4_name)
+            model_format  = 'output.model_format=pdb'
+            # outpdb        = "%s_independent_real_space_refined.pdb"%(ccp4_name)
+
+        #launch phenix.real_space_refine
+        real = os.system("phenix.real_space_refine %s %s %s %s %s %s resolution=%.2f scattering_table=n_gaussian" %(
+            self.real_phil, ccp4_in, self.additional, pdb_in, output_prefix, model_format, resolution))
+
+        #Find output file
+        if real == 0 : #os.system has correctly finished. Then search for the last refined structure
+            if phenix_version >= 19:
+                try:
+                    pdb_fles = glob.glob("%s_independent_real_space_refined_???.pdb"%(ccp4_name))
+                    # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(ccp4_name) in
+                    #            fle and fle.endswith('pdb')]
+                    pdb_fles.sort()
+                    outpdb = pdb_fles[-1]
+                except IndexError:
+                    outpdb = "%s_independent_real_space_refined_000.pdb" % (ccp4_name)
+            else:
+                try:
+                    pdb_fles = glob.glob("%s_independent_real_space_refined.pdb"%(ccp4_name))
+                    # [fle for fle in os.listdir(os.getcwd()) if
+                    #            "%s_independent_real_space_refined" % (ccp4_name) in fle and fle.endswith('pdb')]
+                    pdb_fles.sort()
+                    outpdb = pdb_fles[-1]
+                except IndexError:
+                    outpdb = "%s_independent_real_space_refined.pdb" % (ccp4_name)
+        else: # os.systenm has nog correctly finished
+            outpdb = "not_a_file"
+
+        return outpdb
+
         
     def run_refinements(self):
 
@@ -902,7 +974,7 @@ eof' % (mtz_out, ccp4_map_name))
         self.search_mtz_map_real_space_refinement()
         maplabels = self.get_mtz_map_columns()
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(self.mtz_map, self.pdb_in))
-        pdb_out_real = self.phenix_real_space_refinement(self.mtz_map, self.pdb_in, maplabels)
+        pdb_out_real = self.phenix_real_space_refinement_mtz(self.mtz_map, self.pdb_in, maplabels)
         print("Output real space refinement:", file=log)
         print("----------------")
         print("Output real space refinement:")
@@ -917,8 +989,10 @@ eof' % (mtz_out, ccp4_map_name))
         print("----------------")
 
         if self.density_modification.density_modification:
-            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
-            pdb_out_rec_real = self.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
+            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
+            _, high_res = self.get_mtz_resolution(mtz_dm)
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(ccp4_dm, pdb_out_rec))
+            pdb_out_rec_real = self.phenix_real_space_refinement_ccp4(ccp4_dm, pdb_out_rec, high_res)
             print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
@@ -932,7 +1006,7 @@ eof' % (mtz_out, ccp4_map_name))
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = self.phenix_real_space_refinement(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
+            pdb_out_rec_real = self.phenix_real_space_refinement_mtz(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
             print("pdb_out_rec_real", pdb_out_rec_real)
             print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
@@ -966,9 +1040,9 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    print("Xtrapol8 refiner -- run date: %s" %(now), file=log)
+    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.1 -- run date: %s" %(now), file=log)
     print('-----------------------------------------')
-    print("Xtrapol8 refiner -- version 0.9 -- run date: %s" %(now))
+    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.1 -- run date: %s" %(now))
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
@@ -1464,9 +1538,9 @@ def run(args):
                 mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec) #probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
-            if Xtrapol8_params.refinement.refmac_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec) #probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
-                append_if_file_exist(mtzs_for_coot, mtz_dm)
+            #elif Xtrapol8_params.refinement.refmac_keywords.density_modification.density_modification:
+                #mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec) #probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
+                #append_if_file_exist(mtzs_for_coot, mtz_dm)
             mtz_extr = ["%s/%s"%(occ_dir,fle) for fle in os.listdir(occ_dir) if outname in fle and fle.endswith('m%s-DFc.mtz'%(mp_type))][0]
             append_if_file_exist(mtzs_for_coot,os.path.abspath(mtz_extr))
 

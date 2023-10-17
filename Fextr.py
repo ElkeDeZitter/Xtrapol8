@@ -1634,7 +1634,7 @@ class Fextrapolate(object):
                 print("    mtz-file not found. Density modification failed.")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
-        pdb_out_real = ref.phenix_real_space_refinement(mtz_map, pdb_in, column_labels)
+        pdb_out_real = ref.phenix_real_space_refinement_mtz(mtz_map, pdb_in, column_labels)
         print("Output real space refinement:", file=log)
         print("----------------")
         print("Output real space refinement:")
@@ -1648,8 +1648,10 @@ class Fextrapolate(object):
         print("----------------")
 
         if (keywords.density_modification.density_modification and os.path.isfile(mtz_dm)):
-            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
-            pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_dm, pdb_out_rec, 'FWT,PHWT')
+            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
+            _, high_res = ref.get_mtz_resolution(mtz_dm)
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(ccp4_dm, pdb_out_rec))
+            pdb_out_rec_real = ref.phenix_real_space_refinement_ccp4(ccp4_dm, pdb_out_rec, high_res)
             print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
@@ -1663,7 +1665,7 @@ class Fextrapolate(object):
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = ref.phenix_real_space_refinement(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
+            pdb_out_rec_real = ref.phenix_real_space_refinement_mtz(mtz_out_rec, pdb_out_rec, '2FOFCWT,PH2FOFCWT')
             print("Output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("Output real space refinement after reciprocal space refinement:")
@@ -1771,7 +1773,7 @@ class Fextrapolate(object):
         print("----------------")
 
         print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
-        pdb_out_real = ref.coot_real_space_refinement(pdb_in, mtz_map, map_column_labels)
+        pdb_out_real = ref.coot_real_space_refinement_mtz(pdb_in, mtz_map, map_column_labels)
         print("output real space refinement:", file=log)
         print("----------------")
         print("output real space refinement:")
@@ -1785,8 +1787,9 @@ class Fextrapolate(object):
         print("----------------")
 
         if keywords.density_modification.density_modification:
-            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_dm, pdb_out_rec))
-            pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_dm, 'PHIDM, FOMDM, FOFCWT, PHFOFCWT' )
+            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(ccp4_dm, pdb_out_rec))
+            pdb_out_rec_real = ref.coot_real_space_refinement_ccp4(pdb_out_rec, ccp4_dm)
             print("output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
@@ -1800,7 +1803,7 @@ class Fextrapolate(object):
             print("----------------")
         else:
             print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = ref.coot_real_space_refinement(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
+            pdb_out_rec_real = ref.coot_real_space_refinement_mtz(pdb_out_rec, mtz_out_rec, '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT')
             print("output real space refinement after reciprocal space refinement:", file=log)
             print("----------------")
             print("output real space refinement after reciprocal space refinement:")
@@ -2101,7 +2104,7 @@ class Filesandmaps(object):
 
 def run(args):
     
-    version = "1.2.0"
+    version = "1.2.1"
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     print('-----------------------------------------')
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
@@ -3086,14 +3089,14 @@ def run(args):
             else:
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
-            if params.refinement.phenix_keywords.density_modification.density_modification:
+            if ( params.refinement.phenix_keywords.density_modification.density_modification or params.refinement.refmac_keywords.density_modification.density_modification):
                 #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
                 mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
-            if params.refinement.refmac_keywords.density_modification.density_modification:
-                mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
-                append_if_file_exist(mtzs_for_coot, mtz_dm)
+            #if params.refinement.refmac_keywords.density_modification.density_modification:
+                #mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
+                #append_if_file_exist(mtzs_for_coot, mtz_dm)
             mtz_extr = ["%s/%s"%(occ_dir,fle) for fle in os.listdir(occ_dir) if outname in fle and fle.endswith('m%s-DFc.mtz'%(mp_type))][0]
             append_if_file_exist(mtzs_for_coot,os.path.abspath(mtz_extr))
 
