@@ -340,8 +340,11 @@ class Difference_distance_analysis(object):
                         if c.is_protein():
                             if (c.id == ID and self.get_offset(c) == offset):
                                 chain2 = c.detached_copy()
-                            
-                    ddm, seq_info, missing = self.calculate_ddm(chain1, chain2)
+                    try: 
+                        ddm, seq_info, missing = self.calculate_ddm(chain1, chain2)
+                    except NameError:
+                        print("There exist an inconsistency between the two models: %s and %s.\nMake sure that they have the samen chain ID and start with the same residue number" %(self.pdb1_name, self.pdb2_name))
+                        continue
                     
                     try:
                         n,m = ddm.shape
@@ -417,6 +420,8 @@ class Difference_distance_analysis(object):
                         
                     old_chain_id = ID
                     
+                    del chain2
+                    
         fig.tight_layout()
         plt.savefig(outname_pdf, dpi=300, transparent=True)
         plt.savefig(outname_png, dpi=300)
@@ -456,6 +461,9 @@ if __name__=='__main__':
     if pdb_other == None:
         print("Provide other pdb")
         sys.exit(1)
+        
+    if outdir == None:
+        outdir = os.getcwd()
         
     if os.path.isdir(outdir) == False:
         try:
