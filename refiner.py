@@ -1040,9 +1040,9 @@ def run(args):
             break
     global log
     log = open(logname, "w")
-    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.1 -- run date: %s" %(now), file=log)
+    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.2 -- run date: %s" %(now), file=log)
     print('-----------------------------------------')
-    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.1 -- run date: %s" %(now))
+    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.2 -- run date: %s" %(now))
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
