@@ -917,14 +917,20 @@ class DataHandler(object):
             print("Fobs,reference and Fobs,triggered not being scaled", file=log)
             print("Fobs,reference and Fobs,triggered not being scaled")
             self.fobs_on_scaled = self.fobs_on #don't scale
+            #define the scaling resolution boundaries so that variables exist.
+            dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
+            dmax_on, dmin_on = self.fobs_on.d_max_min()
+            self.scaling_dmin = np.max([dmin_off, dmin_on])
+            self.scaling_dmax = np.min([dmax_off, dmax_on])
         else:
             dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
             dmax_on, dmin_on = self.fobs_on.d_max_min()
+            #get the high resolution edge for scaling (no data truncation)
             if high_res != None:
                 self.scaling_dmin = np.max([high_res, dmin_off, dmin_on])
             else:
                 self.scaling_dmin = np.max([dmin_off, dmin_on])
-                
+            #get the low resolution edge for scaling (no data truncation)
             if low_res != None:
                 self.scaling_dmax = np.min([low_res, dmax_off, dmax_on])
             else:
@@ -2438,13 +2444,31 @@ def run(args):
     print("----Scaling Fmodel with Freference----", file=log)
     print("----Scaling Fmodel with Freference----")
     DH.generate_Rfree(DH.fobs_off, 0.05)
-    DH.generate_f_model(DH.fobs_off)
     print("fmodel generation, can take a few minutes")
-    try:
-        DH.fmodel.update_all_scales(show=True)#, log=log)
-    except RuntimeError:
-        print("The model-based structure factors could not be scaled using the fast method. Try again with slow method")
-        DH.fmodel.update_all_scales(show=True,fast=False)
+    DH.generate_f_model(DH.fobs_off)
+    DH.fmodel.show()
+    if params.scaling.b_scaling != "no":
+        print("Updating all fmodel scales.")
+        try:
+            DH.fmodel.update_all_scales(show=True)#, log=log)
+        except RuntimeError:
+            print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
+            DH.fmodel.update_all_scales(show=True,
+                                        fast=False)
+    else: #only update the Fmodel part but keep the Fobs as they were
+        print("Updating only the Fmodel part of the fmodel scales.")
+        try:
+            DH.fmodel.update_all_scales(update_f_part1=False,
+                                        remove_outliers=False,
+                                        bulk_solvent_and_scaling=False,
+                                        apply_scale_k1_to_f_obs=False)
+        except RuntimeError:
+            print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
+            DH.fmodel.update_all_scales(update_f_part1=False,
+                                        remove_outliers=False,
+                                        bulk_solvent_and_scaling=False,
+                                        apply_scale_k1_to_f_obs=False,
+                                        fast=False)
     DH.fmodel.show()
     DH.fmodel.info().show_rfactors_targets_scales_overall(out=sys.stdout)
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model")
@@ -2457,8 +2481,8 @@ def run(args):
     print("----Scaling Ftriggered with Freference----", file=log)
     print("----Scaling Ftriggered with Freference----")
     DH.scale_fobss(params.scaling.b_scaling,
-                   params.scaling.low_resolution,
-                   params.scaling.high_resolution)
+                params.scaling.low_resolution,
+                params.scaling.high_resolution)
     #update the parameters so that they appear correct in the output phil files
     params.scaling.high_resolution = DH.scaling_dmin
     params.scaling.low_resolution  = DH.scaling_dmax
