@@ -2446,7 +2446,7 @@ def run(args):
     DH.generate_Rfree(DH.fobs_off, 0.05)
     print("fmodel generation, can take a few minutes")
     DH.generate_f_model(DH.fobs_off)
-    DH.fmodel.show()
+    #DH.fmodel.show()
     if params.scaling.b_scaling != "no":
         print("Updating all fmodel scales.")
         try:
@@ -2461,15 +2461,17 @@ def run(args):
             DH.fmodel.update_all_scales(update_f_part1=True,
                                         remove_outliers=False,
                                         bulk_solvent_and_scaling=True,
-                                        apply_scale_k1_to_f_obs=False)
+                                        apply_scale_k1_to_f_obs=False,
+                                        show=True)
         except RuntimeError:
             print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
             DH.fmodel.update_all_scales(update_f_part1=True,
                                         remove_outliers=False,
                                         bulk_solvent_and_scaling=True,
                                         apply_scale_k1_to_f_obs=False,
-                                        fast=False)
-    DH.fmodel.show()
+                                        fast=False,
+                                        show=True)
+    #DH.fmodel.show()
     DH.fmodel.info().show_rfactors_targets_scales_overall(out=sys.stdout)
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model")
     print('R_work:', DH.fmodel.r_work())
