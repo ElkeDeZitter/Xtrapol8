@@ -2458,15 +2458,15 @@ def run(args):
     else: #only update the Fmodel part but keep the Fobs as they were
         print("Updating only the Fmodel part of the fmodel scales.")
         try:
-            DH.fmodel.update_all_scales(update_f_part1=False,
+            DH.fmodel.update_all_scales(update_f_part1=True,
                                         remove_outliers=False,
-                                        bulk_solvent_and_scaling=False,
+                                        bulk_solvent_and_scaling=True,
                                         apply_scale_k1_to_f_obs=False)
         except RuntimeError:
             print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
-            DH.fmodel.update_all_scales(update_f_part1=False,
+            DH.fmodel.update_all_scales(update_f_part1=True,
                                         remove_outliers=False,
-                                        bulk_solvent_and_scaling=False,
+                                        bulk_solvent_and_scaling=True,
                                         apply_scale_k1_to_f_obs=False,
                                         fast=False)
     DH.fmodel.show()
