@@ -2110,7 +2110,7 @@ class Filesandmaps(object):
 
 def run(args):
     
-    version = "1.2.2"
+    version = "1.2.3"
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     print('-----------------------------------------')
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
