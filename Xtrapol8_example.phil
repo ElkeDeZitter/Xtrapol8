@@ -14,6 +14,8 @@ occupancies {
 }
 scaling {
   b_scaling = no isotropic *anisotropic
+  high_resolution = None
+  low_resolution = None
 }
 f_and_maps {
   fofo_type = *qfofo fofo kfofo
