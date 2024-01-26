@@ -156,7 +156,7 @@ occupancies{
         .type = float(value_min=0, value_max=1)
         .help = Highest occupancy to test (fractional).
         .expert_level = 0
-    steps = 3
+    steps = 5
         .type = int
         .help = Amount of equaly spaced occupancies to be tested.
         .expert_level = 0
