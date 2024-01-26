@@ -78,6 +78,7 @@ from Fextr_utils import *
 from distance_analysis import Distance_analysis
 from pymol_visualization import Pymol_movie
 from ddm import Difference_distance_analysis
+import version
 
 Xtrapol8_master_phil = iotbx.phil.parse("""
 input{
@@ -1051,7 +1052,8 @@ def remove_unique_id_from_log():
  
 
 def run(args):
-        
+    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print('-----------------------------------------')
     #parse arguments
     if len(args) == 0 :
         master_phil.show(attributes_level=1)
@@ -1062,9 +1064,8 @@ def run(args):
     logname = generate_log_name(now)
     global log
     log = open(logname, "w")
-    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.3 -- run date: %s" %(now), file=log)
-    print('-----------------------------------------')
-    print("Xtrapol8 refiner -- Xtrapol8 version 1.2.3 -- run date: %s" %(now))
+    
+    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now))
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line

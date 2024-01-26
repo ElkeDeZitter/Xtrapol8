@@ -119,6 +119,7 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
+import version
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -2137,10 +2138,10 @@ def remove_unique_id_from_log():
             
 def run(args):
     
-    version = "1.2.3"
+    version.VERSION
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     print('-----------------------------------------')
-    print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
+    print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now))
 
     #If no input, show complete help, should be changed in order to give help depending on the attribute level
     if len(args) == 0 :
@@ -2152,7 +2153,7 @@ def run(args):
     logname = generate_log_name(now)
     global log
     log = open(logname, "w")
-    print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
+    print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now), file=log)
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
