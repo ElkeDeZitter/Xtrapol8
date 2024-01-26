@@ -72,6 +72,7 @@ import iotbx.phil
 from libtbx.utils import Usage
 from iotbx.file_reader import any_file
 from mmtbx.scaling.matthews import p_vm_calculator
+import uuid
 
 from Fextr_utils import *
 from distance_analysis import Distance_analysis
@@ -1022,6 +1023,33 @@ eof' % (mtz_out, ccp4_map_name))
 
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
+def get_unique_id(id_length=20):
+    """
+    Function to get a unique id based on UUID with length id_length
+    """
+    if id_length > 36:
+        id_length == 36
+    return str(uuid.uuid4())[:id_length]
+
+def generate_log_name(time_stamp):
+    """
+    Generate a unique name for the Xtrapol8 logfile.
+    A short uuid of 20 characters is added to the logfile name.
+    """
+    uuid = get_unique_id(36)
+    logname = "%s_Xtrapol8_refinements_%s.log" %(time_stamp, uuid_short)
+    
+    return logname
+
+def remove_unique_id_from_log():
+    """
+    Remove the unqiue sequence from the log file
+    """
+    index = log.name.find("Xtrapol8_refinements")+len("Xtrapol8_refinements")
+    new_name = log.name[:index]+".log"
+    os.rename(log.name, new_name)
+ 
+
 def run(args):
         
     #parse arguments
@@ -1031,13 +1059,7 @@ def run(args):
     
     #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
-    logname = "%s_Xtrapol8_refinements.log" %(now)
-    i=1
-    while os.path.isfile(logname):
-        logname = "%s_Xtrapol8_refinements_%d.log" %(now, i)
-        i+=1
-        if i == 50:
-            break
+    logname = generate_log_name(now)
     global log
     log = open(logname, "w")
     print("Xtrapol8 refiner -- Xtrapol8 version 1.2.3 -- run date: %s" %(now), file=log)
@@ -1187,6 +1209,7 @@ def run(args):
     #print(os.path.isfile(full_log))
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,DH.outdir))
+    remove_unique_id_from_log()
         
     pymol_script_out = "%s/pymol_movie_refiner.py" %(DH.outdir)
 

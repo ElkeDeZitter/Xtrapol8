@@ -81,6 +81,8 @@ import pickle
 from select import select
 from datetime import datetime
 import numpy as np
+import uuid
+
 from iotbx.file_reader import any_file
 from iotbx import symmetry
 from iotbx.pdb import hierarchy
@@ -98,7 +100,7 @@ from iotbx import pdb
 from mmtbx.scaling.matthews import p_vm_calculator
 from iotbx import ccp4_map
 from scipy.stats import pearsonr
-
+from wx.lib.pubsub import pub
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -117,7 +119,6 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
-from wx.lib.pubsub import pub
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -2108,6 +2109,32 @@ class Filesandmaps(object):
         
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
+def get_unique_id(id_length=20):
+    """
+    Function to get a unique id based on UUID with length id_length
+    """
+    if id_length > 36:
+        id_length == 36
+    return str(uuid.uuid4())[:id_length]
+
+def generate_log_name(time_stamp):
+    """
+    Generate a unique name for the Xtrapol8 logfile.
+    A short uuid of 20 characters is added to the logfile name.
+    """
+    uuid = get_unique_id(36)
+    logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
+    
+    return logname
+
+def remove_unique_id_from_log():
+    """
+    Remove the unqiue sequence from the log file
+    """
+    index = log.name.find("Xtrapol8")+len("Xtrapol8")
+    new_name = log.name[:index]+".log"
+    os.rename(log.name, new_name)
+            
 def run(args):
     
     version = "1.2.3"
@@ -2122,13 +2149,7 @@ def run(args):
         raise Usage("phenix.python Fextr.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
     
     #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
-    logname = "%s_Xtrapol8.log" %(now)
-    i=1
-    while os.path.isfile(logname):
-        logname = "%s_Xtrapol8_%d.log" %(now, i)
-        i+=1
-        if i == 50:
-            break
+    logname = generate_log_name(now)
     global log
     log = open(logname, "w")
     print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
@@ -2363,6 +2384,7 @@ def run(args):
     full_log = "%s/%s" %(log_dir, log.name)
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,outdir))
+    remove_unique_id_from_log()
     
     #extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")
