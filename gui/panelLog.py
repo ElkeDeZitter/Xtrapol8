@@ -242,8 +242,12 @@ class TabLog(wx.Panel):
         self.mainSizer.Layout()
 
     def onCoot(self, evt):
-        script_coot = os.path.join(self.options.output.outdir,'coot_all_qFo-Fo.py')
-        os.system("coot --script %s &" % (script_coot))
+        prefix = ["q","k", ""]
+        for p in prefix:
+            script_coot = os.path.join(self.options.output.outdir,'coot_all_{:s}Fo-Fo.py'.format(p))
+            if os.path.isfile(script_coot):
+                os.system("coot --script %s &" % (script_coot))
+                break            
 
 
 class TabMainImg(ScrolledPanel):
