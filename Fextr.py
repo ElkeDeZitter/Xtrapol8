@@ -2142,6 +2142,8 @@ def run(args):
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     print('-----------------------------------------')
     print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now))
+    print("Phenix version: {:s}".format(get_phenix_version()))
+    print("CCP4 version: {:s}".format(get_ccp4_version()))
 
     #If no input, show complete help, should be changed in order to give help depending on the attribute level
     if len(args) == 0 :
@@ -2154,6 +2156,9 @@ def run(args):
     global log
     log = open(logname, "w")
     print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print("Phenix version: {:s}".format(get_phenix_version()), file=log)
+    print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
+
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
@@ -2167,15 +2172,15 @@ def run(args):
     
     remarks = []
     #Check if non-phenix programs can be found:
-    if check_program_path('coot') == False:
+    if check_program_path('coot')[1] == False:
         remark = "COOT not found."
         remarks.append(remark)
-    if check_program_path('scaleit') == False:
+    if check_program_path('scaleit')[1] == False:
         remark = "scaleit not found. Data will not be scaled."
         remarks.append(remark)
         params.scaling.b_scaling = 'no'
     if params.refinement.use_refmac_instead_of_phenix:
-        if (check_program_path('refmac5') and check_program_path('coot')) == False:
+        if (check_program_path('refmac5')[1] and check_program_path('coot')[1]) == False:
             remark = "refmac and/or COOT not found. Phenix will be used for refinement."
             remarks.append(remark)
             params.refinement.use_refmac_instead_of_phenix = False
@@ -2624,7 +2629,7 @@ def run(args):
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
         
         log.close()
-        if (params.output.open_coot and check_program_path('coot')):
+        if (params.output.open_coot and check_program_path('coot')[1]):
             os.system("coot --script %s" %(script_coot))
             
         sys.exit()
@@ -3384,7 +3389,7 @@ def run(args):
 
     log.close()
     
-    if (params.output.open_coot and check_program_path('coot')):
+    if (params.output.open_coot and check_program_path('coot')[1]):
         os.system("coot --script %s" %(script_coot))
 
     ################################################################

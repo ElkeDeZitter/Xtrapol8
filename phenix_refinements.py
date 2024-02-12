@@ -28,7 +28,7 @@ import iotbx.pdb
 from mmtbx.scaling.matthews import p_vm_calculator
 from libtbx import adopt_init_args
 from cctbx import miller
-from Fextr_utils import get_name
+from Fextr_utils import get_name, get_phenix_version
 import subprocess
 from iotbx.file_reader import any_file
 
@@ -154,19 +154,19 @@ class Phenix_refinements(object):
         
         return mtz_out, pdb_out
     
-    def get_phenix_version(self):
-        """
-        Weird construction to get the phenix version. This is required since some parameter names change between versions
-        """
-        try:
-            phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
-        except ValueError:
-                phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
-        except AttributeError:
-            print('Update phenix! Verify that you are using at least Phenix.1.19.')
-            phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
+    #def get_phenix_version(self):
+        #"""
+        #Weird construction to get the phenix version. This is required since some parameter names change between versions
+        #"""
+        #try:
+            #phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
+        #except ValueError:
+                #phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
+        #except AttributeError:
+            #print('Update phenix! Verify that you are using at least Phenix.1.19.')
+            #phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
         
-        return phenix_version
+        #return phenix_version
     
     def get_mtz_resolution(self, mtz_in):
         """
@@ -188,15 +188,15 @@ class Phenix_refinements(object):
         mtz_name = get_name(mtz_in)
             
         #Specify phenix version dependent parameters
-        phenix_version = self.get_phenix_version()
-        print("Phenix version 1.%d" %(phenix_version))
+        phenix_version = get_phenix_version()
+        phenix_subversion = int(phenix_version[2:4])
         
-        if phenix_version >= 18:
+        if phenix_subversion >= 18:
             rotamer_restraints = 'rotamers.restraints.enabled=False' #rotamers.fit=all?
         else:
             rotamer_restraints = 'rotamer_restraints=False'
             
-        if phenix_version >= 19:
+        if phenix_subversion >= 19:
             output_prefix = 'output.prefix=%s'%(mtz_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_real_space_refined_000.pdb"%(mtz_name)
@@ -218,7 +218,7 @@ class Phenix_refinements(object):
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
-            if phenix_version >= 19:
+            if phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_real_space_refined_???.pdb"%(mtz_name))
                     # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(mtz_name) in
@@ -251,15 +251,15 @@ class Phenix_refinements(object):
         ccp4_name = get_name(ccp4_in)
             
         #Specify phenix version dependent parameters
-        phenix_version = self.get_phenix_version()
-        print("Phenix version 1.%d" %(phenix_version))
+        phenix_version = get_phenix_version()
+        phenix_subversion = int(phenix_version[2:4])
         
-        if phenix_version >= 18:
+        if phenix_subversion >= 18:
             rotamer_restraints = 'rotamers.restraints.enabled=False' #rotamers.fit=all?
         else:
             rotamer_restraints = 'rotamer_restraints=False'
             
-        if phenix_version >= 19:
+        if phenix_subversion >= 19:
             output_prefix = 'output.prefix=%s'%(ccp4_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_real_space_refined_000.pdb"%(ccp4_name)
@@ -281,7 +281,7 @@ class Phenix_refinements(object):
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
-            if phenix_version >= 19:
+            if phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_real_space_refined_???.pdb"%(ccp4_name))
                     # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(ccp4_name) in
