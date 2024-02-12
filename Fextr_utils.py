@@ -350,12 +350,12 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     ax1.set_xlabel('Resolution (A)')
     ax1.set_ylabel('Absolute number of negative ESFAs')
     ax1.yaxis.label.set_color('red')
-    ax1.set_title("Negative ESFAs for high resolution bins",fontsize = 'medium',fontweight="bold")
+    ax1.set_title("Negative ESFAs for high resolution reflections",fontsize = 'medium',fontweight="bold")
     ax2 = ax1.twinx()
     #ax2.plot(bin_res_cent_lst[1:], neg_percent_lst[1:], linestyle = '-', label='% Neg. reflections', color = 'blue')
     ax2.plot(bin_res_cent_lst[1:], neg_percent_lst[1:], marker = 's', markersize = 3, label='% Neg. ESFAs', color = 'blue')
     ax2.set_ylim(0,100)
-    ax2.set_ylabel('Negative ESFAs in resolution bin (%)')
+    ax2.set_ylabel('Percentage of negative ESFAs (%)')
     ax2.yaxis.label.set_color('blue')
     lines_labels_1 = [ax.get_legend_handles_labels() for ax in [fig.axes[0],fig.axes[2]]]
     lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
@@ -368,8 +368,8 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     ax3.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax3.set_ylim(0,100)
     ax3.set_xlabel('Resolution (A)')
-    ax3.set_ylabel('Completeness in resolution bin (%)')
-    ax3.set_title("Completeness for high resolution bins",fontsize = 'medium',fontweight="bold")
+    ax3.set_ylabel('Completeness (%)')
+    ax3.set_title("Completeness for high resolution reflections",fontsize = 'medium',fontweight="bold")
     
     #x_point1 = np.where(np.abs(comp_lst - 90) == np.partition(np.abs(comp_lst - 90), 0)[0])[0][0]
     #if x_point1 ==0: #lowest resolution bin, try second smallest value
@@ -562,7 +562,7 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
     ax1.set_ylabel('<F/sig(F)>')
     ax1.legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     #fig.tight_layout()
-    plt.title('%s: <F/sig(F)> for high resolution bins' %(prefix), fontsize = 'medium', fontweight="bold")
+    plt.title('%s: <F/sig(F)> for high resolution reflections' %(prefix), fontsize = 'medium', fontweight="bold")
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top = 0.95)
     plt.savefig("%s_FsigF.pdf" %(prefix), dpi=300, transparent=True)
     plt.savefig("%s_FsigF.png" %(prefix), dpi=300)
@@ -609,11 +609,12 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     ax0.plot(occ_lst, r_work_lst, color = 'red', marker = 'o', label = 'Rwork')
     ax0.plot(occ_lst, r_free_lst, color = 'blue', marker = 's', markersize = 5, label = 'Rfree')
     ax1.plot(occ_lst, r_diff_lst, color = 'green', marker = '^', label = 'Rfree-Rwork')
-    ax0.set_xlabel('Occupancy of triggered state')
+    ax0.set_xlabel('Triggered state occupancy')
     ax0.set_ylabel('R-factor')
     #ax0.legend(fontsize = 'xx-small', framealpha=0.5, loc='lower left', bbox_to_anchor=(0.0, 0., 0.5, 0.5))
     #ax1.set_xlabel('Occupancy of triggered state')
     ax1.set_ylabel('R-factor difference')
+    ax1.yaxis.label.set_color('green')
     lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
     ax1.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
@@ -1081,12 +1082,12 @@ def plot_negative_reflections(pickle_file='Fextr_negative.pickle'):
         ax2.set_ylim(0,np.float(alldata[a][2]))
         ax3.set_ylim(0,100)
         
-        ax0.set_xlabel('Occupancy')
+        ax0.set_xlabel('Triggered state occupancy')
         ax0.set_ylabel('Absolute number')
         ax1.set_ylabel('Percentage of total number of ESFAs')
         ax0.set_title('%s: Negative ESFAs' %(maptype), fontsize = 'medium',fontweight="bold")
         
-        ax2.set_xlabel('Occupancy')
+        ax2.set_xlabel('Triggered state occupancy')
         ax2.set_ylabel('Absolute number')
         ax3.set_ylabel('Percentage of total number of ESFAs')
         ax2.set_title('%s: Positive ESFAs'%(maptype), fontsize = 'medium',fontweight="bold")
@@ -1164,12 +1165,12 @@ def plot_negative_reflections_allinone(pickle_file='Fextr_negative.pickle'):
     labels = [labels[int(j)] for j in f]
     ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
 
-    ax0.set_xlabel('Occupancy')
+    ax0.set_xlabel('Triggered state occupancy')
     ax0.set_ylabel('Number of negative reflections')
     ax1.set_ylabel('Percentage of total number of reflections (x)')
     ax0.set_title('Negative reflections', fontsize = 'medium',fontweight="bold")
     
-    ax2.set_xlabel('Occupancy')
+    ax2.set_xlabel('Triggered state occupancy')
     ax2.set_ylabel('Number of positive reflections')
     ax3.set_ylabel('Percentage of total number of reflections (x)')
     ax2.set_title('Positive reflections', fontsize = 'medium',fontweight="bold")
@@ -1374,7 +1375,7 @@ def plot_correlations(occ_lst, correlation_list):
     fig, (ax1, ax2) = plt.subplots(1,2, figsize=(10, 5))
     ax1.plot(occ_lst, correlation_list, marker = 'o', color = 'red', label = "Correlation")
     #plot the linear fit, we only need two values for plotting a line
-    ax1.set_xlabel("Occupancy")
+    ax1.set_xlabel("Triggered state occupancy")
     ax1.set_ylabel("Pearson correlalation coefficient")
     
     ax2.plot(alphas, correlation_list, marker = 'o', color = 'red', label = "Correlation")
