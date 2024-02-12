@@ -529,7 +529,7 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
     
     ax1.plot(np.array([ids]), np.array([0.8]), marker = 's', markersize=3, color='blue', label = 'estimation: %.2f A' %(ids))
     ax1.plot(np.array([idl]), np.array([1.2]), marker = '^', markersize=5, color = 'green', label = 'estimation: %.2f A' %(idl))
-    ax1.set_xlabel('Resolution of bin center (A)')
+    ax1.set_xlabel('Resolution (A)')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylabel('<F/sig(F)>')
     ax1.legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
@@ -1055,13 +1055,13 @@ def plot_negative_reflections(pickle_file='Fextr_negative.pickle'):
         
         ax0.set_xlabel('Occupancy')
         ax0.set_ylabel('Absolute number')
-        ax1.set_ylabel('Percentage of total number of reflections')
-        ax0.set_title('%s: Negative reflections' %(maptype), fontsize = 'medium',fontweight="bold")
+        ax1.set_ylabel('Percentage of total number of ESFAs')
+        ax0.set_title('%s: Negative ESFAs' %(maptype), fontsize = 'medium',fontweight="bold")
         
         ax2.set_xlabel('Occupancy')
         ax2.set_ylabel('Absolute number')
-        ax3.set_ylabel('Percentage of total number of reflections')
-        ax2.set_title('%s: Positive reflections'%(maptype), fontsize = 'medium',fontweight="bold")
+        ax3.set_ylabel('Percentage of total number of ESFAs')
+        ax2.set_title('%s: Positive ESFAs'%(maptype), fontsize = 'medium',fontweight="bold")
         
         #plt.title('%s' %(maptype),loc='center')
         plt.subplots_adjust(hspace=0.25,wspace=0.5, left=0.09, right=0.88, top = 0.95)
