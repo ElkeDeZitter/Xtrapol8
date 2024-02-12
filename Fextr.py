@@ -3139,7 +3139,10 @@ def run(args):
             mtzs_for_coot  = []
             if len(recref_mtz_lst) != len(params.occupancies.list_occ):
                 occ_list_mtz = [(re.search(r'occupancy\_(.+?)\/',mtz).group(1)) for mtz in recref_mtz_lst]
-                mtz_rec = recref_mtz_lst[occ_list_mtz.index(occ)]
+                try:
+                    mtz_rec = recref_mtz_lst[occ_list_mtz.index(occ)]
+                except ValueError:
+                    mtz_rec = ""
             else:
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)

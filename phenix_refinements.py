@@ -103,6 +103,18 @@ class Phenix_refinements(object):
         if self.weight_sel_crit.r_free_minus_r_work != None:
             weight_selection_criteria += "target_weights.weight_selection_criteria.r_free_minus_r_work=%.4f "%(self.weight_sel_crit.r_free_minus_r_work)
             
+            
+        phenix_version = get_phenix_version()
+        phenix_subversion = int(phenix_version[2:4])
+        
+        if phenix_subversion <= 20:
+            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
+        else: #phenix version 1.21
+            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
+            #data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
+            #Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
+
+            
         #TODO os.system -> subprocess.something (read the docs!)
         #cmd = "phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing)
         
@@ -121,10 +133,7 @@ class Phenix_refinements(object):
 
         reciprocal = os.system("phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
                        "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
-                               "refinement.input.xray_data.r_free_flags.disable_suitability_test=True "
-                               "refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True "
-                               "refinement.input.xray_data.r_free_flags.label='FreeR_flag' "
-                               "refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+                               "%s refinement.main.nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, r_free_flag_parameters, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
 
 
         #Find output files, automatically
@@ -143,7 +152,7 @@ class Phenix_refinements(object):
                 mtz_out = "%s_001.mtz"%(outprefix)
                 pdb_out = "%s_001.pdb"%(outprefix)
         else: #os.system has not correctly finished
-            mtz_out = "no_a_file"
+            mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
         #Find output files: hardcoded appears easiest
