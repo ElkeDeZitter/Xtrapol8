@@ -453,6 +453,10 @@ output{
         .type = str
         .help = Prefix or suffix for output files. The prefix of triggered_mtz will be used if not specified.
         .expert_level = 0
+    uuid = None
+        .type = str
+        .help = unique id for temporary file naming (should not be set by user)
+        .expert_level = 2 
     generate_phil_only = False
         .type = bool
         .help = Generate input phil-file and quit.
@@ -511,14 +515,14 @@ class DataHandler(object):
     Handle all input file and generate objects to be used in map calculations and analyses.
     """
 
-    def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on):
+    def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on, uuid):
 
         self.pdb_in            = pdb_in
         self.mtz_off           = mtz_off
         self.mtz_on            = mtz_on
         self.additional        = additional
         self.outdir            = outdir
-        
+        self.uuid              = uuid
     def check_and_make_outdir(self):
         """
         Make output directory:
@@ -535,9 +539,10 @@ class DataHandler(object):
             self.outdir = "Xtrapol8"
                 
         #Get a short tag:
-        uuid = get_unique_id(8)
+        if self.uuid is None:
+            self.uuid = get_unique_id(8)
         #generate the outdir as a combination of the short tag and the requested outdir name
-        outdir = self.outdir+"_"+uuid
+        outdir = self.outdir+"_"+self.uuid
         #Since the tag is short, still carry out the existence of a directory with the same name
         i = 1
         while os.path.exists(outdir):
@@ -2369,8 +2374,12 @@ def run(args):
     print('-----------------------------------------', file=log)
     print('DATA PREPARATION', file=log)
     print('-----------------------------------------', file=log)
-
-    DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz)
+    uuid = None
+    try:
+        uuid = params.output.uuid
+    except:
+        pass
+    DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz, uuid)
 
     
     #Check if all input files exists and are of correct type

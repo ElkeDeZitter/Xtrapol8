@@ -32,7 +32,7 @@ import subprocess
 from wx.lib.pubsub import pub
 from gui import panelIO, panelExtrapolation, panelRefinement, panelLog
 from gui.panelLog import TabLog, TabMainImg, TabOccResults
-
+import uuid
 from libtbx.phil import parse
 
 from Fextr import master_phil
@@ -318,8 +318,11 @@ class MainFrame(wx.Frame):
             if self.notebook.threads[run] is not None and self.notebook.threads[run].is_alive():
                 if self.pngs_idx[run] < len(self.pngs):
                     png = self.pngs[self.pngs_idx[run]]
-                    
-                    filepath = os.path.join(self.inputs[run].output.outdir, png)
+                    tmp_path = "%s_%s" % (self.inputs[run].output.outdir, self.inputs[run].output.uuid)
+                    if os.path.exists(tmp_path):
+                        filepath = os.path.join(tmp_path, png)
+                    else:
+                        filepath = os.path.join(self.inputs[run].output.outdir, png)
 
                     if os.path.isfile(filepath):
                         if filepath.endswith('pickle'):
@@ -349,7 +352,12 @@ class MainFrame(wx.Frame):
                     else:
                         Fextr = Fextr[0].upper() + Fextr[1:]
                     png = self.Fextr_pngs[j].replace('tmp', Fextr)
-                    filepath = os.path.join(self.inputs[run].output.outdir, png)
+
+                    tmp_path = "%s_%s" % (self.inputs[run].output.outdir, self.inputs[run].output.uuid)
+                    if os.path.exists(tmp_path):
+                        filepath = os.path.join(tmp_path, png)
+                    else:
+                        filepath = os.path.join(self.inputs[run].output.outdir, png)
 
                     if os.path.isfile(filepath):
                         if filepath.endswith('pickle'):
@@ -903,6 +911,7 @@ class MainFrame(wx.Frame):
         #######################
         tobeparsed += "output.outdir = %s\n" % self.get_txtctrl_values(tabIO.outdir_sizer.TextCtrl) + \
                       "output.outname = %s\n" % self.get_txtctrl_values(tabIO.outname) + \
+                      "output.uuid = %s\n" % str(uuid.uuid4())[:8] + \
                       "output.GUI = True\noutput.open_coot = False\n"
 
         #####################
