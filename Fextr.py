@@ -82,6 +82,7 @@ from select import select
 from datetime import datetime
 import numpy as np
 import uuid
+import time
 
 from iotbx.file_reader import any_file
 from iotbx import symmetry
@@ -567,7 +568,7 @@ class DataHandler(object):
             
         self.outdir = os.path.abspath(outdir)
         
-    def remove_unique_id_from_outdir(self, outdir):
+    def remove_unique_id_from_outdir(self, outdir, GUI=False):
         """
         Remove the unqiue sequence from the outdir.
         This is done by making a new output directory and renaming the old one
@@ -593,6 +594,14 @@ class DataHandler(object):
                 print('Updated output directory being created: %s'%(outdir_corr))
             except OSError:
                 print("Updated output directory: %s" %(outdir_corr))
+        
+        if GUI==True:
+            #write pickle file with new outdir. This is required for communication with the gui
+            outdir_update = open("%s/outdir_update.pickle" %(self.outdir),"wb")
+            pickle.dump(outdir_corr, outdir_update)
+            outdir_update.close()
+            time.sleep(5)
+        
         #rename the old directory to the new one
         os.rename(self.outdir, outdir_corr)
         print("Moved temporary output directory to updated output directory")
@@ -2140,33 +2149,6 @@ class Filesandmaps(object):
         
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
-def get_unique_id(id_length=20):
-    """
-    Function to get a unique id based on UUID with length id_length
-    """
-    if id_length > 36:
-        id_length == 36
-    return str(uuid.uuid4())[:id_length]
-
-def generate_log_name(time_stamp):
-    """
-    Generate a unique name for the Xtrapol8 logfile.
-    A short uuid of 20 characters is added to the logfile name.
-    """
-    uuid = get_unique_id(36)
-    logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
-    
-    return logname
-
-def remove_unique_id_from_log():
-    """
-    Remove the unqiue sequence from the log file
-    """
-    index = log.name.find("Xtrapol8")+len("Xtrapol8")
-    new_name = log.name[:index]+".log"
-    os.rename(log.name, new_name)
-    
-    return new_name
             
 def run(args):
     
@@ -2480,7 +2462,7 @@ def run(args):
     #Write all input paramters to a phil file.
     modified_phil.show(out=open("Xtrapol8_in.phil", "w"))
     if params.output.generate_phil_only:
-        params.output.GUI = False
+        #params.output.GUI = False
         log.close()
         
         #Rename the output directory (remove the tag) and change it the different files
@@ -2488,21 +2470,11 @@ def run(args):
         #Files which include the outdir name are
         #-log file
         os.chdir(startdir)
-        DH.remove_unique_id_from_outdir(params.output.outdir)
+        DH.remove_unique_id_from_outdir(params.output.outdir, GUI=params.output.GUI)
         os.chdir(DH.outdir)
         params.output.outdir = DH.outdir
         #Remove the tag from the outdir in the log file (can only be done after closing of the log file
-        full_log = "%s/%s" %(DH.outdir, log_name)
-        with open(full_log, "r") as f:
-            fle = f.read().split("\n")
-        o = open(full_log,"w")
-        for lne in fle:
-            if outdir in lne:
-                lne = re.sub(outdir, DH.outdir, lne)
-                o.write("%s\n"%lne)
-            else:
-                o.write("%s\n"%lne)
-        o.close()
+        update_file_paths_log(log_name, outdir, DH.outdir)
         
         sys.exit()
     
@@ -2675,30 +2647,21 @@ def run(args):
         print("DONE! FOURIER DIFFERENCE MAP CALCULATED AND ANALYSIS PERFORMED.", file=log)
         print('-----------------------------------------',file=log)
         
+        log.close()
+        
         #Rename the output directory (remove the tag) and change it the different files
         #At this stage it would very rare if two jobs would change outdir name at the same time
         #Files which include the outdir name are
         #-coot-script
-        #-pymol script
-        #-occ_pickle (ddm)
-        #-log file: since the log file is still open, this can be done only at the complete end
+        #-log file
         os.chdir(startdir)
-        DH.remove_unique_id_from_outdir(params.output.outdir)
+        DH.remove_unique_id_from_outdir(params.output.outdir, GUI=params.output.GUI)
         os.chdir(DH.outdir)
         params.output.outdir = DH.outdir
         #Coot script:
-        coot_scripts = [os.path.join(root, fle) for root, dirs, files in os.walk(DH.outdir) for fle in files if fle.startswith("coot_all_")]
-        for coot_script in coot_scripts:
-            with open(coot_script, "r") as f:
-                fle = f.read().split("\n")
-            o = open(coot_script,"w")
-            for lne in fle:
-                if outdir in lne:
-                    lne = re.sub(outdir, DH.outdir, lne)
-                    o.write("%s\n"%lne)
-                else:
-                    o.write("%s\n"%lne)
-            o.close()
+        update_file_paths_coot(outdir, DH.outdir)
+        #log file
+        update_file_paths_log(log_name, outdir, DH.outdir)
 
         #change names to real output name in case the dummy name was used
         if outname == 'triggered':
@@ -2713,19 +2676,6 @@ def run(args):
         modified_phil = master_phil.format(python_object=params)
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
         
-        log.close()
-        #Remove the tag from the outdir in the log file (can only be done after closing of the log file
-        full_log = "%s/%s" %(DH.outdir, log_name)
-        with open(full_log, "r") as f:
-            fle = f.read().split("\n")
-        o = open(full_log,"w")
-        for lne in fle:
-            if outdir in lne:
-                lne = re.sub(outdir, DH.outdir, lne)
-                o.write("%s\n"%lne)
-            else:
-                o.write("%s\n"%lne)
-        o.close()
 
         if (params.output.open_coot and check_program_path('coot')[1]):
             os.system("coot --script %s" %(script_coot))
@@ -3422,47 +3372,18 @@ def run(args):
     #Files which include the outdir name are
     #-coot-script
     #-pymol script (only in calm and curious mode)
-    #-occ_pickle (ddm and script coot)
+    #-Occupancy_recap.pickle (ddm and script coot)
     #-log file: since the log file is still open, this can be done only at the complete end
     os.chdir(startdir)
-    DH.remove_unique_id_from_outdir(params.output.outdir)
+    DH.remove_unique_id_from_outdir(params.output.outdir, GUI=params.output.GUI)
     os.chdir(DH.outdir)
     params.output.outdir = DH.outdir
     #Coot script:
-    coot_scripts = [os.path.join(root, fle) for root, dirs, files in os.walk(DH.outdir) for fle in files if fle.startswith("coot_all_")]
-    for coot_script in coot_scripts:
-        with open(coot_script, "r") as f:
-            fle = f.read().split("\n")
-        o = open(coot_script,"w")
-        for lne in fle:
-            if outdir in lne:
-                lne = re.sub(outdir, DH.outdir, lne)
-                o.write("%s\n"%lne)
-            else:
-                o.write("%s\n"%lne)
-        o.close()
-    #ddm and occupancy_pverview
-    ddm_out_corr = re.sub(outdir, DH.outdir, ddm_out)
-    ddm_out = ddm_out_corr
-    script_coot_corr = re.sub(outdir, DH.outdir, script_coot)
-    script_coot = script_coot_corr
-    occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
-    occ_pickle = open("occupancy_recap.pickle", "wb")
-    pickle.dump(occ_overview, occ_pickle)
-    occ_pickle.close()
+    update_file_paths_coot(outdir, DH.outdir)
+    #Occupancy_recap.pickle
+    update_file_paths_occupancy_recap(outdir, DH.outdir, "occupancy_recap.pickle")
     #pymol script
-    pymol_script = '%s/pymol_movie.py' %(DH.outdir)
-    if os.path.isfile(pymol_script):
-        with open(pymol_script, "r") as f:
-            fle = f.read().split("\n")
-        o = open(pymol_script,"w")
-        for lne in fle:
-            if outdir in lne:
-                lne = re.sub(outdir, DH.outdir, lne)
-                o.write("%s\n"%lne)
-            else:
-                o.write("%s\n"%lne)
-        o.close()
+    update_file_paths_pymol(outdir, DH.outdir, "pymol_movie.py")
     
     #change names to real output name in case the dummy name was used
     if outname == 'triggered':
@@ -3538,17 +3459,7 @@ def run(args):
     log.close()
     
     #Remove the tag from the outdir in the log file (can only be done after closing of the log file
-    full_log = "%s/%s" %(DH.outdir, log_name)
-    with open(full_log, "r") as f:
-        fle = f.read().split("\n")
-    o = open(full_log,"w")
-    for lne in fle:
-        if outdir in lne:
-            lne = re.sub(outdir, DH.outdir, lne)
-            o.write("%s\n"%lne)
-        else:
-            o.write("%s\n"%lne)
-    o.close()
+    update_file_paths_log(log_name, outdir, DH.outdir)
     
     if (params.output.open_coot and check_program_path('coot')[1]):
         os.system("coot --script %s" %(script_coot))

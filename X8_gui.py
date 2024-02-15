@@ -508,15 +508,15 @@ class MainFrame(wx.Frame):
             tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'/Xtrapol8')
         else:
             path = tabIO.outdir_sizer.TextCtrl.GetValue()
-            if os.path.exists(path):
-                #Keep outdir given by user if it empty
-                if len(os.listdir(path)) == 0:
-                    path = path
-                ##Keep outdir given by user if it only contains Xtrapol8 log-files:
-                #elif len([fle for fle in os.listdir(path) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(path)):
+            #if os.path.exists(path):
+                ##Keep outdir given by user if it empty
+                #if len(os.listdir(path)) == 0:
                     #path = path
-                else:
-                    path = self.get_new_path(path)
+                ###Keep outdir given by user if it only contains Xtrapol8 log-files:
+                ##elif len([fle for fle in os.listdir(path) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(path)):
+                    ##path = path
+                #else:
+                    #path = self.get_new_path(path)
 
             tabIO.outdir_sizer.TextCtrl.SetValue(path)
         if err == 1:
