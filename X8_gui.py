@@ -36,6 +36,7 @@ import uuid
 from libtbx.phil import parse
 
 from Fextr import master_phil
+from Fextr_utils import get_unique_id
 from wx.aui import AuiNotebook
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
@@ -180,8 +181,10 @@ class X8Thread(Thread):
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         while True:
-
+            
             line = p.stdout.readline()
+            if "Move temporary output directory to updated output directory:" in line:
+                print("Got new dirname: %s" %(line.split()[-1]))
             if not line:
                 pub.sendMessage("END", Nlog=self.Nlog)
                 return

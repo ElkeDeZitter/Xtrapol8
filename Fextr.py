@@ -81,7 +81,6 @@ import pickle
 from select import select
 from datetime import datetime
 import numpy as np
-import uuid
 import time
 
 from iotbx.file_reader import any_file
@@ -601,10 +600,12 @@ class DataHandler(object):
             pickle.dump(outdir_corr, outdir_update)
             outdir_update.close()
             time.sleep(5)
+            
+        print("Move temporary output directory to updated output directory: %s" %(outdir_corr))
+        #print("Move temporary output directory to updated output directory: %s" %(outdir_corr), file=log)
         
         #rename the old directory to the new one
         os.rename(self.outdir, outdir_corr)
-        print("Moved temporary output directory to updated output directory")
         self.outdir = os.path.abspath(outdir_corr)
 
     def open_files(self):
@@ -2408,7 +2409,7 @@ def run(args):
     full_log = "%s/%s" %(log_dir, log.name)
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,outdir))
-    log_name = remove_unique_id_from_log()
+    log_name = remove_unique_id_from_log(log.name)
     full_log = "%s/%s" %(outdir, log_name)
     
     #extract columns from mtz files that needs to be substracted

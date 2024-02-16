@@ -34,6 +34,7 @@ from cctbx.array_family import flex
 #matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
+import uuid
 
 def get_unique_id(id_length=20):
     """
@@ -53,13 +54,13 @@ def generate_log_name(time_stamp):
     
     return logname
 
-def remove_unique_id_from_log():
+def remove_unique_id_from_log(log_name):
     """
     Remove the unqiue sequence from the log file
     """
-    index = log.name.find("Xtrapol8")+len("Xtrapol8")
-    new_name = log.name[:index]+".log"
-    os.rename(log.name, new_name)
+    index = log_name.find("Xtrapol8")+len("Xtrapol8")
+    new_name = log_name[:index]+".log"
+    os.rename(log_name, new_name)
     
     return new_name
 
