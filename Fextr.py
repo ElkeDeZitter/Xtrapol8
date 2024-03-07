@@ -81,7 +81,7 @@ import pickle
 from select import select
 from datetime import datetime
 import numpy as np
-import time
+import uuid
 
 from iotbx.file_reader import any_file
 from iotbx import symmetry
@@ -453,10 +453,6 @@ output{
         .type = str
         .help = Prefix or suffix for output files. The prefix of triggered_mtz will be used if not specified.
         .expert_level = 0
-    uuid = None
-        .type = str
-        .help = unique id for temporary file naming (should not be set by user)
-        .expert_level = 2 
     generate_phil_only = False
         .type = bool
         .help = Generate input phil-file and quit.
@@ -515,104 +511,68 @@ class DataHandler(object):
     Handle all input file and generate objects to be used in map calculations and analyses.
     """
 
-    def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on, uuid):
+    def __init__(self, pdb_in, mtz_off, additional, outdir, mtz_on):
 
         self.pdb_in            = pdb_in
         self.mtz_off           = mtz_off
         self.mtz_on            = mtz_on
         self.additional        = additional
         self.outdir            = outdir
-        self.uuid              = uuid
-    def check_and_make_outdir(self):
+        
+    def check_outdir(self):
         """
         Make output directory:
         - if no name specified, then it will be called Xtrapol8
         - if the output directory already exists, then a number will be added
          This way creates a maximum of 1000 Xtrapol8 output directories
-        When multiple jobs are launched at a short interval, it is not sufficient to check
-        for existing directories because in two subsequent runs, the directory might not be generated yet.
-        Therefore, let's add a random tag to the output directory (as done for the log file).
         """
-        #Use "Xtrapop8" a outdir prefix if no name is given
         if self.outdir == None:
             #self.outdir = os.getcwd()
             self.outdir = "Xtrapol8"
-                
-        #Get a short tag:
-        if self.uuid is None:
-            self.uuid = get_unique_id(8)
-        #generate the outdir as a combination of the short tag and the requested outdir name
-        outdir = self.outdir+"_"+self.uuid
-        #Since the tag is short, still carry out the existence of a directory with the same name
+            
+        #else:
+            #if os.path.exists(self.outdir) == False:
+                #try:
+                    #os.mkdir(self.outdir)
+                    #print('Output directory not present thus being created: %s'%(self.outdir))
+                #except OSError:
+                    #os.makedirs(self.outdir)
+            #self.outdir = os.path.abspath(self.outdir)
+            
+        outdir = self.outdir
         i = 1
         while os.path.exists(outdir):
             if os.path.isdir(outdir):
                 if len(os.listdir(outdir)) ==0:
                     #outdir = self.outdir
                     break
+            ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+            #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
+                #outdir = self.outdir
+                #break
             outdir = "%s_%d" %(self.outdir, i)
             i += 1
             if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
                 break
-        #Make the directory
+            
         try:
             os.mkdir(outdir)
-            print('Temporary output directory being created: %s'%(outdir))
+            print('Output directory being created: %s'%(outdir))
         except OSError:
             try:
                 os.makedirs(outdir)
-                print('Temporary output directory being created: %s'%(outdir))
+                print('Output directory being created: %s'%(outdir))
             except OSError:
-                print("Temporary output directory: %s" %(outdir))
+                print("Output directory: %s" %(outdir))
             
         self.outdir = os.path.abspath(outdir)
-        
-    def remove_unique_id_from_outdir(self, outdir, GUI=False):
-        """
-        Remove the unqiue sequence from the outdir.
-        This is done by making a new output directory and renaming the old one
-        """
-        #Do the check to see if the requested outdir name already exists
-        outdir_corr = outdir
-        i = 1
-        while os.path.exists(outdir_corr):
-            if os.path.isdir(outdir_corr):
-                if len(os.listdir(outdir_corr)) ==0:
-                    break
-            outdir_corr = "%s_%d" %(outdir, i)
-            i += 1
-            if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
-                break
-        #Make the directory
-        try:
-            os.mkdir(outdir_corr)
-            print('Updated output directory being created: %s'%(outdir_corr))
-        except OSError:
-            try:
-                os.makedirs(outdir_corr)
-                print('Updated output directory being created: %s'%(outdir_corr))
-            except OSError:
-                print("Updated output directory: %s" %(outdir_corr))
-        
-        if GUI==True:
-            #write pickle file with new outdir. This is required for communication with the gui
-            outdir_update = open("%s/outdir_update.pickle" %(self.outdir),"wb")
-            pickle.dump(outdir_corr, outdir_update)
-            outdir_update.close()
-            time.sleep(5)
-            
-        print("Move temporary output directory to updated output directory: %s" %(outdir_corr))
-        #print("Move temporary output directory to updated output directory: %s" %(outdir_corr), file=log)
-        
-        #rename the old directory to the new one
-        os.rename(self.outdir, outdir_corr)
-        self.outdir = os.path.abspath(outdir_corr)
+                
 
     def open_files(self):
         """
         check and read input files and output directory
         """
-        self.check_and_make_outdir()
+        self.check_outdir()
         self.reflections_off = any_file(self.mtz_off, force_type="hkl", raise_sorry_if_errors=True)
         self.reflections_on = any_file(self.mtz_on, force_type="hkl", raise_sorry_if_errors=True)
         self.from_cif_create_pdb_file()
@@ -2150,6 +2110,31 @@ class Filesandmaps(object):
         
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
+def get_unique_id(id_length=20):
+    """
+    Function to get a unique id based on UUID with length id_length
+    """
+    if id_length > 36:
+        id_length == 36
+    return str(uuid.uuid4())[:id_length]
+
+def generate_log_name(time_stamp):
+    """
+    Generate a unique name for the Xtrapol8 logfile.
+    A short uuid of 20 characters is added to the logfile name.
+    """
+    uuid = get_unique_id(36)
+    logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
+    
+    return logname
+
+def remove_unique_id_from_log():
+    """
+    Remove the unqiue sequence from the log file
+    """
+    index = log.name.find("Xtrapol8")+len("Xtrapol8")
+    new_name = log.name[:index]+".log"
+    os.rename(log.name, new_name)
             
 def run(args):
     
@@ -2357,12 +2342,8 @@ def run(args):
     print('-----------------------------------------', file=log)
     print('DATA PREPARATION', file=log)
     print('-----------------------------------------', file=log)
-    uuid = None
-    try:
-        uuid = params.output.uuid
-    except:
-        pass
-    DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz, uuid)
+
+    DH = DataHandler(params.input.reference_pdb, params.input.reference_mtz, params.input.additional_files, params.output.outdir, params.input.triggered_mtz)
 
     
     #Check if all input files exists and are of correct type
@@ -2397,7 +2378,7 @@ def run(args):
     params.input.reference_pdb = DH.pdb_in #This should already be the absolute path
     params.input.reference_mtz = os.path.abspath(DH.mtz_off)
     params.input.triggered_mtz = os.path.abspath(DH.mtz_on)
-    #params.output.outdir = DH.outdir #This should already be the absolute path
+    params.output.outdir = DH.outdir #This should already be the absolute path
     params.input.additional_files = list(map(lambda x: os.path.abspath(x), params.input.additional_files))
 
     #change to output directory
@@ -2409,8 +2390,7 @@ def run(args):
     full_log = "%s/%s" %(log_dir, log.name)
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,outdir))
-    log_name = remove_unique_id_from_log(log.name)
-    full_log = "%s/%s" %(outdir, log_name)
+    remove_unique_id_from_log()
     
     #extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")
@@ -2463,20 +2443,8 @@ def run(args):
     #Write all input paramters to a phil file.
     modified_phil.show(out=open("Xtrapol8_in.phil", "w"))
     if params.output.generate_phil_only:
-        #params.output.GUI = False
+        params.output.GUI = False
         log.close()
-        
-        #Rename the output directory (remove the tag) and change it the different files
-        #At this stage it would very rare if two jobs would change outdir name at the same time
-        #Files which include the outdir name are
-        #-log file
-        os.chdir(startdir)
-        DH.remove_unique_id_from_outdir(params.output.outdir, GUI=params.output.GUI)
-        os.chdir(DH.outdir)
-        params.output.outdir = DH.outdir
-        #Remove the tag from the outdir in the log file (can only be done after closing of the log file
-        update_file_paths_log(log_name, outdir, DH.outdir)
-        
         sys.exit()
     
     #Print reflection statistics to screen and log-file
@@ -2647,37 +2615,20 @@ def run(args):
         print('-----------------------------------------', file=log)
         print("DONE! FOURIER DIFFERENCE MAP CALCULATED AND ANALYSIS PERFORMED.", file=log)
         print('-----------------------------------------',file=log)
-        
-        log.close()
-        
-        #Rename the output directory (remove the tag) and change it the different files
-        #At this stage it would very rare if two jobs would change outdir name at the same time
-        #Files which include the outdir name are
-        #-coot-script
-        #-log file
-        os.chdir(startdir)
-        DH.remove_unique_id_from_outdir(params.output.outdir, GUI=params.output.GUI)
-        os.chdir(DH.outdir)
-        params.output.outdir = DH.outdir
-        #Coot script:
-        update_file_paths_coot(outdir, DH.outdir)
-        #log file
-        update_file_paths_log(log_name, outdir, DH.outdir)
-
         #change names to real output name in case the dummy name was used
         if outname == 'triggered':
             #print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname), file=log)
             print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname))
-            tr = [os.path.join(root, fle) for root, dirs, files in os.walk(DH.outdir) for fle in files if outname in fle]
+            tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if outname in fle]
             _ = [os.rename(fle, fle.replace(outname, params.output.outname)) for fle in tr]
             FoFo.mtz_name = FoFo.mtz_name.replace(outname, params.output.outname)
         
-        script_coot = open_all_in_coot("%s/%s"%(DH.outdir,FoFo.mtz_name), [DH.pdb_in], [], DH.additional, DH.outdir, FoFo_type)
+        script_coot = open_all_in_coot("%s/%s"%(outdir,FoFo.mtz_name), [DH.pdb_in], [], DH.additional, outdir, FoFo_type)
         
         modified_phil = master_phil.format(python_object=params)
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
         
-
+        log.close()
         if (params.output.open_coot and check_program_path('coot')[1]):
             os.system("coot --script %s" %(script_coot))
             
@@ -3367,35 +3318,17 @@ def run(args):
     #Make sure we are in the output directory
     if os.getcwd() != outdir:
         os.chdir(outdir)
-        
-    #Rename the output directory (remove the tag) and change it the different files
-    #At this stage it would very rare if two jobs would change outdir name at the same time
-    #Files which include the outdir name are
-    #-coot-script
-    #-pymol script (only in calm and curious mode)
-    #-Occupancy_recap.pickle (ddm and script coot)
-    #-log file: since the log file is still open, this can be done only at the complete end
-    os.chdir(startdir)
-    DH.remove_unique_id_from_outdir(params.output.outdir, GUI=params.output.GUI)
-    os.chdir(DH.outdir)
-    params.output.outdir = DH.outdir
-    #Coot script:
-    update_file_paths_coot(outdir, DH.outdir)
-    #Occupancy_recap.pickle
-    update_file_paths_occupancy_recap(outdir, DH.outdir, "occupancy_recap.pickle")
-    #pymol script
-    update_file_paths_pymol(outdir, DH.outdir, "pymol_movie.py")
     
     #change names to real output name in case the dummy name was used
     if outname == 'triggered':
         print('---------------------------', file=log)
         #print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname), file=log)
         print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname))
-        tr = [os.path.join(root, fle) for root, dirs, files in os.walk(DH.outdir) for fle in files if outname in fle]
+        tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if outname in fle]
         _ = [os.rename(fle, fle.replace(outname, params.output.outname)) for fle in tr]
         FoFo.mtz_name = FoFo.mtz_name.replace(outname, params.output.outname)
         
-        coot_scripts = [os.path.join(root, fle) for root, dirs, files in os.walk(DH.outdir) for fle in files if fle.startswith("coot_all_")]
+        coot_scripts = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if fle.startswith("coot_all_")]
         for coot_script in coot_scripts:
             with open(coot_script, "r") as f:
                 fle = f.read().split("\n")
@@ -3409,10 +3342,10 @@ def run(args):
             o.close()
 
     #Make sure we are in the output directory
-    if os.getcwd() != DH.outdir:
-        os.chdir(DH.outdir)
+    if os.getcwd() != outdir:
+        os.chdir(outdir)
     #Make a list of all temporal files. Upon their removal disk space can be saved
-    list_redundant_files(DH.outdir)
+    list_redundant_files(outdir)
     
     #################################################################
     #print('-----------------------------------------', file=log)
@@ -3452,15 +3385,12 @@ def run(args):
     print("Please inspect the output and rerun with different parameters if necessary", file=log)
     
     if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
-        print("Pymol script with models and maps: %s/pymol_movie.py."%(DH.outdir), file=log)
-        print("Pymol script with models and maps: %s/pymol_movie.py."%(DH.outdir))
+        print("Pymol script with models and maps: %s/pymol_movie.py."%(outdir), file=log)
+        print("Pymol script with models and maps: %s/pymol_movie.py."%(outdir))
     print("Coot script with models and maps in each output directory associated with estimated occupancy (coot_all_<maptype>.py).", file=log)
     print("Coot script with models and maps in each output directory associated with estimated occupancy (coot_all_<maptype>.py).")
 
     log.close()
-    
-    #Remove the tag from the outdir in the log file (can only be done after closing of the log file
-    update_file_paths_log(log_name, outdir, DH.outdir)
     
     if (params.output.open_coot and check_program_path('coot')[1]):
         os.system("coot --script %s" %(script_coot))

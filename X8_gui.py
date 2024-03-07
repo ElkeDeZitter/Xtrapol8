@@ -32,11 +32,10 @@ import subprocess
 from wx.lib.pubsub import pub
 from gui import panelIO, panelExtrapolation, panelRefinement, panelLog
 from gui.panelLog import TabLog, TabMainImg, TabOccResults
-import uuid
+
 from libtbx.phil import parse
 
 from Fextr import master_phil
-from Fextr_utils import get_unique_id
 from wx.aui import AuiNotebook
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
@@ -181,10 +180,8 @@ class X8Thread(Thread):
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         while True:
-            
+
             line = p.stdout.readline()
-            if "Move temporary output directory to updated output directory:" in line:
-                print("Got new dirname: %s" %(line.split()[-1]))
             if not line:
                 pub.sendMessage("END", Nlog=self.Nlog)
                 return
@@ -321,11 +318,8 @@ class MainFrame(wx.Frame):
             if self.notebook.threads[run] is not None and self.notebook.threads[run].is_alive():
                 if self.pngs_idx[run] < len(self.pngs):
                     png = self.pngs[self.pngs_idx[run]]
-                    tmp_path = "%s_%s" % (self.inputs[run].output.outdir, self.inputs[run].output.uuid)
-                    if os.path.exists(tmp_path):
-                        filepath = os.path.join(tmp_path, png)
-                    else:
-                        filepath = os.path.join(self.inputs[run].output.outdir, png)
+                    
+                    filepath = os.path.join(self.inputs[run].output.outdir, png)
 
                     if os.path.isfile(filepath):
                         if filepath.endswith('pickle'):
@@ -355,12 +349,7 @@ class MainFrame(wx.Frame):
                     else:
                         Fextr = Fextr[0].upper() + Fextr[1:]
                     png = self.Fextr_pngs[j].replace('tmp', Fextr)
-
-                    tmp_path = "%s_%s" % (self.inputs[run].output.outdir, self.inputs[run].output.uuid)
-                    if os.path.exists(tmp_path):
-                        filepath = os.path.join(tmp_path, png)
-                    else:
-                        filepath = os.path.join(self.inputs[run].output.outdir, png)
+                    filepath = os.path.join(self.inputs[run].output.outdir, png)
 
                     if os.path.isfile(filepath):
                         if filepath.endswith('pickle'):
@@ -511,15 +500,15 @@ class MainFrame(wx.Frame):
             tabIO.outdir_sizer.TextCtrl.SetValue(os.getcwd()+'/Xtrapol8')
         else:
             path = tabIO.outdir_sizer.TextCtrl.GetValue()
-            #if os.path.exists(path):
-                ##Keep outdir given by user if it empty
-                #if len(os.listdir(path)) == 0:
+            if os.path.exists(path):
+                #Keep outdir given by user if it empty
+                if len(os.listdir(path)) == 0:
+                    path = path
+                ##Keep outdir given by user if it only contains Xtrapol8 log-files:
+                #elif len([fle for fle in os.listdir(path) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(path)):
                     #path = path
-                ###Keep outdir given by user if it only contains Xtrapol8 log-files:
-                ##elif len([fle for fle in os.listdir(path) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(path)):
-                    ##path = path
-                #else:
-                    #path = self.get_new_path(path)
+                else:
+                    path = self.get_new_path(path)
 
             tabIO.outdir_sizer.TextCtrl.SetValue(path)
         if err == 1:
@@ -914,7 +903,6 @@ class MainFrame(wx.Frame):
         #######################
         tobeparsed += "output.outdir = %s\n" % self.get_txtctrl_values(tabIO.outdir_sizer.TextCtrl) + \
                       "output.outname = %s\n" % self.get_txtctrl_values(tabIO.outname) + \
-                      "output.uuid = %s\n" % str(uuid.uuid4())[:8] + \
                       "output.GUI = True\noutput.open_coot = False\n"
 
         #####################
