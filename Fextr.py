@@ -2110,31 +2110,31 @@ class Filesandmaps(object):
         
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
-def get_unique_id(id_length=20):
-    """
-    Function to get a unique id based on UUID with length id_length
-    """
-    if id_length > 36:
-        id_length == 36
-    return str(uuid.uuid4())[:id_length]
+#def get_unique_id(id_length=20):
+    #"""
+    #Function to get a unique id based on UUID with length id_length
+    #"""
+    #if id_length > 36:
+        #id_length == 36
+    #return str(uuid.uuid4())[:id_length]
 
-def generate_log_name(time_stamp):
-    """
-    Generate a unique name for the Xtrapol8 logfile.
-    A short uuid of 20 characters is added to the logfile name.
-    """
-    uuid = get_unique_id(36)
-    logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
+#def generate_log_name(time_stamp):
+    #"""
+    #Generate a unique name for the Xtrapol8 logfile.
+    #A short uuid of 20 characters is added to the logfile name.
+    #"""
+    #uuid = get_unique_id(36)
+    #logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
     
-    return logname
+    #return logname
 
-def remove_unique_id_from_log():
-    """
-    Remove the unqiue sequence from the log file
-    """
-    index = log.name.find("Xtrapol8")+len("Xtrapol8")
-    new_name = log.name[:index]+".log"
-    os.rename(log.name, new_name)
+#def remove_unique_id_from_log():
+    #"""
+    #Remove the unqiue sequence from the log file
+    #"""
+    #index = log.name.find("Xtrapol8")+len("Xtrapol8")
+    #new_name = log.name[:index]+".log"
+    #os.rename(log.name, new_name)
             
 def run(args):
     
@@ -2390,7 +2390,8 @@ def run(args):
     full_log = "%s/%s" %(log_dir, log.name)
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,outdir))
-    remove_unique_id_from_log()
+    log_name = remove_unique_id_from_log(log.name)
+    full_log = "%s/%s" %(outdir, log_name)
     
     #extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")

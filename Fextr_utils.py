@@ -24,6 +24,7 @@ import numpy as np
 import iotbx
 import math
 import pickle
+import uuid
 from cctbx import miller, crystal, xray
 from iotbx import mtz, symmetry
 from iotbx.pdb import hierarchy
@@ -34,6 +35,35 @@ from cctbx.array_family import flex
 #matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
+
+
+def get_unique_id(id_length=20):
+    """
+    Function to get a unique id based on UUID with length id_length
+    """
+    if id_length > 36:
+        id_length == 36
+    return str(uuid.uuid4())[:id_length]
+
+def generate_log_name(time_stamp):
+    """
+    Generate a unique name for the Xtrapol8 logfile.
+    A short uuid of 20 characters is added to the logfile name.
+    """
+    uuid = get_unique_id(36)
+    logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
+
+    return logname
+
+def remove_unique_id_from_log(log_name):
+    """
+    Remove the unqiue sequence from the log file
+    """
+    index = log_name.find("Xtrapol8")+len("Xtrapol8")
+    new_name = log_name[:index]+".log"
+    os.rename(log_name, new_name)
+
+    return new_name
 
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
