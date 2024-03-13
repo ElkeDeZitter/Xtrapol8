@@ -7,13 +7,15 @@ input {
   low_resolution = None
 }
 occupancies {
-  low_occ = 0.2
-  high_occ = 0.4
-  steps = 2
+  low_occ = 0.1
+  high_occ = 0.5
+  steps = 5
   list_occ = None
 }
 scaling {
   b_scaling = no isotropic *anisotropic
+  high_resolution = None
+  low_resolution = None
 }
 f_and_maps {
   fofo_type = *qfofo fofo kfofo

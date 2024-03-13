@@ -242,8 +242,12 @@ class TabLog(wx.Panel):
         self.mainSizer.Layout()
 
     def onCoot(self, evt):
-        script_coot = os.path.join(self.options.output.outdir,'coot_all_qFo-Fo.py')
-        os.system("coot --script %s &" % (script_coot))
+        prefix = ["q","k", ""]
+        for p in prefix:
+            script_coot = os.path.join(self.options.output.outdir,'coot_all_{:s}Fo-Fo.py'.format(p))
+            if os.path.isfile(script_coot):
+                os.system("coot --script %s &" % (script_coot))
+                break            
 
 
 class TabMainImg(ScrolledPanel):
@@ -301,7 +305,7 @@ class TabMainImg(ScrolledPanel):
         self.figure = Figure(figsize=(10, 5))
         ax1 = self.figure.add_subplot(111)
         ax1.set_xlabel('Resolution (A)')
-        ax1.set_ylabel('Average k-weight in resolution bin')
+        ax1.set_ylabel('k-weight')
         ax1.plot(bin_res_cent_lst[:], k_av_lst[:], marker='.', label='Average k', color='red')
         ax1.tick_params(axis='y')
         ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
@@ -310,7 +314,7 @@ class TabMainImg(ScrolledPanel):
         ax2.fill_between(bin_res_cent_lst[:], k_max_lst[:], k_min_lst[:], color='red', alpha=0.2, label='k range')
         ax2.set_ylim(0, 1)
         ax2.tick_params(axis='y')
-        ax2.set_ylabel('k range within resolution bin')
+        ax2.set_ylabel('k-weight')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
 
@@ -369,7 +373,7 @@ class TabMainImg(ScrolledPanel):
         self.figure = Figure(figsize=(10, 5))#, tight_layout=True)
         ax1 = self.figure.add_subplot(111)
         ax1.set_xlabel('Resolution (A)')
-        ax1.set_ylabel('Average q in resolution bin')
+        ax1.set_ylabel('q-weight')
         if q_av_lst is not None: ax1.plot(bin_res_cent_lst[:], q_av_lst[:], marker='.', label='Average q', color='red')
         ax1.tick_params(axis='y')
         ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
@@ -378,7 +382,7 @@ class TabMainImg(ScrolledPanel):
         ax2.fill_between(bin_res_cent_lst[:], q_max_lst[:], q_min_lst[:], color='red', alpha=0.2, label='q range')
         ax2.set_ylim(0, 1)
         ax2.tick_params(axis='y')
-        ax2.set_ylabel('q range within resolution bin')
+        ax2.set_ylabel('q-weight')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
         ax2.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='small',
@@ -430,15 +434,15 @@ class TabMainImg(ScrolledPanel):
         ax2.set_ylim(0, np.float(alldata[a][2]))
         ax3.set_ylim(0, 100)
 
-        ax0.set_xlabel('Occupancy')
+        ax0.set_xlabel('Triggered state occupancy')
         ax0.set_ylabel('Absolute number')
-        ax1.set_ylabel('Percentage of total number of reflections')
-        ax0.set_title('%s: Negative reflections' % (maptype), fontsize='medium', fontweight="bold")
+        ax1.set_ylabel('Percentage of total number of ESFAs')
+        ax0.set_title('%s: Negative ESFAs' % (maptype), fontsize='medium', fontweight="bold")
 
-        ax2.set_xlabel('Occupancy')
+        ax2.set_xlabel('Triggered state occupancy')
         ax2.set_ylabel('Absolute number')
-        ax3.set_ylabel('Percentage of total number of reflections')
-        ax2.set_title('%s: Positive reflections' % (maptype), fontsize='medium', fontweight="bold")
+        ax3.set_ylabel('Percentage of total number of ESFAs')
+        ax2.set_title('%s: Positive ESFAs' % (maptype), fontsize='medium', fontweight="bold")
 
         self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
@@ -467,9 +471,10 @@ class TabMainImg(ScrolledPanel):
         ax0.plot(occ_lst, r_work_lst, color='red', marker='o', label='Rwork')
         ax0.plot(occ_lst, r_free_lst, color='blue', marker = 's', markersize = 5, label='Rfree')
         ax1.plot(occ_lst, r_diff_lst, color='green', marker = '^', label='Rfree-Rwork')
-        ax0.set_xlabel('Occupancy of triggered state')
+        ax0.set_xlabel('Triggered state occupancy')
         ax0.set_ylabel('R-factor')
         ax1.set_ylabel('R-factor difference')
+        ax1.yaxis.label.set_color('green')
         lines_labels = [ax.get_legend_handles_labels() for ax in self.figure.axes]
         lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
         ax1.legend(lines, labels, loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize='x-small',
@@ -566,15 +571,15 @@ class TabMainImg(ScrolledPanel):
         axes[0, 0].plot(alphas, all_features, '^', color="k", label='All features')
         axes[0, 0].set_xlim([np.min(alphas) * 0.95, np.max(alphas) * 1.05])
         axes[0, 0].set_xlabel('Alpha value = 1/occupancy')
-        axes[0, 0].set_ylabel('Normalized difference map ratio')
+        axes[0, 0].set_ylabel('Normalized difference map signal')
         axes[0, 0].legend(loc='lower right', bbox_to_anchor=(0.94, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
         
         axes[0, 1].plot(occupancies, pos_features, 'o', color='green', label='Positive features')
         axes[0, 1].plot(occupancies, neg_features, 's', markersize=5, color = 'red', label='Negative features')
         axes[0, 1].plot(occupancies, all_features, '^', color="k", label='All features')
         axes[0, 1].set_xlim([np.min(occupancies)*0.95, np.max(occupancies)*1.05])
-        axes[1, 1].set_xlabel('Triggered state occupancy')
-        axes[0, 1].set_ylabel('Normalized difference map ratio')
+        axes[0, 1].set_xlabel('Triggered state occupancy')
+        axes[0, 1].set_ylabel('Normalized difference map signal')
         
         axes[1, 0].plot(alphas, pearsonCC, "X", color ='blue', label = "Pearson CC")
         axes[1, 0].set_xlim([np.min(alphas)*0.95, np.max(alphas)*1.05])
@@ -990,11 +995,11 @@ class TabOccResults(ScrolledPanel):
 
         ax1.plot(np.array([ids]), np.array([0.8]), marker = 's', markersize=3, color='blue', label='estimation: %.2f A' % (ids))
         ax1.plot(np.array([idl]), np.array([1.2]), marker = '^', markersize=5, color = 'green', label='estimation: %.2f A' % (idl))
-        ax1.set_xlabel('Resolution of bin center (A)')
+        ax1.set_xlabel('Resolution (A)')
         ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
         ax1.set_ylabel('<F/sig(F)>')
         ax1.legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize='xx-small', framealpha=0.5)
-        ax1.set_title('%s: <F/sig(F)> for high resolution bins' % (prefix), fontsize='medium', fontweight="bold")
+        ax1.set_title('%s: <F/sig(F)> for high resolution reflections' % (prefix), fontsize='medium', fontweight="bold")
         self.figure.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
@@ -1024,11 +1029,11 @@ class TabOccResults(ScrolledPanel):
         ax1.set_xlabel('Resolution (A)')
         ax1.set_ylabel('Absolute number of negative ESFAs')
         ax1.yaxis.label.set_color('red')
-        ax1.set_title("Negative ESFAs for high resolution bins", fontsize='medium', fontweight="bold")
+        ax1.set_title("Negative ESFAs for high resolution reflections", fontsize='medium', fontweight="bold")
         ax2 = ax1.twinx()
         ax2.plot(bin_res_cent_lst[:], neg_percent_lst[:],  marker = 's', markersize = 3, label='% Neg. ESFAs', color='blue')
         ax2.set_ylim(0, 100)
-        ax2.set_ylabel('Negative ESFAs in resolution bin (%)')
+        ax2.set_ylabel('Percentage of negative ESFAs (%)')
         ax2.yaxis.label.set_color('blue')
         lines_labels_1 = [ax.get_legend_handles_labels() for ax in [self.figure.axes[0], self.figure.axes[2]]]
         lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
@@ -1042,8 +1047,8 @@ class TabOccResults(ScrolledPanel):
         ax3.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
         ax3.set_ylim(0, 100)
         ax3.set_xlabel('Resolution (A)')
-        ax3.set_ylabel('Completeness in resolution bin (%)')
-        ax3.set_title("Completeness for high resolution bins", fontsize='medium', fontweight="bold")
+        ax3.set_ylabel('Completeness (%)')
+        ax3.set_title("Completeness for high resolution reflections", fontsize='medium', fontweight="bold")
 
         lines_labels_2 = self.figure.axes[1].get_legend_handles_labels()
         lines_2, labels_2 = [sum(lne, []) for lne in zip(lines_labels_2)]
@@ -1190,7 +1195,7 @@ class TabOccResults(ScrolledPanel):
         self.figure = Figure(figsize=(10, 5))
         ax1 = self.figure.subplots(1, 1)
         ax1.text(0.3, 0.5, "Data not available yet")
-        #ax1.set_title("Negative reflections for high resolution bins", fontsize='medium', fontweight="bold")
+        #ax1.set_title("Negative reflections for high resolution reflections", fontsize='medium', fontweight="bold")
         self.figure.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
         canvas = FigureCanvas(self, -1, self.figure)
         self.ImgSizer.Add(canvas, 0, wx.ALIGN_CENTER_VERTICAL | wx.ALIGN_CENTER_HORIZONTAL)

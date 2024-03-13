@@ -134,7 +134,7 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale = 0.05, log=sys.stdout):
     
     fig,ax1 = plt.subplots(figsize=(10, 5))
     ax1.set_xlabel('Resolution (A)')
-    ax1.set_ylabel('Average k-weight in resolution bin')
+    ax1.set_ylabel('k-weight')
     ax1.plot(bin_res_cent_lst[1:], k_av_lst[1:], marker = '.', label='Average k', color = 'red')
     ax1.tick_params(axis='y')
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
@@ -143,7 +143,7 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale = 0.05, log=sys.stdout):
     ax2.fill_between(bin_res_cent_lst[1:], k_max_lst[1:], k_min_lst[1:], color='red', alpha=0.2, label='k range')
     ax2.set_ylim(0,1)
     ax2.tick_params(axis='y')
-    ax2.set_ylabel('k range within resolution bin')
+    ax2.set_ylabel('k-weight')
     lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
 

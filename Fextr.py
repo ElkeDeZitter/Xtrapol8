@@ -81,6 +81,8 @@ import pickle
 from select import select
 from datetime import datetime
 import numpy as np
+import uuid
+
 from iotbx.file_reader import any_file
 from iotbx import symmetry
 from iotbx.pdb import hierarchy
@@ -98,7 +100,7 @@ from iotbx import pdb
 from mmtbx.scaling.matthews import p_vm_calculator
 from iotbx import ccp4_map
 from scipy.stats import pearsonr
-
+from wx.lib.pubsub import pub
 
 #sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
 
@@ -117,7 +119,7 @@ from pymol_visualization import Pymol_visualization, Pymol_movie
 from ddm import Difference_distance_analysis
 from distance_analysis import *
 from Fextr_utils import *
-from wx.lib.pubsub import pub
+import version
 
 master_phil = iotbx.phil.parse("""
 input{
@@ -156,7 +158,7 @@ occupancies{
         .type = float(value_min=0, value_max=1)
         .help = Highest occupancy to test (fractional).
         .expert_level = 0
-    steps = 3
+    steps = 5
         .type = int
         .help = Amount of equaly spaced occupancies to be tested.
         .expert_level = 0
@@ -2108,12 +2110,40 @@ class Filesandmaps(object):
         
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
+#def get_unique_id(id_length=20):
+    #"""
+    #Function to get a unique id based on UUID with length id_length
+    #"""
+    #if id_length > 36:
+        #id_length == 36
+    #return str(uuid.uuid4())[:id_length]
+
+#def generate_log_name(time_stamp):
+    #"""
+    #Generate a unique name for the Xtrapol8 logfile.
+    #A short uuid of 20 characters is added to the logfile name.
+    #"""
+    #uuid = get_unique_id(36)
+    #logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
+    
+    #return logname
+
+#def remove_unique_id_from_log():
+    #"""
+    #Remove the unqiue sequence from the log file
+    #"""
+    #index = log.name.find("Xtrapol8")+len("Xtrapol8")
+    #new_name = log.name[:index]+".log"
+    #os.rename(log.name, new_name)
+            
 def run(args):
     
-    version = "1.2.3"
+    version.VERSION
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     print('-----------------------------------------')
-    print("Xtrapol8 -- version %s -- run date: %s" %(version, now))
+    print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now))
+    print("Phenix version: {:s}".format(get_phenix_version()))
+    print("CCP4 version: {:s}".format(get_ccp4_version()))
 
     #If no input, show complete help, should be changed in order to give help depending on the attribute level
     if len(args) == 0 :
@@ -2122,16 +2152,13 @@ def run(args):
         raise Usage("phenix.python Fextr.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
     
     #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
-    logname = "%s_Xtrapol8.log" %(now)
-    i=1
-    while os.path.isfile(logname):
-        logname = "%s_Xtrapol8_%d.log" %(now, i)
-        i+=1
-        if i == 50:
-            break
+    logname = generate_log_name(now)
     global log
     log = open(logname, "w")
-    print("Xtrapol8 -- version %s -- run date: %s" %(version, now), file=log)
+    print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print("Phenix version: {:s}".format(get_phenix_version()), file=log)
+    print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
+
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
@@ -2145,15 +2172,15 @@ def run(args):
     
     remarks = []
     #Check if non-phenix programs can be found:
-    if check_program_path('coot') == False:
+    if check_program_path('coot')[1] == False:
         remark = "COOT not found."
         remarks.append(remark)
-    if check_program_path('scaleit') == False:
+    if check_program_path('scaleit')[1] == False:
         remark = "scaleit not found. Data will not be scaled."
         remarks.append(remark)
         params.scaling.b_scaling = 'no'
     if params.refinement.use_refmac_instead_of_phenix:
-        if (check_program_path('refmac5') and check_program_path('coot')) == False:
+        if (check_program_path('refmac5')[1] and check_program_path('coot')[1]) == False:
             remark = "refmac and/or COOT not found. Phenix will be used for refinement."
             remarks.append(remark)
             params.refinement.use_refmac_instead_of_phenix = False
@@ -2363,6 +2390,8 @@ def run(args):
     full_log = "%s/%s" %(log_dir, log.name)
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,outdir))
+    log_name = remove_unique_id_from_log(log.name)
+    full_log = "%s/%s" %(outdir, log_name)
     
     #extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")
@@ -2601,7 +2630,7 @@ def run(args):
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
         
         log.close()
-        if (params.output.open_coot and check_program_path('coot')):
+        if (params.output.open_coot and check_program_path('coot')[1]):
             os.system("coot --script %s" %(script_coot))
             
         sys.exit()
@@ -3111,7 +3140,10 @@ def run(args):
             mtzs_for_coot  = []
             if len(recref_mtz_lst) != len(params.occupancies.list_occ):
                 occ_list_mtz = [(re.search(r'occupancy\_(.+?)\/',mtz).group(1)) for mtz in recref_mtz_lst]
-                mtz_rec = recref_mtz_lst[occ_list_mtz.index(occ)]
+                try:
+                    mtz_rec = recref_mtz_lst[occ_list_mtz.index(occ)]
+                except ValueError:
+                    mtz_rec = ""
             else:
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
@@ -3361,7 +3393,7 @@ def run(args):
 
     log.close()
     
-    if (params.output.open_coot and check_program_path('coot')):
+    if (params.output.open_coot and check_program_path('coot')[1]):
         os.system("coot --script %s" %(script_coot))
 
     ################################################################

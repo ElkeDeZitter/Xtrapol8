@@ -283,7 +283,7 @@ class plotalpha(object):
         axes[0, 0].plot(self.alphas, all_features, '^', color="k", label='All features')
         axes[0, 0].set_xlim([np.min(self.alphas) * 0.95, np.max(self.alphas) * 1.05])
         axes[0, 0].set_xlabel('Alpha value = 1/occupancy')
-        axes[0, 0].set_ylabel('Normalized difference map ratio')
+        axes[0, 0].set_ylabel('Normalized difference map signal')
         axes[0, 0].legend(loc='lower right', bbox_to_anchor=(0.94, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
         
         axes[0, 1].plot(self.occupancies, pos_features, 'o', color='green', label='Positive features')
@@ -291,7 +291,7 @@ class plotalpha(object):
         axes[0, 1].plot(self.occupancies, all_features, '^', color="k", label='All features')
         axes[0, 1].set_xlim([np.min(self.occupancies)*0.95, np.max(self.occupancies)*1.05])
         axes[0, 1].set_xlabel('Triggered state occupancy')
-        axes[0, 1].set_ylabel('Normalized difference map ratio')
+        axes[0, 1].set_ylabel('Normalized difference map signal')
 
         
         axes[1, 0].plot(self.alphas, self.pearsonCC, "X", color ='blue', label = 'PearsonCC')

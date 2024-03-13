@@ -67,12 +67,12 @@ class TabExtrapolation(ScrolledPanel):
         LowTxt.SetFont(defont)
         self.LowTextCtrl.SetFont(defont)
         HighTxt = wx.StaticText(self, wx.ID_ANY, "Highest :", size=(60, -1))
-        self.HighTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "1", style= wx.TE_PROCESS_ENTER,
+        self.HighTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "0.5", style= wx.TE_PROCESS_ENTER,
                                    size=(width_TextCtrl, height_TextCtrl), validator=CharValidator('no-alpha'))
         HighTxt.SetFont(defont)
         self.HighTextCtrl.SetFont(defont)
         StepsTxt = wx.StaticText(self, wx.ID_ANY, "Steps :", size=(60, -1))
-        self.StepsTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3", style= wx.TE_PROCESS_ENTER,
+        self.StepsTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "5", style= wx.TE_PROCESS_ENTER,
                                    size=(width_TextCtrl, height_TextCtrl), validator=CharValidator('no-alpha'))
         StepsTxt.SetFont(defont)
         self.StepsTextCtrl.SetFont(defont)
