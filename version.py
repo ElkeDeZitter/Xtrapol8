@@ -28,7 +28,8 @@ __citation__ = "doi.org/10.1038/s42003-022-03575-7"
 major = 1
 minor = 2
 micro = 3
-tag = "Dev" #can be None or "Dev"
+#tag = "Dev" #can be None or "Dev"
+tag = None #can be None or "Dev"
 
 VERSION = ".".join(map(lambda x: str(x) , [major, minor, micro]))
 if tag != None:
