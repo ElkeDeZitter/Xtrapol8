@@ -124,7 +124,21 @@ class TabIO(wx.Panel):
 
         _, ext = os.path.splitext(self.list.GetItemText(self.index, col=0))#self.list_item_clicked)
 
+        if ext == '.mtz':
+            menu = wx.Menu()
+            menu.Append(1, "Reference mtz", kind=wx.ITEM_CHECK)
+            menu.Append(2, "Triggered mtz", kind=wx.ITEM_CHECK)
+            if 'Triggered' in self.list.GetItemText(self.index, col=1):
+                menu.Check(2, True)
+            else:
+                menu.Check(1, True)
+            wx.EVT_MENU(menu, 1, self.MenuSelectionCb)
+            wx.EVT_MENU(menu, 2, self.MenuSelectionCb)
+            self.PopupMenu(menu, evt.GetPoint())
+            menu.Destroy()
+
         if ext == '.cif':
+            
             menu = wx.Menu()
             menu.Append(1, "Reference mtz", kind=wx.ITEM_CHECK)
             menu.Append(2, "Triggered mtz", kind=wx.ITEM_CHECK)
