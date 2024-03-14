@@ -233,7 +233,7 @@ class TabIO(wx.Panel):
         dlg = wx.FileDialog(self,
                             'Open File',
                             defaultDir=self.defaultDir,
-                            wildcard="All files (*.*)|*.*|Model files (*.pdb)|*.pdb|Reflections files (*.mtz)|*.mtz|Restraints files (*.cif)|*.cif",
+                            wildcard="All files (*.*)|*.*|Model files (*.pdb, *cif)|*.pdb;*cif|Reflections files (*.mtz, *.cif)|*.mtz;*.cif|Restraints files (*.cif)|*.cif",
                             style=flags)
 
         if dlg.ShowModal() == wx.ID_CANCEL:
