@@ -137,18 +137,61 @@ class TabIO(wx.Panel):
             self.PopupMenu(menu, evt.GetPoint())
             menu.Destroy()
 
+        if ext == '.cif':
+            
+            menu = wx.Menu()
+            menu.Append(1, "Reference mtz", kind=wx.ITEM_CHECK)
+            menu.Append(2, "Triggered mtz", kind=wx.ITEM_CHECK)
+            menu.Append(3, "Reference model", kind=wx.ITEM_CHECK)
+            menu.Append(4, "Restraints", kind=wx.ITEM_CHECK)
+            if 'Triggered mtz' in self.list.GetItemText(self.index, col=1):
+                menu.Check(2, True)
+            elif 'Reference mtz':
+                menu.Check(1, True)
+            elif "Reference model":
+                menu.Check(3, True)
+            else:
+                menu.Check(4, True)
+            wx.EVT_MENU(menu, 1, self.MenuSelectionCb)
+            wx.EVT_MENU(menu, 2, self.MenuSelectionCb)
+            wx.EVT_MENU(menu, 3, self.MenuSelectionCb)
+            wx.EVT_MENU(menu, 4, self.MenuSelectionCb)
+            self.PopupMenu(menu, evt.GetPoint())
+            menu.Destroy()
+
     def MenuSelectionCb(self, evt):
         ID = evt.GetId()
 
         fn = self.list.GetItem(self.index, 0).GetText()
-        if ID == 1:
-            self.files["Triggered mtz"].remove(fn)
-            self.files["Reference mtz"].append(fn)
-            self.list.SetStringItem(self.index, 1, "Reference mtz")
-        if ID == 2:
-            self.files["Triggered mtz"].append(fn)
-            self.files["Reference mtz"].remove(fn)
-            self.list.SetStringItem(self.index, 1, "Triggered mtz")
+        
+        keys = ["Reference mtz","Triggered mtz","Reference model", "Restraints"]
+        #keys = ["Reference mtz","Triggered mtz"]
+        if ID == 1: #reference mtz selected
+            data_type = "Reference mtz"
+        if ID == 2: #triggered mtz selected
+            data_type = "Triggered mtz"
+        if ID == 3: #reference model selected
+            data_type = "Reference model"
+        if ID == 4: #Restraints selected
+            data_type = "Restraints"
+            
+        self.files[data_type].append(fn)
+        keys.remove(data_type)
+        for key in keys:
+            try:
+                self.files[key].remove(fn)
+            except ValueError:
+                pass
+        self.list.SetStringItem(self.index, 1, data_type)
+        
+        #if ID == 1: #reference mtz selected
+            #self.files["Triggered mtz"].remove(fn)
+            #self.files["Reference mtz"].append(fn)
+            #self.list.SetStringItem(self.index, 1, "Reference mtz")
+        #if ID == 2: #triggered mtz selected
+            #self.files["Triggered mtz"].append(fn)
+            #self.files["Reference mtz"].remove(fn)
+            #self.list.SetStringItem(self.index, 1, "Triggered mtz")
 
     def onBrowseDir(self, evt, text_static, multi, key):
         """
@@ -190,7 +233,7 @@ class TabIO(wx.Panel):
         dlg = wx.FileDialog(self,
                             'Open File',
                             defaultDir=self.defaultDir,
-                            wildcard="All files (*.*)|*.*|Model files (*.pdb)|*.pdb|Reflections files (*.mtz)|*.mtz|Restraints files (*.cif)|*.cif",
+                            wildcard="All files (*.*)|*.*|Model files (*.pdb, *cif)|*.pdb;*cif|Reflections files (*.mtz, *.cif)|*.mtz;*.cif|Restraints files (*.cif)|*.cif",
                             style=flags)
 
         if dlg.ShowModal() == wx.ID_CANCEL:
