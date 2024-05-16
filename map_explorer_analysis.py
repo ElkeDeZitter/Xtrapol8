@@ -339,6 +339,9 @@ class Map_explorer_analysis(object):
 
         # get minimum and maximum value in order to have the same y-axis on each plot
         mn, mx = self.get_plot_limits(pos_peaklist, neg_peaklist, pos_peaklist_ligands, neg_peaklist_ligands)
+        if mn == mx:
+            mx += 0.001
+            mn -= 0.001
 
         col = -1
         row = -1
