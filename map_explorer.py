@@ -121,8 +121,17 @@ def blob_detection(map_object, threshold, peak, coord, radius, info, out=sys.std
     print_results([arr_pos], out, residlst_out)
     arr_neg = do_blob_search(map_object, -threshold, peak, coord, radius, info)
     print_results([arr_neg], out, residlst_out)
-    #print(arr_pos.shape, arr_neg.shape)
-    return np.concatenate((arr_pos, arr_neg), axis=0)
+    # print(arr_pos.shape, arr_neg.shape)
+    # print(arr_pos, arr_neg)
+    if arr_pos.shape == (0,):
+        arr_final = arr_neg
+    elif arr_neg.shape == (0,):
+        arr_final = arr_pos
+    else:
+        arr_final = np.concatenate((arr_pos, arr_neg), axis=0)
+    if arr_final.shape == (0,):
+        print("no peaks found with map-explorer.\n")
+    return arr_final
 
 def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
     """
