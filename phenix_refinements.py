@@ -137,11 +137,6 @@ class Phenix_refinements(object):
         reciprocal = os.system("phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
                        "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
                                "%s refinement.main.nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, r_free_flag_parameters, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
-        
-        print("phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
-                       "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
-                               "%s refinement.main.nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, r_free_flag_parameters, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line))
-
 
         #Find output files, automatically
         if reciprocal == 0: #os.system has correctly finished, then search for the last refined structure
@@ -162,28 +157,8 @@ class Phenix_refinements(object):
             mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
-        #Find output files: hardcoded appears easiest
-        #mtz_out = [fle for fle in os.listdir(os.getcwd()) if outprefix in fle and fle.endswith('mtz')][0]
-        #pdb_out = [fle for fle in os.listdir(os.getcwd()) if outprefix in fle and fle.endswith('pdb')][0]
-        # mtz_out = "%s_001.mtz"%(outprefix)
-        # pdb_out = "%s_001.pdb"%(outprefix)
-        
         return mtz_out, pdb_out
-    
-    #def get_phenix_version(self):
-        #"""
-        #Weird construction to get the phenix version. This is required since some parameter names change between versions
-        #"""
-        #try:
-            #phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
-        #except ValueError:
-                #phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
-        #except AttributeError:
-            #print('Update phenix! Verify that you are using at least Phenix.1.19.')
-            #phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
-        
-        #return phenix_version
-        
+            
     def check_mtz_column(self, mtz_in, column_labels):
         """
         Check if the column is present in the mtz file, use the column labels. e.g. '2FOFCWT,PH2FOFCWT'
@@ -275,9 +250,6 @@ class Phenix_refinements(object):
         real = os.system("phenix.real_space_refine %s %s %s "
                         "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, ramachandran_restraints, additional_keywords_line))
         
-        print("phenix.real_space_refine %s %s %s "
-                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, ramachandran_restraints, additional_keywords_line))
-
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
             if self.phenix_subversion >= 19:
