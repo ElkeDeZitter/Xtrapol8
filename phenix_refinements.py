@@ -63,6 +63,13 @@ class Phenix_refinements(object):
             self.params = ""
             
         self.mtz_name = get_name(self.mtz_in)
+        
+        #get phenix subversion, important since syntax can differ between versions
+        phenix_version = get_phenix_version()
+        try:
+            self.phenix_subversion = int(phenix_version[2:4])
+        except ValueError: #nightly versions can have no number (phenix-dev versions). Assume latest version so put number high
+            self.phenix_subversion = 100
 
     def phenix_reciprocal_space_refinement(self):
         """
@@ -103,11 +110,7 @@ class Phenix_refinements(object):
         if self.weight_sel_crit.r_free_minus_r_work != None:
             weight_selection_criteria += "target_weights.weight_selection_criteria.r_free_minus_r_work=%.4f "%(self.weight_sel_crit.r_free_minus_r_work)
             
-            
-        phenix_version = get_phenix_version()
-        phenix_subversion = int(phenix_version[2:4])
-        
-        if phenix_subversion <= 20:
+        if self.phenix_subversion <= 20:
             r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
         else: #phenix version 1.21
             r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
@@ -135,7 +138,6 @@ class Phenix_refinements(object):
                        "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
                                "%s refinement.main.nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, r_free_flag_parameters, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
 
-
         #Find output files, automatically
         if reciprocal == 0: #os.system has correctly finished, then search for the last refined structure
             try:
@@ -155,27 +157,48 @@ class Phenix_refinements(object):
             mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
-        #Find output files: hardcoded appears easiest
-        #mtz_out = [fle for fle in os.listdir(os.getcwd()) if outprefix in fle and fle.endswith('mtz')][0]
-        #pdb_out = [fle for fle in os.listdir(os.getcwd()) if outprefix in fle and fle.endswith('pdb')][0]
-        # mtz_out = "%s_001.mtz"%(outprefix)
-        # pdb_out = "%s_001.pdb"%(outprefix)
-        
         return mtz_out, pdb_out
+            
+    def check_mtz_column(self, mtz_in, column_labels):
+        """
+        Check if the column is present in the mtz file, use the column labels. e.g. '2FOFCWT,PH2FOFCWT'
+        """
+        column_found = False
+        hkl = any_file(mtz_in,force_type="hkl", raise_sorry_if_errors=False)
+        for array in hkl.file_object.as_miller_arrays():
+            if array.info().label_string() == column_labels:
+                column_found = True
+                
+        return column_found
     
-    #def get_phenix_version(self):
-        #"""
-        #Weird construction to get the phenix version. This is required since some parameter names change between versions
-        #"""
-        #try:
-            #phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
-        #except ValueError:
-                #phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
-        #except AttributeError:
-            #print('Update phenix! Verify that you are using at least Phenix.1.19.')
-            #phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
+    def suggest_mtz_column(self, mtz_in, column_labels, column_label_strings_constraint=''):
+        """
+        Find the closest column labels in an mtz file.
+        Additional constraints could be added to the string, e.g. should contain "2F" if searching for the 2FoFc type
+        """
+        from difflib import get_close_matches
         
-        #return phenix_version
+        column_label_strings = []
+        hkl = any_file(mtz_in,force_type="hkl", raise_sorry_if_errors=False)
+        for array in hkl.file_object.as_miller_arrays():
+            column_label_strings.append(array.info().label_string())
+        
+        column_suggestions = get_close_matches(column_labels, column_label_strings)
+        column_suggestions.sort()
+        
+        close_column_found = False
+        if len(column_suggestions) >=2:
+            for suggestion in column_suggestions:
+                if column_label_strings_constraint in suggestion:
+                    close_column_found = True
+                    column_labels_new = suggestion
+                    break
+                
+        if close_column_found == False:
+            column_labels_new = "2FOFCWT,PH2FOFCWT"
+            
+        return column_labels_new
+                    
     
     def get_mtz_resolution(self, mtz_in):
         """
@@ -195,17 +218,20 @@ class Phenix_refinements(object):
         """       
         
         mtz_name = get_name(mtz_in)
-            
-        #Specify phenix version dependent parameters
-        phenix_version = get_phenix_version()
-        phenix_subversion = int(phenix_version[2:4])
         
-        if phenix_subversion >= 18:
+        #check if the expected columns in the mtz file can be found
+        if self.check_mtz_column(mtz_in, column_labels) == False:
+            print("{:s}: column labels {:s} not found".format(mtz_in, column_labels))
+            column_labels = self.suggest_mtz_column(mtz_in, column_labels, column_label_strings_constraint="2")
+            print("{:s}: columns {:s} will be used")
+
+        #Phenix version dependent parameters
+        if self.phenix_subversion >= 18:
             rotamer_restraints = 'rotamers.restraints.enabled=False' #rotamers.fit=all?
         else:
             rotamer_restraints = 'rotamer_restraints=False'
             
-        if phenix_subversion >= 19:
+        if self.phenix_subversion >= 19:
             output_prefix = 'output.prefix=%s'%(mtz_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_real_space_refined_000.pdb"%(mtz_name)
@@ -220,14 +246,13 @@ class Phenix_refinements(object):
         if len(self.additional_real_keywords) > 0:
             for keyword in self.additional_real_keywords:
                 additional_keywords_line+= "%s " %(keyword)
- 
         
         real = os.system("phenix.real_space_refine %s %s %s "
                         "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, ramachandran_restraints, additional_keywords_line))
-
+        
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
-            if phenix_subversion >= 19:
+            if self.phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_real_space_refined_???.pdb"%(mtz_name))
                     # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(mtz_name) in
@@ -260,15 +285,13 @@ class Phenix_refinements(object):
         ccp4_name = get_name(ccp4_in)
             
         #Specify phenix version dependent parameters
-        phenix_version = get_phenix_version()
-        phenix_subversion = int(phenix_version[2:4])
         
-        if phenix_subversion >= 18:
+        if self.phenix_subversion >= 18:
             rotamer_restraints = 'rotamers.restraints.enabled=False' #rotamers.fit=all?
         else:
             rotamer_restraints = 'rotamer_restraints=False'
             
-        if phenix_subversion >= 19:
+        if self.phenix_subversion >= 19:
             output_prefix = 'output.prefix=%s'%(ccp4_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_real_space_refined_000.pdb"%(ccp4_name)
@@ -290,7 +313,7 @@ class Phenix_refinements(object):
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
-            if phenix_subversion >= 19:
+            if self.phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_real_space_refined_???.pdb"%(ccp4_name))
                     # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(ccp4_name) in

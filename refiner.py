@@ -1024,48 +1024,50 @@ eof' % (mtz_out, ccp4_map_name))
 
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
-def get_unique_id(id_length=20):
-    """
-    Function to get a unique id based on UUID with length id_length
-    """
-    if id_length > 36:
-        id_length == 36
-    return str(uuid.uuid4())[:id_length]
-
+# def get_unique_id(id_length=20):
+#     """
+#     Function to get a unique id based on UUID with length id_length
+#     """
+#     if id_length > 36:
+#         id_length == 36
+#     return str(uuid.uuid4())[:id_length]
+# 
 def generate_log_name(time_stamp):
     """
     Generate a unique name for the Xtrapol8 logfile.
     A short uuid of 20 characters is added to the logfile name.
     """
     uuid = get_unique_id(36)
-    logname = "%s_Xtrapol8_refinements_%s.log" %(time_stamp, uuid_short)
+    logname = "%s_Xtrapol8_refinements_%s.log" %(time_stamp, uuid)
     
     return logname
 
-def remove_unique_id_from_log():
+def remove_unique_id_from_log(log_name):
     """
     Remove the unqiue sequence from the log file
     """
-    index = log.name.find("Xtrapol8_refinements")+len("Xtrapol8_refinements")
-    new_name = log.name[:index]+".log"
-    os.rename(log.name, new_name)
+    index = log_name.find("Xtrapol8_refinements")+len("Xtrapol8_refinements")
+    new_name = log_name[:index]+".log"
+    os.rename(log_name, new_name)
  
+    return new_name
 
 def run(args):
+    version.VERSION
+    now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
+    #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
+    logname = generate_log_name(now)
+    global log
+    log = open(logname, "w")
+
     print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now))
     print('-----------------------------------------')
     #parse arguments
     if len(args) == 0 :
         master_phil.show(attributes_level=1)
         raise Usage("phenix.python Xtrapol8_refinements.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
     
-    #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
-    now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
-    logname = generate_log_name(now)
-    global log
-    log = open(logname, "w")
-    
-    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now))
     log_dir = os.getcwd()
     
     #Extract input from inputfile and command line
@@ -1204,18 +1206,22 @@ def run(args):
 
     if DH.X8_pdb_in == None:
         params.map_explorer.do_distance_analysis = False
+        
+    #Move to the output directory
+    os.chdir(DH.outdir)
 
     #Move log file to output directory
-    full_log = "%s/%s" %(log_dir, logname)
+    # print(log.name)
+    full_log = "%s/%s" %(log_dir, log.name)
     #print(os.path.isfile(full_log))
     if os.path.isfile(full_log):
         shutil.move(full_log, full_log.replace(log_dir,DH.outdir))
-    remove_unique_id_from_log()
+    log_name = remove_unique_id_from_log(log.name)
+    full_log = "%s/%s" %(DH.outdir, log_name)
         
     pymol_script_out = "%s/pymol_movie_refiner.py" %(DH.outdir)
 
-    #Move to the output directory
-    os.chdir(DH.outdir)
+
 
     #get the output filename from the Xtrapol8_out.phil
     outname = Xtrapol8_params.output.outname
