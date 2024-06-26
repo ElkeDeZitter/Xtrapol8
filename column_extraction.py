@@ -104,12 +104,12 @@ class Column_extraction(object):
                     print("Found I's: %s Conversion to Fs with truncate" %(labels))
                     
                     #merge bijvoet mates incase of anomalous data:
-                    if ano_flag:
-                        i_obs = i_obs.average_bijvoet_mates()
+                    # if ano_flag:
+                    #     i_obs = i_obs.average_bijvoet_mates()
                         
-                elif f_obs != None: #F's found
-                    if ano_flag:
-                        f_obs = f_obs.average_bijvoet_mates()
+                # elif f_obs != None: #F's found
+                #     if ano_flag:
+                #         f_obs = f_obs.average_bijvoet_mates()
                     
                 else: #No I's and no F's found, problem with input file
                     print("Could not find F's nor I's, please check the input file.", file = self.log)
@@ -143,13 +143,13 @@ class Column_extraction(object):
             print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
             print("Found I's: %s Conversion to Fs with truncate" %(labels))
             
-            #merge bijvoet mates incase of anomalous data:
-            if ano_flag:
-                i_obs = i_obs.average_bijvoet_mates()
+            # #merge bijvoet mates incase of anomalous data:
+            # if ano_flag:
+            #     i_obs = i_obs.average_bijvoet_mates()
                 
-        elif f_obs != None: #F's found
-            if ano_flag:
-                f_obs = f_obs.average_bijvoet_mates()
+        # elif f_obs != None: #F's found
+        #     if ano_flag:
+        #         f_obs = f_obs.average_bijvoet_mates()
             
         else: #No I's and no F's found, problem with input file
             print("Could not find F's nor I's, please check the input file.", file = self.log)

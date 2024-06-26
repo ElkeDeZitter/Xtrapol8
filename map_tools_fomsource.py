@@ -173,8 +173,8 @@ class electron_density_map(object):
     scale=None
     if(isotropize):
       if(scale is None):
-        if (scale_array.anomalous_flag()) and (not coeffs.anomalous_flag()):
-          scale_array = scale_array.average_bijvoet_mates()
+        # if (scale_array.anomalous_flag()) and (not coeffs.anomalous_flag()):
+          # scale_array = scale_array.average_bijvoet_mates()
         scale = scale_array.data()
       coeffs = coeffs.customized_copy(data = coeffs.data()*scale)
     if(fill_missing):

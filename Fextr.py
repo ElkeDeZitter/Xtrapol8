@@ -666,11 +666,11 @@ class DataHandler(object):
                                                         high_res,
                                                         log = log).extract_columns()
         
-        if self.fobs_off.anomalous_flag():
-            print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.", file=log)
-            print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
-            self.fobs_off = self.fobs_off.average_bijvoet_mates()
-            self.fobs_on  = self.fobs_on.average_bijvoet_mates()
+        # if self.fobs_off.anomalous_flag():
+        #     print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.", file=log)
+        #     print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.")
+        #     self.fobs_off = self.fobs_off.average_bijvoet_mates()
+        #     self.fobs_on  = self.fobs_on.average_bijvoet_mates()
         
         self.fobs_off = self.fobs_off.map_to_asu()
         #self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
