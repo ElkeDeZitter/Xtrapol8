@@ -156,6 +156,8 @@ class Column_extraction(object):
             hkl.show_summary(self.log)
             print("Could not find F's nor I's, please check the input file.")
             hkl.show_summary()
+            
+        f_obs.show_comprehensive_summary()
     
         return f_obs, i_obs, run_truncate, labels
 
@@ -333,7 +335,7 @@ eof_truncate"
         if self.check_if_ano(self.reflections_ref)+self.check_if_ano(self.reflections_trig) == 2:
             print("Found anomalous data in both datasets. Xtrapol8 is not yet ready to handle anomalous data.\nData will be converted to non-anomalous structure factors", file=self.log)
             print("Found anomalous data in both datasets. Xtrapol8 is not yet ready to handle anomalous data.\nData will be converted to non-anomalous structure factors")
-            self.ano = False #This should become True if we can deal with anomalous data
+            self.ano = True #This should become True if we can deal with anomalous data
             ano_ref = ano_trig = True
         elif self.check_if_ano(self.reflections_ref):
             print("One of the input files contains anonalous data but the other not.\nData will be converted to non-anomalous structure factors", file=self.log)
@@ -392,7 +394,7 @@ eof_truncate"
         else: #Data is F
             # Run pointless to avoid indexing issues
             dmax, dmin = self.resolution_cutoff(f_obs_2)
-            mtz_pointless, pointless_success = self.run_pointless(f_obs_2, f_obs_ref, "triggered")
+            # mtz_pointless, pointless_success = self.run_pointless(f_obs_2, f_obs_ref, "triggered")
             if (os.path.isfile(mtz_pointless) and pointless_success): #Pointless run correctly
                 reflections_pointless = any_file(mtz_pointless, force_type="hkl", raise_sorry_if_errors=True)
                 f_obs_2, _, _, _ = self.get_F(reflections_pointless,ano_flag=False)
