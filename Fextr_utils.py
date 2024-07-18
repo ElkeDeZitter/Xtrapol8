@@ -81,7 +81,7 @@ def check_program_path(program):
                 program_exist = True
                 break
                 
-    return exe_file, program_exist
+    return exe_file, program_exist    
 
 def get_phenix_version():
     """
@@ -89,10 +89,13 @@ def get_phenix_version():
     """
     phenix_path, program_exists = check_program_path("phenix")
     if program_exists:
-        phenix_version = re.search(r"phenix-(.+?)\/", phenix_path).group(1)
+        try:
+            phenix_version = re.search(r"phenix-(.+?)\/", phenix_path).group(1)
+        except AttributeError:
+            phenix_version = "version not extracted"
     else:
         print("phenix could not be found")
-        phenix_version = 0
+        phenix_version = "Phenix path not found"
         
     return phenix_version
     
@@ -102,10 +105,13 @@ def get_ccp4_version():
     """
     scaleit_path, program_exists = check_program_path("scaleit")
     if program_exists:
-        ccp4_version = re.search(r"ccp4-(.+?)\/", scaleit_path).group(1)
+        try:
+            ccp4_version = re.search(r"ccp4-(.+?)\/", scaleit_path).group(1)
+        except AttributeError:
+            ccp4_version = "version not extracted"
     else:
         print("scaleit (ccp4) could not be found")
-        ccp4_version = 0
+        ccp4_version = "CCP4 path not found"
         
     return ccp4_version
     
