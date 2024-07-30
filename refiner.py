@@ -649,9 +649,7 @@ class Refiner(object):
             #Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
 
-        reciprocal = os.system("phenix.refine --overwrite %s %s %s  %s output.prefix=%s "
-                  "refinement.output.write_model_cif_file=False %s"
-                  "refinement.main.nproc=4 write_maps=true" %(self.reciprocal_phil, self.mtz_file, self.additional, self.pdb_in, outprefix, r_free_flag_parameters)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+        reciprocal = os.system("phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true" %(self.reciprocal_phil, self.mtz_file, self.additional, self.pdb_in, outprefix, r_free_flag_parameters)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
          
         #Find output files
         if reciprocal == 0: #os.system has correctly finished, then search for the last refined structure
