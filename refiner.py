@@ -636,17 +636,20 @@ class Refiner(object):
                 raise AttributeError
         except AttributeError:
             outprefix = "%s_independent_reciprocal_space"%(mtz_name)
+            
+        #Specify phenix version dependent parameters
+        phenix_version, phenix_subversion = self.get_phenix_version()
+        print("Phenix version: %s" %(phenix_version))
+
+        if phenix_subversion <= 20:
+            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
+        else: #phenix version 1.21
+            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
+            #data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
+            #Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
 
-        # print(
-        #     "phenix.refine --overwrite %s %s  %s output.prefix=%s refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 write_maps=true" % (
-        #     self.mtz_file, self.additional, self.pdb_in,
-        #     outprefix))  # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
-        reciprocal = os.system("phenix.refine --overwrite %s %s %s  %s output.prefix=%s "
-                  "refinement.input.xray_data.r_free_flags.disable_suitability_test=True "
-                  "refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True "
-                  "refinement.output.write_model_cif_file=False "
-                  "refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 nproc=4 write_maps=true" %(self.reciprocal_phil, self.mtz_file, self.additional, self.pdb_in, outprefix)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+        reciprocal = os.system("phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true" %(self.reciprocal_phil, self.mtz_file, self.additional, self.pdb_in, outprefix, r_free_flag_parameters)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
          
         #Find output files
         if reciprocal == 0: #os.system has correctly finished, then search for the last refined structure
@@ -664,7 +667,7 @@ class Refiner(object):
                 mtz_out = "%s_001.mtz"%(outprefix)
                 pdb_out = "%s_001.pdb"%(outprefix)
         else: #os.system has not correctly finished
-            mtz_out = "no_a_file"
+            mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
         return mtz_out, pdb_out
@@ -809,15 +812,22 @@ eof' % (mtz_out, ccp4_map_name))
         """
         Weird construction to get the phenix version. This is required since some parameter names change between versions
         """
-        try:
-            phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
-        except ValueError:
-                phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
-        except AttributeError:
-            print('Update phenix! Verify that you are using at least Phenix.1.19.')
-            phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
+        # try:
+        #     phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
+        # except ValueError:
+        #         phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
+        # except AttributeError:
+        #     print('Update phenix! Verify that you are using at least Phenix.1.19.')
+        #     phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
         
-        return phenix_version
+        #get phenix subversion, important since syntax can differ between versions
+        phenix_version = get_phenix_version()
+        try:
+            phenix_subversion = int(phenix_version[2:4])
+        except ValueError: #nightly versions can have no number (phenix-dev versions). Assume latest version so put number high
+            phenix_subversion = 100
+
+        return phenix_version, phenix_subversion
     
     def get_mtz_resolution(self, mtz_in):
         """
@@ -833,16 +843,16 @@ eof' % (mtz_out, ccp4_map_name))
         """
         Real space refinement based on mtz file and specified column labels
         use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
-        Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grap the version
+        Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grep the version
         """       
         
         mtz_name = get_name(mtz_in)
             
         #Specify phenix version dependent parameters
-        phenix_version = self.get_phenix_version()
-        print("Phenix version 1.%d" %(phenix_version))
+        phenix_version, phenix_subversion = self.get_phenix_version()
+        print("Phenix version: %s" %(phenix_version))
 
-        if phenix_version >= 19:
+        if phenix_subversion >= 19:
             output_prefix = 'output.prefix=%s_independent'%(mtz_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_independent_real_space_refined_000.pdb"%(mtz_name)
@@ -858,7 +868,7 @@ eof' % (mtz_out, ccp4_map_name))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
-            if phenix_version >= 19:
+            if phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_independent_real_space_refined_???.pdb"%(mtz_name))
                     # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(mtz_name) in
@@ -892,10 +902,10 @@ eof' % (mtz_out, ccp4_map_name))
         ccp4_name = get_name(ccp4_in)
             
         #Specify phenix version dependent parameters
-        phenix_version = self.get_phenix_version()
-        print("Phenix version 1.%d" %(phenix_version))
+        phenix_version, phenix_subversion = self.get_phenix_version()
+        print("Phenix version: %s" %(phenix_version))
 
-        if phenix_version >= 19:
+        if phenix_subversion >= 19:
             output_prefix = 'output.prefix=%s_independent'%(ccp4_name)
             model_format  = 'model_format=pdb'
             # outpdb        = "%s_independent_real_space_refined_000.pdb"%(ccp4_name)
@@ -910,7 +920,7 @@ eof' % (mtz_out, ccp4_map_name))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
-            if phenix_version >= 19:
+            if phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_independent_real_space_refined_???.pdb"%(ccp4_name))
                     # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(ccp4_name) in
@@ -1061,7 +1071,12 @@ def run(args):
     log = open(logname, "w")
 
     print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print("Phenix version: {:s}".format(get_phenix_version()), file=log)
+    print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
     print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now))
+    print("Phenix version: {:s}".format(get_phenix_version()))
+    print("CCP4 version: {:s}".format(get_ccp4_version()))
+
     print('-----------------------------------------')
     #parse arguments
     if len(args) == 0 :
