@@ -667,7 +667,7 @@ class Refiner(object):
                 mtz_out = "%s_001.mtz"%(outprefix)
                 pdb_out = "%s_001.pdb"%(outprefix)
         else: #os.system has not correctly finished
-            mtz_out = "no_a_file"
+            mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
         return mtz_out, pdb_out

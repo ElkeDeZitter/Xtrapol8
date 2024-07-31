@@ -92,7 +92,7 @@ def get_phenix_version():
         try:
             phenix_version = re.search(r"phenix-(.+?)\/", phenix_path).group(1)
         except AttributeError:
-            phenix_version = "version not extracted"
+            phenix_version = "Version could not be extracted. Check phenix specific log files if applicable."
     else:
         print("phenix could not be found")
         phenix_version = "Phenix path not found"
@@ -108,7 +108,7 @@ def get_ccp4_version():
         try:
             ccp4_version = re.search(r"ccp4-(.+?)\/", scaleit_path).group(1)
         except AttributeError:
-            ccp4_version = "version not extracted"
+            ccp4_version = "Version could not be extracted. Check CCP4 specific log files if applicable."
     else:
         print("scaleit (ccp4) could not be found")
         ccp4_version = "CCP4 path not found"
