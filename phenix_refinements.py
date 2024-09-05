@@ -48,6 +48,7 @@ class Phenix_refinements(object):
                  sim_annealing                  = False,
                  sim_annealing_pars             = {},
                  map_sharpening                 = False,
+                 scattering_table               = "n_gaussian",
                  weight_sel_crit                = {},
                  additional_reciprocal_keywords = [],
                  additional_real_keywords       = [],
@@ -113,7 +114,7 @@ class Phenix_refinements(object):
         if self.phenix_subversion <= 20:
             r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
         else: #phenix version 1.21
-            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
+            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1"
             #data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
             #Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
@@ -136,7 +137,8 @@ class Phenix_refinements(object):
 
         reciprocal = os.system("phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
                        "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
-                               "%s refinement.main.nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, r_free_flag_parameters, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+                       "refinement.main.scattering_table=%s "
+                               "%s refinement.main.nproc=4 wxc_scale=%f wxu_scale=%f ordered_solvent=%s write_maps=true %s %s %s %s" %(self.mtz_in, self.additional, self.pdb_in, outprefix, self.strategy, self.rec_cycles, self.scattering_table, r_free_flag_parameters, self.wxc_scale, self.wxu_scale, self.solvent, self.params, weight_selection_criteria, sim_annealing, additional_keywords_line)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
 
         #Find output files, automatically
         if reciprocal == 0: #os.system has correctly finished, then search for the last refined structure
@@ -248,7 +250,7 @@ class Phenix_refinements(object):
                 additional_keywords_line+= "%s " %(keyword)
         
         real = os.system("phenix.real_space_refine %s %s %s "
-                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, ramachandran_restraints, additional_keywords_line))
+                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=%s c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s" %(mtz_in, self.additional, pdb_in, self.scattering_table, output_prefix, self.real_cycles, model_format, column_labels, rotamer_restraints, ramachandran_restraints, additional_keywords_line))
         
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
@@ -309,7 +311,7 @@ class Phenix_refinements(object):
  
         
         real = os.system("phenix.real_space_refine %s %s %s "
-                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=n_gaussian c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s %s %s ignore_symmetry_conflicts=True resolution=%.2f %s" %(ccp4_in, self.additional, pdb_in, output_prefix, self.real_cycles, model_format, rotamer_restraints, ramachandran_restraints, resolution, additional_keywords_line))
+                        "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=%s c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s %s %s ignore_symmetry_conflicts=True resolution=%.2f %s" %(ccp4_in, self.additional, pdb_in, self.scattering_table, output_prefix, self.real_cycles, model_format, rotamer_restraints, ramachandran_restraints, resolution, additional_keywords_line))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
@@ -347,6 +349,9 @@ class Phenix_refinements(object):
         
         pdb_ini = iotbx.pdb.input(pdb_in)
         xray_structure = pdb_ini.xray_structure_simple()
+        
+        #scattering table should not be specified here because the structure is onluy used
+        #to calculate the solvent content. No usage to calculate f_model
         
         vm_calc = p_vm_calculator(xray_structure.crystal_symmetry(),
             n_residues=overall_counts.resname_classes.get("common_amino_acid", 0))

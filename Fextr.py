@@ -149,6 +149,10 @@ input{
         .help = Low resolution cutoff (Angstrom).
         .expert_level = 0
     }
+scattering_table = *n_gaussian wk1995 it1992 electron neutron
+    .type = choice(multi=False)
+    .help = Scattering table. For testing only. It is unclear if Xtrapol8 will give proper results with data other than originating from X-ray diffraction and a scattering table different from n_gaussian. If using anything else than n_gaussian, use only phenix for refinement.
+    .expert_level = 3
 occupancies{
     low_occ = 0.1
         .type = float(value_min=0, value_max=1)
@@ -781,7 +785,7 @@ class DataHandler(object):
         
         self.rfree = array.generate_r_free_flags(fraction=fraction)
 
-    def generate_f_model(self, fobs):
+    def generate_f_model(self, fobs, scattering_table = "n_gaussian"):
         """
         Make an fmodel from data and input model
         """
@@ -793,6 +797,8 @@ class DataHandler(object):
         
         pdb_ini = iotbx.pdb.input(self.pdb_in)
         xray_structure = pdb_ini.xray_structure_simple()
+        
+        xray_structure.scattering_type_registry(table=scattering_table)
         
         #to change of basis to reference settings is a bad idea because it will mess up things
         #phil_xs = crystal.symmetry(unit_cell=fobs.unit_cell(),
@@ -1571,6 +1577,7 @@ class Fextrapolate(object):
                            additional=None,
                            F_column_labels='QFEXTR',
                            column_labels='2FOFCWT,PH2FOFCWT',
+                           scattering_table= "n_gaussian",
                            keywords = {}):
         
         """
@@ -1600,6 +1607,7 @@ class Fextrapolate(object):
                                                     sim_annealing      = keywords.main.simulated_annealing,
                                                     sim_annealing_pars = keywords.simulated_annealing,
                                                     map_sharpening     = keywords.map_sharpening.map_sharpening,
+                                                    scattering_table   = scattering_table,
                                                     weight_sel_crit    = keywords.target_weights.weight_selection_criteria,
                                                     additional_reciprocal_keywords = keywords.additional_reciprocal_space_keywords,
                                                     additional_real_keywords       = keywords.additional_real_space_keywords,
@@ -2474,7 +2482,8 @@ def run(args):
     print("----Scaling Fmodel with Freference----")
     DH.generate_Rfree(DH.fobs_off, 0.05)
     print("fmodel generation, can take a few minutes")
-    DH.generate_f_model(DH.fobs_off)
+    #Add scattering_table argument to make f_model with adapted scattering table
+    DH.generate_f_model(DH.fobs_off, scattering_table=params.scattering_table)
     #DH.fmodel.show()
     if params.scaling.b_scaling != "no":
         print("Updating all fmodel scales.")
@@ -2867,6 +2876,7 @@ def run(args):
                                                     additional      = DH.additional,
                                                     F_column_labels = Fextr.FM.labels['data'],
                                                     column_labels   = '%s,PHI%s'%(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
+                                                    scattering_table= params.scattering_table,
                                                     keywords        = params.refinement.phenix_keywords)
                 print("--------------", file=log)
                 #depending on the map-type, append the refinement output to the correct list
@@ -3275,6 +3285,7 @@ def run(args):
                                                   additional      = DH.additional,
                                                   F_column_labels = Fextr.FM.labels['data'],
                                                   column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
+                                                  scattering_table= params.scattering_table,
                                                   keywords        = params.refinement.phenix_keywords)
               
         print("---> Results in %s_%.3f"%(dir_prefix, occ), file=log)

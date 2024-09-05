@@ -195,6 +195,9 @@ eof\n'%(mtz_out, ccp4_diff_map_name))
         pdb_ini = iotbx.pdb.input(self.pdb_in)
         xray_structure = pdb_ini.xray_structure_simple()
         
+        #scattering table should not be specified here because the structure is onluy used
+        #to calculate the solvent content. No usage to calculate f_model
+        
         vm_calc = p_vm_calculator(xray_structure.crystal_symmetry(),
             n_residues=overall_counts.resname_classes.get("common_amino_acid", 0))
             #can be estended with n_bases=.overall_countsresname_classes.get("common_rna_dna", 0)
