@@ -331,7 +331,7 @@ class Map_explorer_analysis(object):
             n_rows_lig = 0
         else:
             n_rows_lig = 1
-        n_rows = n_rows_prot + n_rows_lig
+        n_rows = n_rows_prot + n_rows_lig        
 
         # initiate plot
         fig, axs = plt.subplots(n_rows, n_cols, figsize=(5 * n_rows, 5 * n_cols),
@@ -345,21 +345,21 @@ class Map_explorer_analysis(object):
 
         col = -1
         row = -1
-        old_chain_id = ''
+        chain_dict = {}
         # loop of the protein chains
         for chain in hier.chains():
             # if chain.is_protein():  deleted to be used for DNA too, HETATM already deleted, only protein chain left
             ID = chain.id
             # Check if we have already worked with this chain (can happen because of badly placed TER cards
-            if ID != old_chain_id:
+            if ID not in chain_dict.keys():
                 # go the next position in the plot
                 if col == 0:
                     col = 1
                 else:
                     col = 0
                     row += 1
+                chain_dict[ID]=(row,col)
                 # get the helix and strands sublists for the correct chain ID
-                # unclear why the next 2 lines had an indentation
                 helix_ranges = [range(lne[1], lne[2] + 1, 1) for lne in helix_lst if ID in lne[0]]
                 strand_ranges = [range(lne[1], lne[2] + 1, 1) for lne in strand_lst if ID in lne[0]]
                 try:
@@ -401,19 +401,19 @@ class Map_explorer_analysis(object):
                 # plot the positive peaks with a green bar
                 # plot the negative peaks with a red bar
                 # if (n_rows > 1 and n_cols > 1):
-                axs[row, col].plot(AA, a, color='black', zorder=0, linewidth=0.75)
-                axs[row, col].scatter(helices, h, color='magenta', marker='o')
-                axs[row, col].scatter(strands, s, color='blue', marker='>')
+                axs[chain_dict[ID]].plot(AA, a, color='black', zorder=0, linewidth=0.75)
+                axs[chain_dict[ID]].scatter(helices, h, color='magenta', marker='o')
+                axs[chain_dict[ID]].scatter(strands, s, color='blue', marker='>')
 
-                axs[row, col].bar(pos_peak_resids, pos_peaks, color='green', width=1.0)
-                axs[row, col].bar(neg_peak_resids, neg_peaks, color='red', width=1.0)
+                axs[chain_dict[ID]].bar(pos_peak_resids, pos_peaks, color='green', width=1.0)
+                axs[chain_dict[ID]].bar(neg_peak_resids, neg_peaks, color='red', width=1.0)
 
-                axs[row, col].set_ylim(mn, mx)
-                axs[row, col].set_title('Chain %s' % ID, fontsize='medium', fontweight="bold")
-                axs[row, col].set_xlabel('Residues')
-                axs[row, col].set_ylabel('Summed integrated\npeak volume')
+                axs[chain_dict[ID]].set_ylim(mn, mx)
+                axs[chain_dict[ID]].set_title('Chain %s' % ID, fontsize='medium', fontweight="bold")
+                axs[chain_dict[ID]].set_xlabel('Residues')
+                axs[chain_dict[ID]].set_ylabel('Summed integrated\npeak volume')
 
-                old_chain_id = ID
+                # old_chain_id = ID
             # If we already worked with this chain ID
             else:
                 try:
@@ -423,16 +423,7 @@ class Map_explorer_analysis(object):
                     # get number of amino acids when multiple conformers
                     AA = flex.double([chain.conformers()[0].residues()[0].resseq_as_int(),
                                       chain.conformers()[0].residues()[-1].resseq_as_int()])
-                # continue plotting the black line
-                #if (n_rows > 1 and n_cols > 1):
-                    #axs[row, col].plot(AA, a, color='black', zorder=0)
-                #elif (n_rows > 1 and n_cols == 1):
-                    #axs[row].plot(AA, a, color='black', zorder=0)
-                #elif (n_rows == 1 and n_cols > 1):
-                    #axs[col].plot(AA, a, color='black', zorder=0)
-                #else:
-                    #axs.plot(AA, a, color='black', zorder=0)
-                axs[row, col].plot(AA, a, color='black', zorder=0)
+                axs[chain_dict[ID]].plot(AA, a, color='black', zorder=0)
 
         # do the same thing for the ligands and water molecules
         if num_lig > 0:

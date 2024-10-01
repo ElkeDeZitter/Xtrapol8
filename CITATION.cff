@@ -12,7 +12,7 @@ authors:
 - family-names: "Colletier"
   given-names: "Jacques-Philippe"
 title: "Xtrapol8"
-version: "1.2.6"
+version: "1.2.7"
 doi: "10.5281/zenodo.6560832"
 date-released: "2022-12-06"
 url: "https://github.com/ElkeDeZitter/Xtrapol8"
