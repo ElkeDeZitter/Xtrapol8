@@ -132,15 +132,19 @@ class Difference_distance_analysis(object):
                                 ##print("remove:",atom_group.id_str())
                                 #res_group.remove_atom_group(atom_group)
     
-    def get_offset(self, chain):
+    def get_offset(self, pdb_hierarchy, ID):
         """
         Function to get the offset of a certain chain
         """
-
-        try:
-            offset = chain.residues()[0].resseq_as_int()
-        except AssertionError:
-            offset = chain.conformers()[0].residues()[0].resseq_as_int()
+        offset = 99999999 #very high number
+        for chain in pdb_hierarchy.chains():
+            if chain.id == ID:
+                try:
+                    offset_test = chain.residues()[0].resseq_as_int()
+                except AssertionError:
+                    offset_test = chain.conformers()[0].residues()[0].resseq_as_int()
+                if offset_test < offset:
+                    offset = offset_test
                     
         return offset
     
@@ -165,7 +169,7 @@ class Difference_distance_analysis(object):
         """
     
         #get first residue so as to know that the first residue so that it is clear that this is not a residue after a gap
-        n_ini = self.get_offset(chain)
+        n_ini = self.get_offset(pdb_hierarchy, chain.id)
         
         #get last residue number as to know where to stop
         #n_fin = self.get_last_residue_number(pdb_hierarchy, chain)
@@ -285,6 +289,7 @@ class Difference_distance_analysis(object):
                 cdict['green'].append([item, g1, g2])
                 cdict['blue'].append([item, b1, b2])
         return mcolors.LinearSegmentedColormap('CustomMap', cdict)
+            
     
     def ddms(self):
         """
@@ -292,19 +297,13 @@ class Difference_distance_analysis(object):
         """
         chains = [chain.id for chain in self.hier1.chains() if chain.is_protein()]
         num_chains = len(set(chains))
-            
+                    
         if num_chains == 1:
             n_cols = 1
         else:
             n_cols = 2
             
         n_rows_prot = int(math.ceil(num_chains/n_cols))
-
-        #if num_lig == 0:
-            #n_rows_lig = 0
-        #else:
-            #n_rows_lig = 1
-        #n_rows = n_rows_prot + n_rows_lig
         
         n_rows = n_rows_prot
 
@@ -323,22 +322,26 @@ class Difference_distance_analysis(object):
 
         col = -1
         row = -1
-        old_chain_id = ''
+        # old_chain_id = ''
+        chain_dict = {}
         for chain in self.hier1.chains():
             if chain.is_protein():
                 ID = chain.id
-                if ID != old_chain_id:
+                print("chain ID:", ID)
+                # if ID != old_chain_id:
+                if ID not in chain_dict.keys():
                     if col == 0:
                         col = 1
                     else:
                         col = 0
                         row +=1
+                    chain_dict[ID]=(row,col)
                     chain1 = chain.detached_copy()
-                    offset = self.get_offset(chain1)
-                    
+                    offset = self.get_offset(self.hier1, ID)
+                    print("offset", offset)
                     for c in self.hier2.chains():
                         if c.is_protein():
-                            if (c.id == ID and self.get_offset(c) == offset):
+                            if (c.id == ID and self.get_offset(self.hier2, ID) == offset):
                                 chain2 = c.detached_copy()
                     try: 
                         ddm, seq_info, missing = self.calculate_ddm(chain1, chain2)
@@ -399,26 +402,25 @@ class Difference_distance_analysis(object):
                         #scale = self.scale
                         
                     #if (n_rows > 1 and n_cols > 1):
-                    img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-self.scale, vmax=self.scale)
+                    img = axs[chain_dict[ID]].imshow(FINAL2, cmap=rvb, vmin=-self.scale, vmax=self.scale)
                     
-                    axs[row, col].set_xticks(tick_pos)
-                    axs[row, col].set_xticklabels(seq_ticks)
+                    axs[chain_dict[ID]].set_xticks(tick_pos)
+                    axs[chain_dict[ID]].set_xticklabels(seq_ticks)
                     plt.setp(axs[row, col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
                     
-                    axs[row, col].set_yticks(tick_pos)
-                    axs[row, col].set_yticklabels(seq_ticks)
+                    axs[chain_dict[ID]].set_yticks(tick_pos)
+                    axs[chain_dict[ID]].set_yticklabels(seq_ticks)
 
-                    axs[row, col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                    axs[row, col].set_xlabel('Residues')
-                    axs[row, col].set_ylabel('Residues')
+                    axs[chain_dict[ID]].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+                    axs[chain_dict[ID]].set_xlabel('Residues')
+                    axs[chain_dict[ID]].set_ylabel('Residues')
                     
-                    axs[row, col].spines['top'].set_visible(False)
-                    axs[row, col].spines['right'].set_visible(False)
+                    axs[chain_dict[ID]].spines['top'].set_visible(False)
+                    axs[chain_dict[ID]].spines['right'].set_visible(False)
                     
-                    fig.colorbar(img, ax=axs[row, col], fraction=0.046, pad=0.04)
+                    fig.colorbar(img, ax=axs[chain_dict[ID]], fraction=0.046, pad=0.04)
                         
-                        
-                    old_chain_id = ID
+                    # old_chain_id = ID
                     
                     del chain2
                     
