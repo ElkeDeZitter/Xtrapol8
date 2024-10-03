@@ -174,10 +174,8 @@ class Difference_distance_analysis(object):
         
         Need to add the coords and info of missing residues as well (coords can be 0,0,0) so as to add them to the ddm.
         """
-        print(ID)
         #get first residue so as to know that the first residue so that it is clear that this is not a residue after a gap
         n_ini = self.get_offset(pdb_hierarchy, ID)
-        print("n_ini", n_ini)
         
         n_fin = self.get_last_residue_number(pdb_hierarchy, ID)
         
@@ -230,9 +228,7 @@ class Difference_distance_analysis(object):
         
         df = df_range.join(df_chain.set_index("resseq"), on="resseq")
         df = df.fillna(0)
-        
-        print(df)
-                         
+                                 
         # coord = np.asarray(coord)
         # return coord, info, missing
         
@@ -274,16 +270,12 @@ class Difference_distance_analysis(object):
         """
         #print "Processing first pdb" # Reference
         # coords1, seq_info, missing = self.get_coord(self.hier1, chain1.id)
-        print("extracting coords in df1")
         df1 = self.get_coord(self.hier1, chain1.id)
-        print("calculating differences for df1")
         diff_m1 = self.get_diff_matrix(df1)
 
         #"Processing second pdb" -
         # coords2,_,_ = self.get_coord(self.hier2, chain2.id)
-        print("extracting coords in df2")
         df2 = self.get_coord(self.hier2, chain2.id)
-        print("calculating differences for df2")
         diff_m2 = self.get_diff_matrix(df2)
         
         try:
@@ -370,7 +362,6 @@ class Difference_distance_analysis(object):
         for chain in self.hier1.chains():
             if chain.is_protein():
                 ID = chain.id
-                print("chain ID:", ID)
                 # if ID != old_chain_id:
                 if ID not in chain_dict.keys():
                     if col == 0:
@@ -381,13 +372,11 @@ class Difference_distance_analysis(object):
                     chain_dict[ID]=(row,col)
                     chain1 = chain.detached_copy()
                     offset = self.get_offset(self.hier1, ID)
-                    print("offset", offset)
                     for c in self.hier2.chains():
                         if c.is_protein():
                             if (c.id == ID and self.get_offset(self.hier2, ID) == offset):
                                 chain2 = c.detached_copy()
                     try: 
-                        print("trying to calculate ddm")
                         df1, ddm = self.calculate_ddm(chain1, chain2)
                     except NameError:
                         print("There exist an inconsistency between the two models: %s and %s.\nMake sure that they have the samen chain ID and start with the same residue number" %(self.pdb1_name, self.pdb2_name))
