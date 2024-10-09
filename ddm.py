@@ -42,10 +42,9 @@ from Fextr_utils import get_name
 from iotbx.pdb import hierarchy
 from cctbx.array_family import flex
 import pickle
-from scipy.spatial.distance import pdist, squareform
 try:
     import pandas as pd
-    print("pandas imported")
+    from scipy.spatial.distance import pdist, squareform
     use_pandas = True
 except ImportError:
     use_pandas = False
@@ -236,14 +235,10 @@ class Difference_distance_analysis(object):
         #get last residue number as to know where to stop
         n_fin = self.get_last_residue_number(pdb_hierarchy, ID)
                           
-        print("Chain:", ID)
         column_labels = ["resseq", "x", "y", "z", "present"]
-        print("column_labels", column_labels)
         df_chain = pd.DataFrame(columns=column_labels)
-        print("df_chain", df_chain)
         for c in pdb_hierarchy.chains():
             if c.id == ID:
-                print("c.id", c.id)
                 for res_group in c.residue_groups():
                     for a in res_group.atoms():
                         new_row = pd.DataFrame([[res_group.resseq_as_int()]+list(a.xyz)+[1]], columns=column_labels)
@@ -254,8 +249,6 @@ class Difference_distance_analysis(object):
         df = df_range.join(df_chain.set_index("resseq"), on="resseq")
         df = df.fillna(0)
         
-        print(df)
-                                 
         return df
             
     def get_d(self, p1, p2, axis=0):
