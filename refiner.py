@@ -579,7 +579,7 @@ class Refiner(object):
                   additional = '',
                   reciprocal_phil = '',
                   real_phil = '',
-                  scattering_table = "n_gaussian"
+                  scattering_table = "n_gaussian",
                   density_modification = {}):
         self.pdb_in               = pdb_in
         self.maptype              = maptype.split("_map")[0]
@@ -588,6 +588,7 @@ class Refiner(object):
         self.additional           = additional
         self.reciprocal_phil      = reciprocal_phil
         self.real_phil            = real_phil
+        self.scattering_table     = scattering_table
         self.density_modification = density_modification
         
     def check_single_file(self, fle):
