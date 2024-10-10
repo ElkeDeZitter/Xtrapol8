@@ -581,6 +581,8 @@ class DataHandler(object):
         self.reflections_on = any_file(self.mtz_on, force_type="hkl", raise_sorry_if_errors=True)
         self.from_cif_create_pdb_file()
         self.model_in = any_file(self.check_and_delete_hydrogen(), force_type="pdb", raise_sorry_if_errors=True)
+        # No H deletion for electron diffraction, however leads to crash of fmodel update all scales
+        # self.model_in = any_file(self.pdb_in, force_type="pdb", raise_sorry_if_errors=True)
 
     def check_all_files(self):
 
