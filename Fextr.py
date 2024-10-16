@@ -2151,6 +2151,15 @@ def run(args):
         master_phil.show(attributes_level=1)
         raise Usage("phenix.python Fextr.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
     
+    if args == ["--help"] or args == ["-h"]:
+        print('-----------------------------------------')
+        master_phil.show(attributes_level=1)
+        raise Usage("phenix.python Fextr.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
+
+    if args == ["--version"]:
+        print('-----------------------------------------')
+        sys.exit()
+    
     #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
     logname = generate_log_name(now)
     global log
