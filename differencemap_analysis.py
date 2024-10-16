@@ -301,7 +301,7 @@ if __name__ == "__main__":
     #auxiliary paramters
     parser.add_argument('-s', '--suffix', default = '', help='suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).')
     parser.add_argument('-l', '--log_file', default=None, help='write results to a file.')
-    parser.add_argument('-d', '--outdir', default=os.getcwd(), help='output directory.')
+    parser.add_argument('-d', '--outdir', default="Differencemap_analysis", help='output directory.')
     
     
     #print help if no arguments provided
