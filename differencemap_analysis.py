@@ -276,8 +276,7 @@ class Difference_analysis(object):
         
         #Estimate alha and occupancy based on the peakintegration area as stored in the peakintegration files
         print("---------------------------------------------",file=self.log)
-        #alpha, occ = plotalpha(self.map_exp_files, self.residue_list, self.prefix, log=self.log).estimate_alpha()
-        alpha, occ = plotalpha(self.occupancies, self.map_exp_files[1:], self.map_exp_files[0], self.prefix, log=self.log).estimate_alpha()
+        _, _ , _, _= plotalpha(self.occupancies, self.map_exp_files[1:], self.map_exp_files[0], self.prefix, log=self.log).estimate_alpha()
     
         print("---------------------------------------------", file=self.log)
 
@@ -331,7 +330,7 @@ if __name__ == "__main__":
     peak         = args.peak_detection_threshold
     z_score      = args.z_score
     suffix       = args.suffix
-        
+    
     if len(fextrfcalcs) != len(occupancies):
         print("Number of occupancies and mFextr-DFcalc maps is not equal. Please provide a single occupancy for each map.")
         sys.exit()
