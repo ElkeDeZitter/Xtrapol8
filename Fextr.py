@@ -250,8 +250,14 @@ refinement{
     .expert_level = 1
     use_refmac_instead_of_phenix = False
         .type = bool
-        .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine.
+        .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine. This keyword will becone obsolete in furure Xtrapol8 versions, use reciprocal_space and real_space instead.
         .expert_level = 0
+    reciprocal_space = *phenix refmac5
+        .type = choice(multi=False)
+        .help = Program for reciprocal space refinement: phenix.refine or refmac5. This keyword replaces the use_refmac_instead_of_phenix to make a choice of refinement program. 
+    real_space = *phenix coot
+        .type = choice(multi=False)
+        .help = Program for real space refinement: phenix.real_space_refine or COOT. This keyword replaces the use_refmac_instead_of_phenix to make a choice of refinement program.
     phenix_keywords{
         target_weights{
             wxc_scale = 0.5
@@ -1563,6 +1569,185 @@ class Fextrapolate(object):
         else:
             return self.rfree, self.fmodel_fobs_off
         
+    def refinements(self,
+                   reciprocal_space_refinement = "phenix",
+                   real_space_refiment = "phenix",
+                   mtz_F=None,
+                   mtz_map=None,
+                   pdb_in=None,
+                   additional=None,
+                   ligands_list=None,
+                   F_column_labels='QFEXTR',
+                   rfree_col = 'FreeR_flag',
+                   phenix_map_column_labels='2FOFCWT,PH2FOFCWT',
+                   coot_map_column_labels='2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT',
+                   phenix_keywords = {},
+                   refmac_keywords = {}):
+        
+        """
+        Reciprocal space and real space refinement in the extrapolated structure factors and map coefficients, respectively, using Phenix.refine/Refmac5
+        and phenix.real_space_refine or COOT
+        1) reciprocal space refinement in extrapolated structure factors (mtz_F and pdb_in)
+        2) real-space refinement in Fextr map coefficients (mtz_map and pdb_in)
+        3) real space refinement with results reciprocal space refinement (mtz_out and pd_out = output of step 1)
+        !!! take care: different definition of column labels as compared to refmac_coot_refinements!!! here: values and phases for 2FoFc kind of map only
+        
+        Adapted for phenix only at this stage!
+        """
+        
+        print("Reciprocal space refinemt program: %s" %(reciprocal_space_refinement))
+        print("Real space refinemt program: %s" %(real_space_refiment))
+        
+        if mtz_F == None:
+            mtz_F = self.F_name
+        if mtz_map == None:
+            mtz_map = self.mtz_name
+        assert pdb_in != None, 'Specify pdb for refinement'
+        
+        #set reciprocal space refinement parameters
+        if reciprocal_space_refinement == "phenix":
+            reciprocal = phenix_refinements.Phenix_reciprocal_space_refinement(mtz_F,
+                 pdb_in, 
+                 additional         = additional,
+                 F_column_labels    = F_column_labels,
+                 strategy           = phenix_keywords.refine.strategy,
+                 rec_cycles         = phenix_keywords.main.cycles,
+                 wxc_scale          = phenix_keywords.target_weights.wxc_scale,
+                 wxu_scale          = phenix_keywords.target_weights.wxu_scale,
+                 solvent            = phenix_keywords.main.ordered_solvent,
+                 sim_annealing      = phenix_keywords.main.simulated_annealing,
+                 sim_annealing_pars = phenix_keywords.simulated_annealing,
+                 map_sharpening     = phenix_keywords.map_sharpening.map_sharpening,
+                 weight_sel_crit    = phenix_keywords.target_weights.weight_selection_criteria,
+                 additional_reciprocal_keywords = phenix_keywords.additional_reciprocal_space_keywords,
+                 log                = log)
+            density_modification = phenix_keywords.density_modification.density_modification
+            combine = phenix_keywords.density_modification.combine
+            cycles = phenix_keywords.density_modification.cycles
+        elif reciprocal_space_refinement == "refmac5":
+            reciprocal = ccp4_refmac.Refmac_refinement(mtz_F,
+                 pdb_in,
+                 additional,
+                 F_column_labels = F_column_labels,
+                 rfree_col       = rfree_col,
+                 fill_missing    = False,
+                 add_rfree       = False,
+                 refinement_weight         = refmac_keywords.target_weights.weight,
+                 refinement_weight_sigmas  = refmac_keywords.target_weights.experimental_sigmas,
+                 refinement_weighting_term = refmac_keywords.target_weights.weighting_term,
+                 refinement_type       = refmac_keywords.refine.type,
+                 TLS                   = refmac_keywords.refine.TLS,
+                 TLS_cycles            = refmac_keywords.refine.TLS_cycles,
+                 bfac_set              = refmac_keywords.refine.bfac_set,
+                 twinning              = refmac_keywords.refine.twinning,
+                 Brefinement           = refmac_keywords.refine.Brefinement,
+                 cycles                = refmac_keywords.refine.cycles,
+                 external_restraints   = refmac_keywords.restraints.external_restraints,
+                 jelly_body_refinement = refmac_keywords.restraints.jelly_body_refinement,
+                 jelly_body_sigma      = refmac_keywords.restraints.jelly_body_sigma,
+                 jelly_body_additional_restraints = refmac_keywords.restraints.jelly_body_additional_restraints,
+                 map_sharpening        = refmac_keywords.map_sharpening.map_sharpening,
+                 additional_reciprocal_keywords = refmac_keywords.additional_refmac_keywords)
+            density_modification = refmac_keywords.density_modification.density_modification
+            combine = refmac_keywords.density_modification.combine
+            cycles = refmac_keywords.density_modification.cycles
+            
+        #set real space refinement paramters
+        #Real space refinement is run twice and only common input parameters can be passed to __init__
+        if real_space_refiment == "phenix":
+            real = phenix_refinements.Phenix_real_space_refinement(
+                real_cycles              = phenix_keywords.real_space_refine.cycles,
+                additional               = additional,
+                additional_real_keywords = phenix_keywords.additional_real_space_keywords,
+                log                      = log)
+            column_labels = phenix_map_column_labels
+            default_column_labels = '2FOFCWT,PH2FOFCWT'
+        elif real_space_refiment == "coot":
+            real = ccp4_refmac.Coot_refinement(ligands_list, additional = additional)
+            column_labels = coot_map_column_labels
+            default_column_labels = '2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT'
+
+            
+        print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
+        mtz_out_rec, pdb_out_rec = reciprocal.reciprocal_space_refinement()
+        print("Output reciprocal space refinement:", file=log)
+        print("----------------")
+        print("Output reciprocal space refinement:")
+        if os.path.isfile(pdb_out_rec):
+            print("    pdb-file: %s"%(pdb_out_rec), file=log)
+            print("    pdb-file: %s"%(pdb_out_rec))
+        else:
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
+            pdb_out_rec = pdb_in
+        if os.path.isfile(mtz_out_rec):
+            print("    mtz-file: %s"%(mtz_out_rec), file=log)
+            print("    mtz-file: %s"%(mtz_out_rec))
+        else:
+            print("    mtz-file not found. Refinement failed.", file=log)
+            print("    mtz-file not found. Refinement failed.")
+        print("----------------")
+        
+        if density_modification:
+            print("DENSITY MODIFICATION")
+            # mtz_dm = ref.phenix_density_modification(mtz_out_rec, pdb_out_rec)
+            mtz_dm = reciprocal.ccp4_dm(pdb_out_rec, combine, cycles)
+            print("Output density modification:", file=log)
+            print("Output density modification:")
+            if os.path.isfile(mtz_dm):
+                print("    mtz-file: %s"%(mtz_dm), file=log)
+                print("    mtz-file: %s" % (mtz_dm))
+            else:
+                print("    mtz-file not found. Density modification failed.", file=log)
+                print("    mtz-file not found. Density modification failed.")
+
+        print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_map, pdb_in))
+        pdb_out_real = real.real_space_refinement_mtz(mtz_map, pdb_in, column_labels)
+        print("Output real space refinement:", file=log)
+        print("----------------")
+        print("Output real space refinement:")
+        if os.path.isfile(pdb_out_real):
+            print("    pdb-file: %s"%(pdb_out_real), file=log)
+            print("    pdb-file: %s"%(pdb_out_real))
+        else:
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in), file=log)
+            print("    pdb-file not found, %s incorrectly returned" %(pdb_in))
+            pdb_out_real = pdb_in
+        print("----------------")
+
+        if (density_modification and os.path.isfile(mtz_dm)):
+            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
+            _, high_res = real.get_mtz_resolution(mtz_dm)
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(ccp4_dm, pdb_out_rec))
+            pdb_out_rec_real = real.real_space_refinement_ccp4(ccp4_dm, pdb_out_rec, high_res)
+            print("Output real space refinement after reciprocal space refinement:", file=log)
+            print("----------------")
+            print("Output real space refinement after reciprocal space refinement:")
+            if os.path.isfile(pdb_out_rec_real):
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
+                print("    pdb-file: %s"%(pdb_out_rec_real))
+            else:
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
+                pdb_out_rec_real = pdb_out_rec
+            print("----------------")
+        else:
+            print("REAL SPACE REFINEMENT WITH %s AND %s" %(mtz_out_rec, pdb_out_rec))
+            pdb_out_rec_real = real.real_space_refinement_mtz(mtz_out_rec, pdb_out_rec, default_column_labels)
+            print("Output real space refinement after reciprocal space refinement:", file=log)
+            print("----------------")
+            print("Output real space refinement after reciprocal space refinement:")
+            if os.path.isfile(pdb_out_rec_real):
+                print("    pdb-file: %s"%(pdb_out_rec_real), file=log)
+                print("    pdb-file: %s"%(pdb_out_rec_real))
+            else:
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec), file=log)
+                print("    pdb-file not found, %s incorrectly returned" %(pdb_out_rec))
+                pdb_out_rec_real = pdb_out_rec
+            print("----------------")
+               
+        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
+        
         
     def phenix_phenix_refinements(self,
                            mtz_F=None,
@@ -2189,10 +2374,21 @@ def run(args):
         remarks.append(remark)
         params.scaling.b_scaling = 'no'
     if params.refinement.use_refmac_instead_of_phenix:
-        if (check_program_path('refmac5')[1] and check_program_path('coot')[1]) == False:
-            remark = "refmac and/or COOT not found. Phenix will be used for refinement."
+        remark = "The refinement.use_refmac_instead_of_phenix keyword will become obsolete.\n  Use refinement.reciprocal_space and refine.real_space instead.\n   Setting refinement.reciprocal_space=refmac5 and refine.real_space=coot"
+        remarks.append(remark)
+        params.refinement.reciprocal_space = "refmac5"
+        params.refinement.real_space = "coot"
+        params.refinement.use_refmac_instead_of_phenix = False
+    if params.refinement.reciprocal_space == "refmac5":
+        if check_program_path('refmac5')[1] == False:
+            remark = "Refmac5 not found. Setting refinement.reciprocal_space=phenix"
             remarks.append(remark)
-            params.refinement.use_refmac_instead_of_phenix = False
+            params.refinement.reciprocal_space = "phenix"
+    if params.refinement.real_space == "coot":
+        if check_program_path('coot')[1] == False:
+            remark = "COOT not found. Setting refine.real_space=phenix"
+            remarks.append(remark)
+            params.refinement.real_space = "phenix"
             
     #specify extrapolated structure factors and map types
     qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
@@ -2857,26 +3053,23 @@ def run(args):
             print("m%s-DFcalc map explored" % Fextr.maptype,file=log)
             print("m%s-DFcalc map explored" % Fextr.maptype)
 
-            #In case of running in slow_and_rigorous / slow_and_curious (whatever you like to call the full way mode):
+            #In case of running in calm and curious:
             #run refinement with phenix or refmac/coot
             if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
                 print("\n************Refinements************")
                 print("\n************Refinements************", file=log)
-                if params.refinement.use_refmac_instead_of_phenix:
-                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(pdb_in = DH.pdb_in,
-                                                               additional        = DH.additional,
-                                                               ligands_list      = DH.extract_ligand_codes(),
-                                                               F_column_labels   = Fextr.FM.labels['data'],
-                                                               map_column_labels = '%s, PHI%s, %s, PHI%s'
-                                                               %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
-                                                                 Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
-                                                               keywords          = params.refinement.refmac_keywords)
-                else:
-                    mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(pdb_in = DH.pdb_in,
-                                                    additional      = DH.additional,
-                                                    F_column_labels = Fextr.FM.labels['data'],
-                                                    column_labels   = '%s,PHI%s'%(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
-                                                    keywords        = params.refinement.phenix_keywords)
+                mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refinements(reciprocal_space_refinement = params.refinement.reciprocal_space,
+                                                                real_space_refiment = params.refinement.real_space,
+                                                                pdb_in              = DH.pdb_in,
+                                                                additional          = DH.additional,
+                                                                ligands_list        = DH.extract_ligand_codes(),
+                                                                F_column_labels     = Fextr.FM.labels['data'],
+                                                                phenix_map_column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
+                                                                coot_map_column_labels     = '%s, PHI%s, %s, PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
+                                                                                                                Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
+                                                                phenix_keywords      = params.refinement.phenix_keywords,
+                                                                refmac_keywords      = params.refinement.refmac_keywords)
+                
                 print("--------------", file=log)
                 #depending on the map-type, append the refinement output to the correct list
                 #this is ugly, TODO: make an object to store the results in a clean and transparant way
@@ -3266,25 +3459,40 @@ def run(args):
         
         Fextr.name_out = "%s_occ%.3f" %(outname, occ)
         
-        if params.refinement.use_refmac_instead_of_phenix:
-            mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(mtz_F = qFext_mtz_F,
-                                                       mtz_map           = qFext_mtz_map,
-                                                       pdb_in            = DH.pdb_in,
-                                                       additional        = DH.additional,
-                                                       ligands_list      = DH.extract_ligand_codes(),
-                                                       F_column_labels   = Fextr.FM.labels['data'],
-                                                       map_column_labels = '%s, PHI%s, %s, PHI%s'
-                                                               %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
-                                                                 Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
-                                                       keywords          = params.refinement.refmac_keywords)
-        else:
-            mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(mtz_F = qFext_mtz_F,
-                                                  mtz_map         = qFext_mtz_map,
-                                                  pdb_in          = DH.pdb_in,
-                                                  additional      = DH.additional,
-                                                  F_column_labels = Fextr.FM.labels['data'],
-                                                  column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
-                                                  keywords        = params.refinement.phenix_keywords)
+        mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refinements(reciprocal_space_refinement = params.refinement.reciprocal_space,
+                         real_space_refiment = params.refinement.real_space,
+                         mtz_F = qFext_mtz_F,
+                         mtz_map           = qFext_mtz_map,
+                         pdb_in            = DH.pdb_in,
+                         additional        = DH.additional,
+                         ligands_list      = DH.extract_ligand_codes(),
+                         F_column_labels   = Fextr.FM.labels['data'],
+                         phenix_map_column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
+                         coot_map_column_labels = '%s, PHI%s, %s, PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
+                                                                            Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
+                         phenix_keywords    = params.refinement.phenix_keywords,
+                         refmac_keywords    = params.refinement.refmac_keywords)
+                                                               
+                                                                     
+        # if params.refinement.use_refmac_instead_of_phenix:
+        #     mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(mtz_F = qFext_mtz_F,
+        #                                                mtz_map           = qFext_mtz_map,
+        #                                                pdb_in            = DH.pdb_in,
+        #                                                additional        = DH.additional,
+        #                                                ligands_list      = DH.extract_ligand_codes(),
+        #                                                F_column_labels   = Fextr.FM.labels['data'],
+        #                                                map_column_labels = '%s, PHI%s, %s, PHI%s'
+        #                                                        %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
+        #                                                          Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
+        #                                                keywords          = params.refinement.refmac_keywords)
+        # else:
+        #     mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(mtz_F = qFext_mtz_F,
+        #                                           mtz_map         = qFext_mtz_map,
+        #                                           pdb_in          = DH.pdb_in,
+        #                                           additional      = DH.additional,
+        #                                           F_column_labels = Fextr.FM.labels['data'],
+        #                                           column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
+        #                                           keywords        = params.refinement.phenix_keywords)
               
         print("---> Results in %s_%.3f"%(dir_prefix, occ), file=log)
         print("---> Results in %s_%.3f"%(dir_prefix, occ))
