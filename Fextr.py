@@ -214,7 +214,7 @@ f_and_maps{
         .type = bool
         .help = Run fast and furious (aka without supervision). Will only calculate qFextr and associated maps and run refinement with finally with derived alpha/occupancy. Default parameters will be used for fofo_type and negative_and_missing. Usefull for a first quick evaluation.
         .expert_level = 0
-    negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill keep_and_fill keep_no_fill reject_and_fill reject_no_fill zero_and_fill zero_no_fill fill_missing no_fill
+    negative_and_missing = *truncate_and_fill truncate_no_fill fref_and_fill fref_no_fill fcalc_and_fill fcalc_no_fill keep_and_fill keep_no_fill reject_and_fill reject_no_fill zero_and_fill zero_no_fill fill_missing no_fill absolute_and_fill absolute_no_fill
         .type = choice(multi=False)
         .help = Handling of negative and missing extrapolated structure factor amplitudes (ESFAs) Note that this will not be applied on the Fourier difference map. If selected, filling of missing reflections is only carried on maps of the 2mFextr-DFcalc type. This parameters is NOT applicable for (q/k)Fgenick because negative reflections are rejected anyway. For refinement, default phenix.refine or refmac handling of negative/missing reflections is applied. keep_no_fill maps will be calculated in addition in all cases. keep_and_fill and keep_no_fill replace the old fill_missing and no_fill arguments which will become invalid keywords in future Xtrapol8 versions. Please check the manual for more information.
         .expert_level = 2
@@ -1110,7 +1110,7 @@ class Fextrapolate(object):
         #keep_no_fill replaces the old "no_fill" since it becomes more clear what we do with negatives (we dont' do anything, we keep them negative)
         #keep_and_fill replaces the old "fill_missing" since it becomes more clear what we do with negatives (we dont' do anything, we keep them negative)
         #the argument "no_fill" and "fill_missing" remain valid to maintain backwards compatibility
-        if neg_refl_handle in ['no_fill', 'keep_no_fill', 'reject_no_fill', 'zero_no_fill', 'fcalc_no_fill', 'fref_no_fill', 'truncate_no_fill']: #'addconstant_no_fill', 'massage_no_fill'
+        if neg_refl_handle in ['no_fill', 'keep_no_fill', 'reject_no_fill', 'zero_no_fill', 'fcalc_no_fill', 'fref_no_fill', 'truncate_no_fill', 'absolute_no_fill']: #'addconstant_no_fill', 'massage_no_fill'
             self.fill_missing = False
         else:
             self.fill_missing = True
@@ -1230,6 +1230,17 @@ class Fextrapolate(object):
         return miller.array(miller_set = ms,
                             data       = data,
                             sigmas     = sigmas)
+    
+    def negatives_absolute(self, ms):
+        """
+        Replace the data by their absolute value (=swap sign for negatives). Should be called in the case of "absolute_and_fill" or "absolute_no_fill"
+        """
+        print("Negative ESFAs will swap sign")
+        print("Negative ESFAs will swap sign",file=log)
+        data = ms.data().deep_copy()
+        return miller.array(miller_set = ms,
+                            data       = flex.abs(data),
+                            sigmas     = ms.sigmas())
 
     #def add_minimum_to_all(self, ms):
         """
@@ -1384,6 +1395,9 @@ class Fextrapolate(object):
                 self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['fref_and_fill', 'fref_no_fill']:
                 fextr_ms = self.negatives_foff(ms)
+                self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
+            elif self.neg_refl_handle in ['absolute_and_fill', 'absolute_no_fill']:
+                fextr_ms = self.negatives_absolute(ms)
                 self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['truncate_and_fill', 'truncate_no_fill']:
                 fextr_ms = self.convert_to_I_then_to_F(ms, self.maptype, algorithm='truncate')
@@ -2462,20 +2476,22 @@ def run(args):
         qFextr_map = True
     #if fast_and_furious mode: overwrite all F and map setting to default:
     if params.f_and_maps.fast_and_furious:
-        remark = "fast_and_furious mode: some parameters will be reset to their default values."
-        remarks.append(remark)
+        remark = "fast_and_furious mode: some parameters will be reset to their default values.\n"
         #change parameters for Xtrapol8_out.phil
+        remark += " f_and_maps.fofo_type=qfofo\n"
         params.f_and_maps.fofo_type = 'qfofo'
+        remark += " f_and_maps.f_extrapolated_and_maps=qfextr \n"
         params.f_and_maps.f_extrapolated_and_maps = ['qfextr']
         params.f_and_maps.only_no_weight = params.f_and_maps.all_maps = params.f_and_maps.only_kweight = params.f_and_maps.only_qweight = False
         params.map_explorer.use_occupancy_from_distance_analysis = False
         if params.map_explorer.occupancy_estimation == 'distance_analysis':
             params.map_explorer.occupancy_estimation = 'difference_map_maximization'
+        remark += " f_and_maps.negative_and_missing=truncate_and_fill"
         params.f_and_maps.negative_and_missing='truncate_and_fill'
         #change other working parameters
         qFoFo_weight = qFextr_map = True
         kFoFo_weight = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = False
-
+        remarks.append(remark)
                 
     #Bring all maptypes to be calculated together in list instead of using loose varaibles:
     all_maptypes   = ['qFextr_map','Fextr_map', 'qFgenick_map', 'Fgenick_map', 'qFextr_calc_map', 'Fextr_calc_map', 'kFextr_map', 'kFgenick_map', 'kFextr_calc_map']
