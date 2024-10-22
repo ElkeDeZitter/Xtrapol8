@@ -248,17 +248,23 @@ refinement{
     .type = bool
     .help = Run the automatic refinements. Setting this parameter to False can be useful when a manual intervention is required before running the refinements. The Refiner.py script can be used to run the refinements and subsequent analysis afterwards.
     .expert_level = 1
+    reciprocal_space = *phenix.refine refmac5
+        .type = choice(multi=False)
+        .help = Program for reciprocal space refinement: phenix.refine or refmac5. This keyword replaces the use_refmac_instead_of_phenix to make a choice of refinement program. 
+    real_space = *phenix.real_space_refine coot
+        .type = choice(multi=False)
+        .help = Program for real space refinement: phenix.real_space_refine or COOT. This keyword replaces the use_refmac_instead_of_phenix to make a choice of refinement program.
     use_refmac_instead_of_phenix = False
         .type = bool
         .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine. This keyword will becone obsolete in furure Xtrapol8 versions, use reciprocal_space and real_space instead.
         .expert_level = 0
-    reciprocal_space = *phenix refmac5
-        .type = choice(multi=False)
-        .help = Program for reciprocal space refinement: phenix.refine or refmac5. This keyword replaces the use_refmac_instead_of_phenix to make a choice of refinement program. 
-    real_space = *phenix coot
-        .type = choice(multi=False)
-        .help = Program for real space refinement: phenix.real_space_refine or COOT. This keyword replaces the use_refmac_instead_of_phenix to make a choice of refinement program.
     phenix_keywords{
+            real_space_refine{
+            cycles = 5
+            .type = int
+            .help = Number of refinement cycles for real space refinement.
+            .expert_level = 0
+            }
         target_weights{
             wxc_scale = 0.5
             .type = float
@@ -332,12 +338,6 @@ refinement{
             .multiple = True 
             .help = Additional phenix.refine keywords which cannot be altered via included options (e.g. ncs_search.enabled=True).
             .expert_level = 2
-        real_space_refine{
-            cycles = 5
-            .type = int
-            .help = Number of refinement cycles for real space refinement.
-            .expert_level = 0
-            }
         additional_real_space_keywords = None
             .type = str
             .multiple = True 
@@ -1619,7 +1619,7 @@ class Fextrapolate(object):
         assert pdb_in != None, 'Specify pdb for refinement'
         
         #set reciprocal space refinement parameters
-        if reciprocal_space_refinement == "phenix":
+        if reciprocal_space_refinement == "phenix.refine":
             reciprocal = phenix_refinements.Phenix_reciprocal_space_refinement(mtz_F,
                  pdb_in, 
                  additional         = additional,
@@ -1668,7 +1668,7 @@ class Fextrapolate(object):
             
         #set real space refinement paramters
         #Real space refinement is run twice and only common input parameters can be passed to __init__
-        if real_space_refiment == "phenix":
+        if real_space_refiment == "phenix.real_space_refine":
             real = phenix_refinements.Phenix_real_space_refinement(
                 real_cycles              = phenix_keywords.real_space_refine.cycles,
                 additional               = additional,

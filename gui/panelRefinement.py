@@ -39,22 +39,51 @@ class TabRefinement(ScrolledPanel):
         width_TextCtrl = 50
         defont = wx.Font(11, wx.MODERN, wx.NORMAL, wx.NORMAL, False, 'MS Shell Dlg 2')
         self.SetFont(defont)
-
-        # Perform refinement and soft selection
-        soft_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        self.RunRef = wx.CheckBox(self, wx.ID_ANY, "Perform Refinement with software")
-        self.SoftChoice = wx.Choice(self, wx.ID_ANY, choices=['Phenix','Refmac'])
+        
+        ###############  Perform refinement ############### 
+        ref_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.RunRef = wx.CheckBox(self, wx.ID_ANY, label="Run refinement", size=(150,-1))
         self.RunRef.SetValue(True)  # Default
-        self.SoftChoice.SetSelection(0)  # Default
-        soft_sizer.Add(self.RunRef, 0, wx.ALIGN_CENTER_VERTICAL)
-        soft_sizer.Add(self.SoftChoice, 0, wx.ALIGN_CENTER_VERTICAL)
+        ref_sizer.Add(self.RunRef, 0)
+        
+        ############### Choice of program for real space refinement ###############
+        PRReal = wx.StaticBox(self, 1, "Refinement Programs Real space", size=(280, 250))
+        self.PRReal = wx.StaticBoxSizer(PRReal, wx.VERTICAL)
+        PRReal_GridBag = wx.GridBagSizer(vgap=5, hgap=5)
+
+        self.RunRealRef = wx.StaticText(self, wx.ID_ANY, "Program :", size=(150, -1))
+        self.SoftChoiceReal = wx.Choice(self, wx.ID_ANY, choices=['phenix.real_space_refine','coot'])
+        self.SoftChoiceReal.SetSelection(0)  # Default
+        
+        border = 5
+        PRReal_GridBag.Add(self.RunRealRef, pos=(0,0), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
+        PRReal_GridBag.Add(self.SoftChoiceReal, pos=(0,1), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
+        self.PRReal.Add(PRReal_GridBag, 0, wx.ALL, border)
 
 
-        # Refinement Strategy
-        strategy = wx.StaticBox(self, 1, "Refinement Strategy", size=(800, 300))
-        self.strategy = wx.StaticBoxSizer(strategy, wx.VERTICAL)
+        ############### Choice of program for reciprocal space refinement ###############
+        PRReci = wx.StaticBox(self, 1, "Refinement Programs Reciprocal space", size=(280, 250))
+        self.PRReci = wx.StaticBoxSizer(PRReci, wx.VERTICAL)
+        PRReci_GridBag = wx.GridBagSizer(vgap=5, hgap=5)
+        
+        self.RunReciRef= wx.StaticText(self, wx.ID_ANY, "Program :", size=(150, -1))
+        self.SoftChoiceReci = wx.Choice(self, wx.ID_ANY, choices=['phenix.refine','refmac5'], size=(150, -1))
+        self.SoftChoiceReci.SetSelection(0)  # Default
+        
+        border = 5
+        PRReci_GridBag.Add(self.RunReciRef, pos=(0,0), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
+        PRReci_GridBag.Add(self.SoftChoiceReci, pos=(0,1), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
+        self.PRReci.Add(PRReci_GridBag, 0, wx.ALL, border)
+        
 
-        strategy_fgs = wx.FlexGridSizer(rows=4, cols=4, hgap=10, vgap=10)
+        ############### Reciprocal Refinement Strategy ###############
+        #
+        ###############  Start Refmac5 ###############
+        #
+        strategyReci = wx.StaticBox(self, 1, "Phenix.refine Refinement Strategy", size=(800, 300))
+        self.strategyReci = wx.StaticBoxSizer(strategyReci, wx.VERTICAL)
+
+        strategyReci_fgs = wx.FlexGridSizer(rows=4, cols=4, hgap=10, vgap=10)
         self.individual_sites = wx.CheckBox(self, wx.ID_ANY, "XYZ (Reciprocal space)")
         self.individual_sites_real_space = wx.CheckBox(self, wx.ID_ANY, "XYZ (Real space)")
         self.rigid_body = wx.CheckBox(self, wx.ID_ANY, "Rigid Body")
@@ -65,15 +94,14 @@ class TabRefinement(ScrolledPanel):
         self.group_anomalous = wx.CheckBox(self, wx.ID_ANY, "Group anomalous")
         
         NCyclesReciprocal = wx.StaticText(self, wx.ID_ANY, "Cycles (Reciprocal Space) :")
-        NCyclesReal = wx.StaticText(self, wx.ID_ANY, "Cycles (Real Space) :")
+        # NCyclesReal = wx.StaticText(self, wx.ID_ANY, "Cycles (Real Space) :")
         self.NCyclesReciprocal_TextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3", style=wx.TE_PROCESS_ENTER,
                                         size=(width_TextCtrl, 30))
-        self.NCyclesReal_TextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3", style=wx.TE_PROCESS_ENTER,
-                                                      size=(width_TextCtrl, 30))
-
-
-        border=10
-        strategy_fgs.AddMany([(self.individual_sites, 0, wx.ALIGN_CENTER_VERTICAL, border),
+        # self.NCyclesReal_TextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3", style=wx.TE_PROCESS_ENTER,
+        #                                               size=(width_TextCtrl, 30))
+        
+        border=5
+        strategyReci_fgs.AddMany([(self.individual_sites, 0, wx.ALIGN_CENTER_VERTICAL, border),
                               (self.individual_sites_real_space, 0, wx.ALIGN_CENTER_VERTICAL, border),
                               (self.rigid_body, 0, wx.ALIGN_CENTER_VERTICAL, border),
                               (self.individual_adp, 0, wx.ALIGN_CENTER_VERTICAL, border),
@@ -82,15 +110,15 @@ class TabRefinement(ScrolledPanel):
                               (self.occupancies, 0, wx.ALIGN_CENTER_VERTICAL, border),
                               (self.group_anomalous, 0, wx.ALIGN_CENTER_VERTICAL, border),
                               (NCyclesReciprocal, 0, wx.ALIGN_CENTER_VERTICAL, border),
-                              (self.NCyclesReciprocal_TextCtrl, 0, wx.ALIGN_CENTER_VERTICAL, border),
-                              (NCyclesReal, 0, wx.ALIGN_CENTER_VERTICAL, border),
-                              (self.NCyclesReal_TextCtrl, 0, wx.ALIGN_CENTER_VERTICAL, border)])
-        self.strategy.Add(strategy_fgs, 0, wx.ALL, border)
+                              (self.NCyclesReciprocal_TextCtrl, 0, wx.ALIGN_CENTER_VERTICAL, border)])#,
+                              # (NCyclesReal, 0, wx.ALIGN_CENTER_VERTICAL, border),
+                              # (self.NCyclesReal_TextCtrl, 0, wx.ALIGN_CENTER_VERTICAL, border)])
+        self.strategyReci.Add(strategyReci_fgs, 0, wx.ALL, border)
         self.individual_adp.SetValue(True) #default
         self.individual_sites.SetValue(True) #default
 
         # Weights and targets
-        weights = wx.StaticBox(self, 1, "Weights and targets", size=(800, -1))
+        weights = wx.StaticBox(self, 1, "Phenix.refine Weights and targets", size=(800, -1))
         self.weights = wx.StaticBoxSizer(weights, wx.VERTICAL)
         weights_GridBag = wx.GridBagSizer(5, 10)#, vgap=10, hgap=10)
 
@@ -124,14 +152,14 @@ class TabRefinement(ScrolledPanel):
         self.weights.Add(weights_GridBag, 0, wx.ALL, border=5)
 
         # Other options
-        others = wx.StaticBox(self, 1, "Other options", size=(800, -1))
+        others = wx.StaticBox(self, 1, "Phenix.refine Other options", size=(800, -1))
         self.others = wx.StaticBoxSizer(others, wx.VERTICAL)
         others_GridBag = wx.GridBagSizer(vgap=5, hgap=5)
         self.sim_ann = wx.CheckBox(self, wx.ID_ANY, "Simulated annealing")
         self.ordered_solvent = wx.CheckBox(self, wx.ID_ANY, "Ordered solvent")
         self.density_modification = wx.CheckBox(self, wx.ID_ANY, "Density Modification")
         self.map_sharpening = wx.CheckBox(self, wx.ID_ANY, "Map Sharpening")
-        border=10
+        border=5
         others_GridBag.Add(self.ordered_solvent, pos=(0, 0), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
         others_GridBag.Add(self.map_sharpening,  pos=(0, 2), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
         others_GridBag.Add(self.sim_ann, pos=(0, 1), flag=wx.ALL | wx.ALIGN_CENTER_VERTICAL, border=border)
@@ -140,7 +168,7 @@ class TabRefinement(ScrolledPanel):
         self.others.Add(others_GridBag, 0, wx.ALL, border=10)
         ##
 
-        sim_annealing = wx.StaticBox(self, 1, "Simulated Annealing", size=(500, 250))
+        sim_annealing = wx.StaticBox(self, 1, "Phenix.refine Simulated Annealing", size=(500, 250))
         self.simulated_annealing = wx.StaticBoxSizer(sim_annealing, wx.VERTICAL)
         sim_annealing_fgs = wx.FlexGridSizer(2, 4, 10, 10)
         start_T = wx.StaticText(self, wx.ID_ANY, "Start T :")
@@ -154,7 +182,7 @@ class TabRefinement(ScrolledPanel):
                                    size=(width_TextCtrl, 30))
         self.mode = wx.Choice(self, wx.ID_ANY, choices=["every_macro_cycle", "second_and_before_last", "once", "first",  "first_half"])
         self.mode.SetSelection(1)
-        border=10
+        border=5
         sim_annealing_fgs.AddMany([(start_T, 0, wx.ALIGN_CENTER_VERTICAL, border),
                                    (self.start_T, 0, wx.ALIGN_CENTER_VERTICAL, border),
                                    (final_T, 0, wx.ALIGN_CENTER_VERTICAL, border),
@@ -167,7 +195,7 @@ class TabRefinement(ScrolledPanel):
 
         self.simulated_annealing.Add(sim_annealing_fgs, 0, wx.ALL, border)
 
-        DM = wx.StaticBox(self, 1, "Density Modification", size=(280, 250))
+        DM = wx.StaticBox(self, 1, "DM Density Modification", size=(280, 250))
         self.DM = wx.StaticBoxSizer(DM, wx.VERTICAL)
         DM_GridBag = wx.GridBagSizer(vgap=5, hgap=5)
 
@@ -191,7 +219,7 @@ class TabRefinement(ScrolledPanel):
 
         self.FinalPhenixSizer = wx.BoxSizer(wx.VERTICAL)
         self.FinalPhenixSizer.AddSpacer(15)
-        self.FinalPhenixSizer.Add(self.strategy)
+        self.FinalPhenixSizer.Add(self.strategyReci)
         self.FinalPhenixSizer.AddSpacer(15)
         self.FinalPhenixSizer.Add(self.weights)
         self.FinalPhenixSizer.AddSpacer(15)
@@ -199,13 +227,13 @@ class TabRefinement(ScrolledPanel):
         self.FinalPhenixSizer.AddSpacer(15)
         self.FinalPhenixSizer.Add(self.option_sizer)
         #
-        # End Phenix
+        ###############  End Phenix.refine ###############
         #
         #
-        # Start Refmac
+        ###############  Start Refmac5 ###############
         #
 
-        refmac_refine = wx.StaticBox(self, 1, "Refinement", size=(800, 800))
+        refmac_refine = wx.StaticBox(self, 1, "Refmac5 Refinement", size=(800, 800))
         self.refmac_refine = wx.StaticBoxSizer(refmac_refine, wx.VERTICAL)
         refmac_refine_gridbag = wx.GridBagSizer(vgap=10, hgap=10)
         size_TxtCtrl = (50, 30)
@@ -254,7 +282,7 @@ class TabRefinement(ScrolledPanel):
         #
         # Target Weights
         #
-        refmac_weights = wx.StaticBox(self, 1, "Target weights", size=(800, 250))
+        refmac_weights = wx.StaticBox(self, 1, "Refmac5 Target weights", size=(800, 250))
         self.refmac_weights = wx.StaticBoxSizer(refmac_weights, wx.VERTICAL)
         refmac_weights_gridbag = wx.GridBagSizer(vgap=10, hgap=10)
 
@@ -282,7 +310,7 @@ class TabRefinement(ScrolledPanel):
         #
         # Restraints
         #
-        refmac_restraints = wx.StaticBox(self, 1, "Restraints", size=(800, 200))
+        refmac_restraints = wx.StaticBox(self, 1, "Refmac5 Restraints", size=(800, 200))
         self.refmac_restraints = wx.StaticBoxSizer(refmac_restraints, wx.VERTICAL)
         refmac_restraints_gridbag= wx.GridBagSizer(5, 5)
 
@@ -314,7 +342,7 @@ class TabRefinement(ScrolledPanel):
         self.refmac_restraints.Add(refmac_restraints_gridbag, 0, wx.ALL, border)
 
         # Other options
-        refmac_others = wx.StaticBox(self, 1, "Other options", size=(800, 250))
+        refmac_others = wx.StaticBox(self, 1, "Refmac5 Other options and DM Density Modification", size=(800, 250))
         self.refmac_others = wx.StaticBoxSizer(refmac_others, wx.VERTICAL)
         refmac_others_gridbag = wx.GridBagSizer(vgap=5, hgap=5)
 
@@ -345,22 +373,84 @@ class TabRefinement(ScrolledPanel):
         self.FinalRefmacSizer.Add(self.refmac_weights, 0, wx.ALL, border)
         self.FinalRefmacSizer.Add(self.refmac_restraints, 0, wx.ALL, border)
         self.FinalRefmacSizer.Add(self.refmac_others, 0, wx.ALL, border)
+        
+        #
+        ###############  End Refmac5 ###############
+        #
+        ############### Real Refinement Strategy ###############
+        #
+        ###############  Start Phenix.real_space_refine ###############
+        #
+        #Only number of cycles included
+        strategyReal = wx.StaticBox(self, 1, "phenix.real_space_refine Refinement Strategy", size=(800, 300))
+        self.strategyReal = wx.StaticBoxSizer(strategyReal, wx.VERTICAL)
+        
+        strategyReal_fgs = wx.FlexGridSizer(rows=1, cols=2, hgap=10, vgap=10)
+        NCyclesReal = wx.StaticText(self, wx.ID_ANY, "Cycles (Real Space) :")
+        self.NCyclesReal_TextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3", style=wx.TE_PROCESS_ENTER,
+                                                      size=(width_TextCtrl, 30))
+        
+        border = 5
+        strategyReal_fgs.AddMany([(NCyclesReal, 0, wx.ALIGN_CENTER_VERTICAL, border),
+                                  (self.NCyclesReal_TextCtrl, 0, wx.ALIGN_CENTER_VERTICAL, border)])
+        self.strategyReal.Add(strategyReal_fgs, 0, wx.ALL, border)
+        
+        self.FinalPhenixRealSizer = wx.BoxSizer(wx.VERTICAL)
+        self.FinalPhenixRealSizer.Add(self.strategyReal, 0, wx.ALL, border)
+        
+        #
+        ###############  End Phenix.real_space_refine ###############
+        #
+        ###############  Start Coot ###############
+        #
+        # No strategy arguments included
+        strategyCoot = wx.StaticBox(self, 1, "Coot Refinement strategy", size=(800, 300))
+        self.strategyCoot = wx.StaticBoxSizer(strategyCoot, wx.VERTICAL)
+        
+        coot_fgs = wx.FlexGridSizer(rows=1, cols=1, hgap=10, vgap=10)
+        coot_text = wx.StaticText(self, wx.ID_ANY, "No changeable parameters")
+        
+        border=5
+        coot_fgs.AddMany([(coot_text, 0, wx.ALIGN_CENTER_VERTICAL, border)])
+        self.strategyCoot.Add(coot_fgs, 0, wx.ALL, border)
 
+        self.FinalCootSizer = wx.BoxSizer(wx.VERTICAL)
+        self.FinalCootSizer.Add(self.strategyCoot, 0, wx.ALL, border)
+     
+        ###############  End Coot ###############
+        #
+        
+        
+        ############### Layout ###############
+        
         self.FinalSizer =  wx.BoxSizer(wx.VERTICAL)
 
-        self.FinalSizer.Add(soft_sizer, 0, wx.ALIGN_CENTER | wx.ALL, border=15)
+        self.FinalSizer.Add(ref_sizer, 0, wx.ALIGN_CENTER | wx.ALL, border=15)
+        self.FinalSizer.Add(self.RunRef, 0, wx.GROW | wx.ALL, 5)
+        self.FinalSizer.Add(self.PRReal, 0, wx.GROW | wx.ALL, 5)
+        self.FinalSizer.Add(self.FinalPhenixRealSizer, 0, wx.GROW | wx.ALL, 5)
+        self.FinalSizer.Add(self.FinalCootSizer, 0, wx.GROW | wx.ALL, 5)
+        self.FinalSizer.Add(self.PRReci, 0, wx.GROW | wx.ALL, 5)
         self.FinalSizer.Add(self.FinalPhenixSizer, 0, wx.GROW | wx.ALL, 5)
         self.FinalSizer.Add(self.FinalRefmacSizer, 0, wx.GROW | wx.ALL, 5)
+        
         self.SetSizer(self.FinalSizer)
         self.Layout()
         self.FinalSizer.Hide(self.FinalRefmacSizer)
+        self.FinalSizer.Hide(self.FinalCootSizer)
 
-        self.SoftChoice.Bind(wx.EVT_CHOICE, self.onSoftChanged)
         self.RunRef.Bind(wx.EVT_CHECKBOX, self.onRefChanged)
-
-    def onSoftChanged(self, evt):
+        self.SoftChoiceReci.Bind(wx.EVT_CHOICE, self.onSoftReciChanged)
+        self.RunReciRef.Bind(wx.EVT_CHECKBOX, self.onRefChanged)
+        self.SoftChoiceReal.Bind(wx.EVT_CHOICE, self.onSoftRealChanged)
+        self.RunRealRef.Bind(wx.EVT_CHECKBOX, self.onRefChanged)
+    
+    def onSoftReciChanged(self, evt):
+        """
+        Change options for reciprocal space refinement upon changing program
+        """
         if self.RunRef.GetValue()==True:
-            choice = self.SoftChoice.GetSelection()
+            choice = self.SoftChoiceReci.GetSelection()
             if choice == 0:
                 self.FinalSizer.Hide(self.FinalRefmacSizer)
                 self.FinalSizer.Show(self.FinalPhenixSizer)
@@ -375,6 +465,69 @@ class TabRefinement(ScrolledPanel):
         else:
             self.FinalSizer.Hide(self.FinalRefmacSizer)
             self.FinalSizer.Hide(self.FinalPhenixSizer)
+            self.Layout()
+            try:
+                evt.Skip()
+            except AttributeError:
+                pass
+ 
+    def onSoftRealChanged(self, evt):
+        """
+        Change options for real space refinement upon changing program
+        """
+        if self.RunRef.GetValue()==True:
+            choice = self.SoftChoiceReal.GetSelection()
+            if choice == 0:
+                self.FinalSizer.Hide(self.FinalCootSizer)
+                self.FinalSizer.Show(self.FinalPhenixRealSizer)
+            if choice == 1:
+                self.FinalSizer.Show(self.FinalCootSizer)
+                self.FinalSizer.Hide(self.FinalPhenixRealSizer)
+            self.Layout()
+            try:
+                evt.Skip()
+            except AttributeError:
+                pass
+        else:
+            self.FinalSizer.Hide(self.FinalCootSizer)
+            self.FinalSizer.Hide(self.FinalPhenixRealSizer)
+            self.Layout()
+            try:
+                evt.Skip()
+            except AttributeError:
+                pass
+
+    def onRefChanged(self, evt):
+        """
+        Hide refinement options when not running refinement
+        """
+        if self.RunRef.GetValue() == False:
+            self.FinalSizer.Hide(self.FinalRefmacSizer)
+            self.FinalSizer.Hide(self.FinalPhenixSizer)
+            self.FinalSizer.Hide(self.FinalPhenixRealSizer)
+            self.FinalSizer.Hide(self.FinalCootSizer)
+            self.FinalSizer.Hide(self.PRReal)
+            self.FinalSizer.Hide(self.PRReci)
+            self.Layout()
+            self.RunRef.SetValue(False)
+        else:
+            self.RunRef.SetValue(True)
+            self.FinalSizer.Show(self.PRReal)
+            self.FinalSizer.Show(self.PRReci)
+            choice = self.SoftChoiceReci.GetSelection()
+            if choice == 0:
+                self.FinalSizer.Hide(self.FinalRefmacSizer)
+                self.FinalSizer.Show(self.FinalPhenixSizer)
+            if choice == 1:
+                self.FinalSizer.Show(self.FinalRefmacSizer)
+                self.FinalSizer.Hide(self.FinalPhenixSizer)
+            choice = self.SoftChoiceReal.GetSelection()
+            if choice == 0:
+                self.FinalSizer.Hide(self.FinalCootSizer)
+                self.FinalSizer.Show(self.FinalPhenixRealSizer)
+            if choice == 1:
+                self.FinalSizer.Show(self.FinalCootSizer)
+                self.FinalSizer.Hide(self.FinalPhenixRealSizer)
             self.Layout()
             try:
                 evt.Skip()
@@ -382,23 +535,5 @@ class TabRefinement(ScrolledPanel):
                 pass
             
 
-    def onRefChanged(self, evt):
-        if self.RunRef.GetValue() == False:
-            self.FinalSizer.Hide(self.FinalRefmacSizer)
-            self.FinalSizer.Hide(self.FinalPhenixSizer)
-            self.Layout()
-            self.RunRef.SetValue(False)
-        else:
-            self.RunRef.SetValue(True)
-            choice = self.SoftChoice.GetSelection()
-            if choice == 0:
-                self.FinalSizer.Hide(self.FinalRefmacSizer)
-                self.FinalSizer.Show(self.FinalPhenixSizer)
-            if choice == 1:
-                self.FinalSizer.Show(self.FinalRefmacSizer)
-                self.FinalSizer.Hide(self.FinalPhenixSizer)
-            self.Layout()
-            try:
-                evt.Skip()
-            except AttributeError:
-                pass
+            
+

@@ -682,13 +682,18 @@ class MainFrame(wx.Frame):
         tabRef = self.notebook.Configure.tabRefine
 
         tabRef.RunRef.SetValue(user_params.refinement.run_refinement)
+        tabRef.onRefChanged(None)
+        
+        tabRef.SoftChoiceReci.SetStringSelection(user_params.refinement.reciprocal_space)
+        tabRef.SoftChoiceReal.SetStringSelection(user_params.refinement.real_space)
+        
         if user_params.refinement.use_refmac_instead_of_phenix:
-            tabRef.SoftChoice.SetSelection(1)
-            tabRef.onSoftChanged(None)
-        else:
-            tabRef.SoftChoice.SetSelection(0)
-            tabRef.onSoftChanged(None)
+            print("Setting refmac and Coot")
+            tabRef.SoftChoiceReci.SetSelection(1)
+            tabRef.SoftChoiceReal.SetSelection(1)
 
+        tabRef.onSoftReciChanged(None)
+        tabRef.onSoftRealChanged(None)
 
         tabRef.wxc_scale_TextCtrl.SetValue(str(user_params.refinement.phenix_keywords.target_weights.wxc_scale))
         tabRef.wxu_scale_TextCtrl.SetValue(str(user_params.refinement.phenix_keywords.target_weights.wxu_scale))
@@ -1013,14 +1018,11 @@ class MainFrame(wx.Frame):
         ### Phenix - Ref_tab ###
         ########################
         tabRefine = self.notebook.Configure.tabRefine
-
-        Soft = tabRefine.SoftChoice.GetStringSelection()
-        if Soft == 'Phenix':
-            Use_Ref = False
-        else:
-            Use_Ref = True
+        
         tobeparsed += "refinement.run_refinement = %s\n" % tabRefine.RunRef.IsChecked() + \
-                      "refinement.use_refmac_instead_of_phenix = %s\n" % Use_Ref +\
+                      "refinement.use_refmac_instead_of_phenix = False\n" +\
+                      "refinement.reciprocal_space = %s\n" %tabRefine.SoftChoiceReci.GetStringSelection() +\
+                      "refinement.real_space = %s\n" %tabRefine.SoftChoiceReal.GetStringSelection() + \
                       "refinement.phenix_keywords.target_weights.wxc_scale = %s\n" % self.get_txtctrl_values(tabRefine.wxc_scale_TextCtrl) +\
                       "refinement.phenix_keywords.target_weights.wxu_scale = %s\n" % self.get_txtctrl_values(tabRefine.wxu_scale_TextCtrl) +\
                       "refinement.phenix_keywords.target_weights.weight_selection_criteria.bonds_rmsd = %s\n" % self.get_txtctrl_values(tabRefine.bonds_rmsd_TextCtrl) + \
