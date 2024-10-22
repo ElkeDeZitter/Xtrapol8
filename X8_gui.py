@@ -237,7 +237,7 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
+        # self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
         self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
         self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
         self.ToolBar.Bind(wx.EVT_TOOL, self.OnToolBar)
@@ -396,9 +396,9 @@ class MainFrame(wx.Frame):
 
     def OnToolBar(self, event):
         id = event.GetId()
-        if id == 101:
-            return
-        elif id == 102:
+        # if id == 101:
+        #     return
+        if id == 102:
             self.OnrunX8()
         elif id == 103:
             self.OnStopRun()
