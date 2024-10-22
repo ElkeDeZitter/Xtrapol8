@@ -37,6 +37,7 @@ from libtbx.phil import parse
 
 from Fextr import master_phil
 from wx.aui import AuiNotebook
+import version
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
 
@@ -210,7 +211,7 @@ class MainFrame(wx.Frame):
     def __init__(self,args):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "XtrapolG8",
+                          "XtrapolG8 -- version %s" %(version.VERSION),
                           size=(1100, 1000)
                           )
 
@@ -688,7 +689,6 @@ class MainFrame(wx.Frame):
         tabRef.SoftChoiceReal.SetStringSelection(user_params.refinement.real_space)
         
         if user_params.refinement.use_refmac_instead_of_phenix:
-            print("Setting refmac and Coot")
             tabRef.SoftChoiceReci.SetSelection(1)
             tabRef.SoftChoiceReal.SetSelection(1)
 
