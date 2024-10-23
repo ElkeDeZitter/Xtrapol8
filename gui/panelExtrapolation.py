@@ -44,9 +44,23 @@ class TabExtrapolation(ScrolledPanel):
         defont = wx.Font(11, wx.MODERN, wx.NORMAL, wx.NORMAL, False, 'MS Shell Dlg 2')
         bigfont = wx.Font(10, wx.MODERN, wx.NORMAL, wx.NORMAL, False, 'MS Shell Dlg 2')
         self.SetFont(defont)
+        
+        width_TextCtrl = 100
+        height_TextCtrl = 20
+        
+        #blanks for filling spaces in fgs.AddMany
+        blank = wx.StaticText(self, wx.ID_ANY, "", size=(30, -1))
+        blank1 = wx.StaticText(self, wx.ID_ANY, "", size=(30, -1))
+        blank2 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
+        blank3 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
+        blank4 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
+        blank5 = wx.StaticText(self, wx.ID_ANY, "", size=(130, -1))
+
+        
         #####################
         ###   X8 Modes    ###
         #####################
+        
         self.X8Modes = wx.RadioBox(self, 1, "Xtrapol8 Modes", size=(800, -1),choices=["FoFo only ", "Fast and Furious ", "Calm and Curious " ])
         self.X8Modes.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
         self.X8Modes.SetSelection(2)
@@ -55,25 +69,25 @@ class TabExtrapolation(ScrolledPanel):
         #####################
         ###  Occupancies  ###
         #####################
-        width_TextCtrl = 50
-        height_TextCtrl = 30
+        
+
         Occ = wx.StaticBox(self, 1, "Occupancies", size=(800, 200))
         Occ.SetFont(defont)
         occ_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
         LowTxt = wx.StaticText(self, wx.ID_ANY, "Lowest :", size=(60, -1))
         self.LowTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "0.1", style= wx.TE_PROCESS_ENTER,
-                                    size=(width_TextCtrl, height_TextCtrl), validator=CharValidator('no-alpha'))
+                                    size=(50, height_TextCtrl), validator=CharValidator('no-alpha'))
         LowTxt.SetFont(defont)
         self.LowTextCtrl.SetFont(defont)
         HighTxt = wx.StaticText(self, wx.ID_ANY, "Highest :", size=(60, -1))
         self.HighTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "0.5", style= wx.TE_PROCESS_ENTER,
-                                   size=(width_TextCtrl, height_TextCtrl), validator=CharValidator('no-alpha'))
+                                   size=(50, height_TextCtrl), validator=CharValidator('no-alpha'))
         HighTxt.SetFont(defont)
         self.HighTextCtrl.SetFont(defont)
         StepsTxt = wx.StaticText(self, wx.ID_ANY, "Steps :", size=(60, -1))
         self.StepsTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "5", style= wx.TE_PROCESS_ENTER,
-                                   size=(width_TextCtrl, height_TextCtrl), validator=CharValidator('no-alpha'))
+                                   size=(50, height_TextCtrl), validator=CharValidator('no-alpha'))
         StepsTxt.SetFont(defont)
         self.StepsTextCtrl.SetFont(defont)
 
@@ -85,7 +99,7 @@ class TabExtrapolation(ScrolledPanel):
         occ_sizer.Add(self.StepsTextCtrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         list_occ_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        ListTxt = wx.StaticText(self, wx.ID_ANY, "Occupancies List : ", size=(150, -1))
+        ListTxt = wx.StaticText(self, wx.ID_ANY, "Occupancies List :", size=(150, -1))
         self.ListTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER,
                                    size=(120, height_TextCtrl))
         list_occ_sizer.Add(ListTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
@@ -95,21 +109,18 @@ class TabExtrapolation(ScrolledPanel):
         self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
         #self.occ_sizer_final.AddSpacer(20)
         self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
-        #######################
-        ###  \Occupancies\  ###
-        #######################
-
 
         ########################
-        ###  Maps N Scaling  ###
+        ###  FoFo (earlier called Maps and Scaling)  ###
         ########################
-        Maps =  wx.StaticBox(self, 1, "Maps and Scaling", size=(800, 200))
+        
+        Maps =  wx.StaticBox(self, 1, "Fourier difference map (FoFo)", size=(800, 200))
 
-        FoTxt = wx.StaticText(self, wx.ID_ANY, "Type of FoFo Map : ")
+        FoTxt = wx.StaticText(self, wx.ID_ANY, "Type of FoFo Map :")
         FoTxt.SetFont(defont)
         self.FoChoice = wx.Choice(self, wx.ID_ANY, choices = ["qfofo", "fofo", "kfofo"])
         self.FoChoice.SetSelection(0)
-        kscale = wx.StaticText(self, wx.ID_ANY, "K weight Scale : ")
+        kscale = wx.StaticText(self, wx.ID_ANY, "K weight Scale :")
         self.kscale = wx.TextCtrl(self, wx.ID_ANY, "0.05")
 
         #MNS_fgs = wx.FlexGridSizer(2, 4, 10, 10)
@@ -121,25 +132,25 @@ class TabExtrapolation(ScrolledPanel):
         MNS_sizer.Add(kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         MNS_sizer.Add(self.kscale, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
         
-        ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling : ", size=(140, -1))
-        self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"])
-        self.ScalingChoice.SetSelection(2)
-        ScalingTxt.SetFont(defont)
+        # ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling : ", size=(140, -1))
+        # self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"])
+        # self.ScalingChoice.SetSelection(2)
+        # ScalingTxt.SetFont(defont)
 
-        S_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        S_sizer.Add(ScalingTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-        S_sizer.Add(self.ScalingChoice, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # S_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # S_sizer.Add(ScalingTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # S_sizer.Add(self.ScalingChoice, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         
         MNS_final = wx.StaticBoxSizer(Maps, wx.VERTICAL)
-        MNS_final.AddSpacer(10)
+        # MNS_final.AddSpacer(10)
         MNS_final.Add(MNS_sizer)
-        MNS_final.AddSpacer(20)
-        MNS_final.Add(S_sizer)
-        ##########################
-        ###  \Maps N Scaling\  ###
-        ##########################
+        # MNS_final.AddSpacer(20)
+        # MNS_final.Add(S_sizer)
 
-
+        ##########################
+        ###  ESFAs  ###
+        ##########################
+        
         self.ExtSF_box = wx.StaticBox(self, 1, "Extrapolated structure factor amplitudes", size=(800, 200))
         self.ExtSF = wx.StaticBoxSizer(self.ExtSF_box, wx.VERTICAL)
 
@@ -178,40 +189,37 @@ class TabExtrapolation(ScrolledPanel):
                      self.qfgenick,    self.kfgenick,    self.fgenick,    self.qonly, self.none,
                      self.qfextr_calc, self.kfextr_calc, self.fextr_calc, self.konly])
 
+        self.ExtSF.AddSpacer(5)
         self.ExtSF.Add(fgs, 0, wx.EXPAND, border=5)
 
-
-        self.ExpertMode = wx.Button(self, id=wx.ID_ANY,label="Expert Mode ?")
-        self.expert = False
+        ##########################
+        ###  Map-explorer  ###
+        ##########################
         
-        
-        MapExplorer = wx.StaticBox(self, 1, "Map Explorer", size=(800,250))
+        MapExplorer = wx.StaticBox(self, 1, "Map-explorer", size=(800,250))
 
         self.MES = wx.StaticBoxSizer(MapExplorer,wx.VERTICAL)
-        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma)", size=(180, 20))
+        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma) :", size=(200, 20))
         peak_detection_threshold.SetFont(defont)
-        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma)", size=(180, 20))
+        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma) :", size=(180, 20))
         peak_integration_floor.SetFont(defont)
-        radius = wx.StaticText(self, wx.ID_ANY, "Radius (A)", size=(90, -1))
+        radius = wx.StaticText(self, wx.ID_ANY, "Radius (A) :", size=(90, -1))
         radius.SetFont(defont)
-        zscore = wx.StaticText(self, wx.ID_ANY, "z-score", size=(60, -1))
+        zscore = wx.StaticText(self, wx.ID_ANY, "z-score :", size=(60, -1))
         zscore.SetFont(defont)
-        blank = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
-        blank2 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
 
-        width_TextCtrl = 100
         self.peak_detection_thresholdTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "4.0", style=wx.TE_PROCESS_ENTER,
-                                    size=(width_TextCtrl, 20))
+                                    size=(width_TextCtrl, height_TextCtrl))
         self.peak_integration_floorTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "3.5", style=wx.TE_PROCESS_ENTER,
-                                   size=(width_TextCtrl, 20))
+                                   size=(width_TextCtrl, height_TextCtrl))
 
         ### Should be changed by highest resolution
         self.RadiusTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "1.5", style=wx.TE_PROCESS_ENTER,
-                                   size=(width_TextCtrl, 20))
+                                   size=(width_TextCtrl, height_TextCtrl))
         self.ZscoreTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "2.0", style=wx.TE_PROCESS_ENTER,
-                                     size=(width_TextCtrl, 20))
+                                     size=(width_TextCtrl, height_TextCtrl))
         
-        self.occ_est = wx.StaticText(self, wx.ID_ANY, "Occupancy estimation", size=(180, 20))
+        self.occ_est = wx.StaticText(self, wx.ID_ANY, "Occupancy estimation :", size=(180, 20))
         self.occ_est.SetFont(defont)
         self.occ_list_all = ["difference_map_maximization", "difference_map_PearsonCC", "distance_analysis"]
         self.occ_list_noref = ["difference_map_maximization", "difference_map_PearsonCC"]
@@ -219,22 +227,33 @@ class TabExtrapolation(ScrolledPanel):
         self.OccEstimation.SetFont(defont)
         self.OccEstimation.SetSelection(0)
 
-        
-
         MES_fgs = wx.FlexGridSizer(rows=3, cols=5, vgap=10, hgap=10)
-        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl, radius, self.RadiusTextCtrl, blank2, zscore, self.ZscoreTextCtrl, self.occ_est, self.OccEstimation])
+        MES_fgs.AddMany([peak_detection_threshold, self.peak_detection_thresholdTextCtrl, blank, peak_integration_floor, self.peak_integration_floorTextCtrl,
+                         radius, self.RadiusTextCtrl, blank1, zscore, self.ZscoreTextCtrl, 
+                         self.occ_est, self.OccEstimation])
         self.MES.AddSpacer(5)
-        self.MES.Add(MES_fgs)
-        self.MES.AddSpacer(10)
+        self.MES.Add(MES_fgs, 0, wx.EXPAND, border=5)
+        # self.MES.AddSpacer(10)
         #self.MES.Add(self.OccEstimation)
         #self.DistanceAnalysis = wx.CheckBox(self, wx.ID_ANY, "Use occupancy from distance analysis")
         #self.MES.Add(self.DistanceAnalysis)
+        
+        ##########################
+        ###  Expert mode  ###
+        ##########################
+        
+        self.ExpertMode = wx.Button(self, id=wx.ID_ANY,label="Expert Mode ?")
+        self.expert = False
 
+        ##########################
+        ###  Negative and missing  ###
+        ##########################
+        
         NM = wx.StaticBox(self, 1, "Negative and Missing reflections", size=(800, 200))
         self.NM = wx.StaticBoxSizer(NM, wx.VERTICAL)
-        neg = wx.StaticText(self, wx.ID_ANY, "Negative", size=(60, -1))
+        neg = wx.StaticText(self, wx.ID_ANY, "Negative :", size=(60, -1))
         neg.SetFont(defont)
-        missing = wx.StaticText(self, wx.ID_ANY, "Missing", size=(60, -1))
+        missing = wx.StaticText(self, wx.ID_ANY, "Missing :", size=(60, -1))
         missing.SetFont(defont)
         self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "keep", "absolute"])
         self.negChoice.SetFont(defont)
@@ -242,33 +261,44 @@ class TabExtrapolation(ScrolledPanel):
         self.missChoice = wx.Choice(self, wx.ID_ANY, choices=["fill", "no_fill"])
         self.missChoice.SetFont(defont)
         self.missChoice.SetSelection(0)
-        NM_fgs = wx.FlexGridSizer(1, 5, 10, 10)
-        NM_fgs.AddMany([neg, self.negChoice, blank, missing, self.missChoice])
+        NM_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
+        NM_fgs.AddMany([neg, self.negChoice, blank2, missing, self.missChoice])
         self.NM.AddSpacer(5)
-        self.NM.Add(NM_fgs)
+        self.NM.Add(NM_fgs, 0, wx.EXPAND, border=5)
         
         ########################
-        ### Scaling Resolution ###
+        ### Scaling (earlier called Scaling resolution) ###
         ########################
-
-        SR = wx.StaticBox(self, 1, "Scaling resolution", size=(800, 200))
-        self.SR = wx.StaticBoxSizer(SR, wx.HORIZONTAL)
+        
+        SR = wx.StaticBox(self, 1, "Scaling", size=(800, 200))
+        self.SR = wx.StaticBoxSizer(SR, wx.VERTICAL)
+        
+        ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling :", size=(105, -1))
+        self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"])
+        self.ScalingChoice.SetSelection(2)
+        ScalingTxt.SetFont(defont)
+        
         ScalingHighResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling high resolution :", size=(180, -1))
         ScalingHighResTxt.SetFont(defont)
-        self.ScalingHighRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 20))
+        self.ScalingHighRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, height_TextCtrl))
         ScalingLowResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling low resolution :", size=(180, -1))
         ScalingLowResTxt.SetFont(defont)
-        self.ScalingLowRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, 20))
-        SR_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
-        SR_fgs.AddMany([ScalingLowResTxt, self.ScalingLowRes, blank, ScalingHighResTxt, self.ScalingHighRes])
+        self.ScalingLowRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, height_TextCtrl))
+        
+        SR_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        SR_sizer.Add(ScalingHighResTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        SR_sizer.Add(self.ScalingHighRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # SR_sizer.AddSpacer(30)
+        SR_sizer.Add(ScalingLowResTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        SR_sizer.Add(self.ScalingLowRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        
+        SR_fgs = wx.FlexGridSizer(rows=2, cols=5, vgap=10, hgap=10)
+        SR_fgs.AddMany([ScalingTxt, self.ScalingChoice, blank2, blank3, blank4, 
+                        ScalingLowResTxt, self.ScalingLowRes, blank5, ScalingHighResTxt, self.ScalingHighRes])
         self.SR.AddSpacer(5)
-        self.SR.Add(SR_fgs)
-        
-        #self.SR.Add(ScalingLowResTxt, 0, wx.LEFT | wx.ALIGN_CENTER_VERTICAL, 10)
-        #self.SR.Add(self.ScalingLowRes, 0, wx.ALL  | wx.ALIGN_CENTER_VERTICAL, 10)
-        #self.SR.Add(ScalingHighResTxt, 0, wx.LEFT| wx.ALIGN_CENTER_VERTICAL, 10)
-        #self.SR.Add(self.ScalingHighRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-        
+        self.SR.Add(SR_fgs, 0, wx.EXPAND, border=5)
+
+                
         ########################
         ### Final layout ###
         ########################
@@ -278,9 +308,9 @@ class TabExtrapolation(ScrolledPanel):
         self.FinalSizer.Add(self.occ_sizer_final, 0, wx.ALL, 10)
         self.FinalSizer.Add(MNS_final, 0, wx.ALL, 10)
         self.FinalSizer.Add(self.ExtSF, 0, wx.ALL, 10)
-        self.FinalSizer.Add(self.ExpertMode, 0, wx.ALL, 10)
         self.FinalSizer.Add(self.MES, 0, wx.ALL, 10)
-        self.FinalSizer.Hide(self.MES)
+        self.FinalSizer.Add(self.ExpertMode, 0, wx.ALL, 10)
+        # self.FinalSizer.Hide(self.MES)
         self.FinalSizer.Add(self.NM, 0, wx.ALL, 10)
         self.FinalSizer.Hide(self.NM)
         self.FinalSizer.Add(self.SR, 0, wx.ALL, 10)
@@ -336,15 +366,15 @@ class TabExtrapolation(ScrolledPanel):
     #        fextr.append(checkbox.GetValue())
 
     def OnExpertMode(self,evt):
-        if not self.FinalSizer.IsShown(self.MES):
-            self.FinalSizer.Show(self.MES)
+        if not self.FinalSizer.IsShown(self.SR):
+            # self.FinalSizer.Show(self.MES)
             self.FinalSizer.Show(self.NM)
             self.FinalSizer.Show(self.SR)
             self.ExpertMode.SetLabel("Expert Mode")
             #self.FinalSizer.Layout()
             self.expert = True
         else:
-            self.FinalSizer.Hide(self.MES)
+            # self.FinalSizer.Hide(self.MES)
             self.FinalSizer.Hide(self.NM)
             self.FinalSizer.Hide(self.SR)
             self.ExpertMode.SetLabel("Expert Mode ?")
