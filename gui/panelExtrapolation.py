@@ -48,13 +48,17 @@ class TabExtrapolation(ScrolledPanel):
         width_TextCtrl = 100
         height_TextCtrl = 20
         
+        width_ChoiceCtrl = 100
+        height_ChoiceCtrl = 30
+        
+        
         #blanks for filling spaces in fgs.AddMany
-        blank = wx.StaticText(self, wx.ID_ANY, "", size=(30, -1))
-        blank1 = wx.StaticText(self, wx.ID_ANY, "", size=(30, -1))
+        blank = wx.StaticText(self, wx.ID_ANY, "", size=(1, -1))
+        blank1 = wx.StaticText(self, wx.ID_ANY, "", size=(1, -1))
         blank2 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         blank3 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         blank4 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
-        blank5 = wx.StaticText(self, wx.ID_ANY, "", size=(130, -1))
+        blank5 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
 
         
         #####################
@@ -199,13 +203,13 @@ class TabExtrapolation(ScrolledPanel):
         MapExplorer = wx.StaticBox(self, 1, "Map-explorer", size=(800,250))
 
         self.MES = wx.StaticBoxSizer(MapExplorer,wx.VERTICAL)
-        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma) :", size=(200, 20))
+        peak_detection_threshold = wx.StaticText(self, wx.ID_ANY, "Peak_detection_threshold (sigma) :", size=(250, 20))
         peak_detection_threshold.SetFont(defont)
-        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma) :", size=(180, 20))
+        peak_integration_floor = wx.StaticText(self, wx.ID_ANY, "Peak_integration_floor (sigma) :", size=(250, 20))
         peak_integration_floor.SetFont(defont)
-        radius = wx.StaticText(self, wx.ID_ANY, "Radius (A) :", size=(90, -1))
+        radius = wx.StaticText(self, wx.ID_ANY, "Radius (A) :", size=(250, 20))
         radius.SetFont(defont)
-        zscore = wx.StaticText(self, wx.ID_ANY, "z-score :", size=(60, -1))
+        zscore = wx.StaticText(self, wx.ID_ANY, "z-score :", size=(250, 20))
         zscore.SetFont(defont)
 
         self.peak_detection_thresholdTextCtrl = wx.TextCtrl(self, wx.ID_ANY, "4.0", style=wx.TE_PROCESS_ENTER,
@@ -251,14 +255,14 @@ class TabExtrapolation(ScrolledPanel):
         
         NM = wx.StaticBox(self, 1, "Negative and Missing reflections", size=(800, 200))
         self.NM = wx.StaticBoxSizer(NM, wx.VERTICAL)
-        neg = wx.StaticText(self, wx.ID_ANY, "Negative :", size=(60, -1))
+        neg = wx.StaticText(self, wx.ID_ANY, "Negative :", size=(200, 20))
         neg.SetFont(defont)
-        missing = wx.StaticText(self, wx.ID_ANY, "Missing :", size=(60, -1))
+        missing = wx.StaticText(self, wx.ID_ANY, "Missing :", size=(200, 20))
         missing.SetFont(defont)
-        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "keep", "absolute"])
+        self.negChoice = wx.Choice(self, wx.ID_ANY, choices=["truncate", "reject", "zero", "fref", "fcalc", "keep", "absolute"], size=(width_ChoiceCtrl, height_ChoiceCtrl))
         self.negChoice.SetFont(defont)
         self.negChoice.SetSelection(0)
-        self.missChoice = wx.Choice(self, wx.ID_ANY, choices=["fill", "no_fill"])
+        self.missChoice = wx.Choice(self, wx.ID_ANY, choices=["fill", "no_fill"], size=(width_ChoiceCtrl, height_ChoiceCtrl) )
         self.missChoice.SetFont(defont)
         self.missChoice.SetSelection(0)
         NM_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
@@ -273,15 +277,15 @@ class TabExtrapolation(ScrolledPanel):
         SR = wx.StaticBox(self, 1, "Scaling", size=(800, 200))
         self.SR = wx.StaticBoxSizer(SR, wx.VERTICAL)
         
-        ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling :", size=(105, -1))
-        self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"])
+        ScalingTxt = wx.StaticText(self, wx.ID_ANY, "B-factor Scaling :", size=(200, 20))
+        self.ScalingChoice = wx.Choice(self, wx.ID_ANY, choices=["no", "isotropic","anisotropic"], size=(width_ChoiceCtrl, height_ChoiceCtrl))
         self.ScalingChoice.SetSelection(2)
         ScalingTxt.SetFont(defont)
         
-        ScalingHighResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling high resolution :", size=(180, -1))
+        ScalingHighResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling high resolution :", size=(200, 20))
         ScalingHighResTxt.SetFont(defont)
         self.ScalingHighRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, height_TextCtrl))
-        ScalingLowResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling low resolution :", size=(180, -1))
+        ScalingLowResTxt = wx.StaticText(self, wx.ID_ANY, label="Scaling low resolution :", size=(200, 20))
         ScalingLowResTxt.SetFont(defont)
         self.ScalingLowRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, height_TextCtrl))
         
