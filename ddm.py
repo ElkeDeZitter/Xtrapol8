@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Automatically run in Xtrapol8 routine but can be run on a standalone basis.
+To support phenix version 1.19, there are function alternatives without pandas. These are less robust to non-standard PDB architectures
 
 What do you need?
 - a reference pdb file
@@ -41,6 +42,12 @@ from Fextr_utils import get_name
 from iotbx.pdb import hierarchy
 from cctbx.array_family import flex
 import pickle
+try:
+    import pandas as pd
+    from scipy.spatial.distance import pdist, squareform
+    use_pandas = True
+except ImportError:
+    use_pandas = False
 
 class Difference_distance_analysis(object):
     """
@@ -80,7 +87,7 @@ class Difference_distance_analysis(object):
         self.hier2.remove_alt_confs(True)
         print("number of atoms after altloc removal: %d" %(self.hier2.atoms_size()), file=self.log)
         print("number of protein atoms for ddm calculation: %d" %(self.hier2.atoms_size()), file=self.log)
-        
+                
     def remove_ligands_and_get_coord(self, pdb_hierarchy):
         """
         Function to remove ligands from pdb_hierarchy
@@ -132,43 +139,50 @@ class Difference_distance_analysis(object):
                                 ##print("remove:",atom_group.id_str())
                                 #res_group.remove_atom_group(atom_group)
     
-    def get_offset(self, chain):
+    def get_offset(self, pdb_hierarchy, ID):
         """
         Function to get the offset of a certain chain
         """
-
-        try:
-            offset = chain.residues()[0].resseq_as_int()
-        except AssertionError:
-            offset = chain.conformers()[0].residues()[0].resseq_as_int()
+        offset = 99999999 #very high number
+        for chain in pdb_hierarchy.chains():
+            if chain.id == ID:
+                try:
+                    offset_test = chain.residues()[0].resseq_as_int()
+                except AssertionError:
+                    offset_test = chain.conformers()[0].residues()[0].resseq_as_int()
+                if offset_test < offset:
+                    offset = offset_test
                     
         return offset
     
-    def get_last_residue_number(self, pdb_hierarchy, chain):
-        
+    def get_last_residue_number(self, pdb_hierarchy, ID):
+        """
+        Function to get the last residue number of a certain chain
+        """
+        last = 0
         for c in pdb_hierarchy.chains():
-            if c.id == chain.id:
+            if c.id == ID:
                 try:
-                    last = c.residues()[-1].resseq_as_int()
+                    last_test = c.residues()[-1].resseq_as_int()
                 except AssertionError:
-                    last = c.conformers()[0].residues()[-1].resseq_as_int()
+                    last_test = c.conformers()[0].residues()[-1].resseq_as_int()
+                if last_test > last:
+                    last = last_test
                     
         return last
-
-                    
-    def get_coord(self, pdb_hierarchy, chain):
+    
+    def get_coord_nopandas(self, pdb_hierarchy, ID):
         """
         Get the coordinates of the atoms in the pdb file.
         Because of badly placed TER cards, a chain may be read as multiple chains, hence need to loop over all chains again instead of working with the input chain. Need to find a proper way to merge chains with same ID or get rid of TER cards.
         
         Need to add the coords and info of missing residues as well (coords can be 0,0,0) so as to add them to the ddm.
         """
-    
         #get first residue so as to know that the first residue so that it is clear that this is not a residue after a gap
-        n_ini = self.get_offset(chain)
+        n_ini = self.get_offset(pdb_hierarchy, ID)
         
         #get last residue number as to know where to stop
-        #n_fin = self.get_last_residue_number(pdb_hierarchy, chain)
+        n_fin = self.get_last_residue_number(pdb_hierarchy, ID)
         
         #to start set n to n1-1
         n = n_ini-1
@@ -177,7 +191,7 @@ class Difference_distance_analysis(object):
         info    = []
         missing = []
         for c in pdb_hierarchy.chains():
-            if c.id == chain.id:
+            if c.id == ID:
                 for res_group in c.residue_groups():
                     #check if residue is the subsequent residue in line
                     while n+1 < res_group.resseq_as_int():
@@ -202,13 +216,41 @@ class Difference_distance_analysis(object):
                         #n = n+1
                         #coord.append([0,0,0])
                         #info.append(str(n))
-                        
-                         
+                                 
         coord = np.asarray(coord)
- 
         return coord, info, missing
+
+                    
+    def get_coord(self, pdb_hierarchy, ID):
+        """
+        Get the coordinates of the atoms in the pdb file.
+        Because of badly placed TER cards, a chain may be read as multiple chains, hence need to loop over all chains again instead of working with the input chain. Need to find a proper way to merge chains with same ID or get rid of TER cards.
+        
+        Need to add the coords and info of missing residues as well (coords can be 0,0,0) so as to add them to the ddm.
+        """
+        
+        #get first residue so as to know that the first residue so that it is clear that this is not a residue after a gap
+        n_ini = self.get_offset(pdb_hierarchy, ID)
+        
+        #get last residue number as to know where to stop
+        n_fin = self.get_last_residue_number(pdb_hierarchy, ID)
+                          
+        column_labels = ["resseq", "x", "y", "z", "present"]
+        df_chain = pd.DataFrame(columns=column_labels)
+        for c in pdb_hierarchy.chains():
+            if c.id == ID:
+                for res_group in c.residue_groups():
+                    for a in res_group.atoms():
+                        new_row = pd.DataFrame([[res_group.resseq_as_int()]+list(a.xyz)+[1]], columns=column_labels)
+                        df_chain = df_chain.append(new_row, ignore_index=True)
+                         
+        df_range = pd.DataFrame(range(n_ini,n_fin+1), columns=["resseq"])
+        
+        df = df_range.join(df_chain.set_index("resseq"), on="resseq")
+        df = df.fillna(0)
+        
+        return df
             
-    
     def get_d(self, p1, p2, axis=0):
         """
         :param p1: numpy array of dim (X,3) or (3)
@@ -221,7 +263,7 @@ class Difference_distance_analysis(object):
         return np.sqrt(np.sum((p1-p2)**2, axis=axis))
 
     
-    def get_diff_matrix(self, arr):
+    def get_diff_matrix_nopandas(self, arr):
         N = arr.shape[0]
         #print(arr.shape)
         diff = np.zeros((N, N))
@@ -229,27 +271,56 @@ class Difference_distance_analysis(object):
             CA = arr[i]
             diff[:,i] = self.get_d(arr, CA, axis=1)
         return diff
-
+        
+    def get_diff_matrix(self, df):
+        """
+        Get difference matrix from a Pandas data frame with columns "x", "y", "z"
+        """
+        distvec = pdist(df.loc[:,["x","y","z"]])
+        m = squareform(distvec)
+        return m
                     
     def calculate_ddm(self, chain1, chain2):
-
-        #print "Processing first pdb" # Reference
-        coords1, seq_info, missing = self.get_coord(self.hier1, chain1)
-        diff_m1 = self.get_diff_matrix(coords1)
-
-        #"Processing second pdb" -
-        coords2,_,_ = self.get_coord(self.hier2, chain2)
-        diff_m2 = self.get_diff_matrix(coords2)
+        """
+        Calculate the distance difference matrix between two chains
+        """
         
+        df1 = self.get_coord(self.hier1, chain1.id)
+        diff_m1 = self.get_diff_matrix(df1)
+        
+        df2 = self.get_coord(self.hier2, chain2.id)
+        diff_m2 = self.get_diff_matrix(df2)
+            
         try:
             diff = diff_m2 - diff_m1
         except ValueError:
             print('Different number of Calpha between pdb1 (%s, %i) and pdb2 (%s, %i)\n'
                 'Please check your pdb files.'%(self.pdb1_name, diff_m1.shape[0], self.pdb2_name, diff_m2.shape[0]), file=self.log)
             diff = np.array([0,0])
-        return diff, seq_info, missing
+            
+        return df1, diff
     
-    def ddm_residue(self, ddm, seq_info, missing):
+    def calculate_ddm_nopandas(self, chain1, chain2):
+        """
+        Calculate the distance difference matrix between two chains
+        """
+        coords1, seq_info, missing = self.get_coord_nopandas(self.hier1, chain1.id)
+        diff_m1 = self.get_diff_matrix_nopandas(coords1)
+        
+        coords2,_,_ = self.get_coord_nopandas(self.hier2, chain2.id)
+        diff_m2 = self.get_diff_matrix_nopandas(coords2)
+    
+        try:
+            diff = diff_m2 - diff_m1
+        except ValueError:
+            print('Different number of Calpha between pdb1 (%s, %i) and pdb2 (%s, %i)\n'
+                'Please check your pdb files.'%(self.pdb1_name, diff_m1.shape[0], self.pdb2_name, diff_m2.shape[0]), file=self.log)
+            diff = np.array([0,0])
+            
+        return diff, seq_info, missing
+
+        
+    def ddm_residue_nopandas(self, ddm, seq_info, missing):
         """
         From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
         """
@@ -263,7 +334,30 @@ class Difference_distance_analysis(object):
                 
         #set all values from the missing residues to 0
         to_zero = [i for i,val in enumerate(seq_info_unique) if val in missing]
-        if len(to_zero) != 0:
+        if len(to_zero) >= 1:
+            for i in to_zero:
+                ddm_residue[i,:] = 0
+                ddm_residue[:,i] = 0
+                
+        return ddm_residue, seq_info_unique
+
+    
+    def ddm_residue(self, ddm, df):
+        """
+        From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
+        """
+        seq_info_unique, indices = np.unique(np.array(map(lambda x: int(x), df.loc[:,"resseq"])), return_inverse=True)
+        
+        n_residues = seq_info_unique.shape[0]
+        ddm_residue = np.zeros((n_residues, n_residues))
+        for i in range(n_residues):
+            for j in range(n_residues):
+                ddm_residue[i,j] = np.average(ddm[np.where(indices==i)[0],:][:,np.where(indices==j)[0]])
+                
+        #set all values from the missing residues to 0
+        missing = df.loc[df["present"]==0, "resseq"]
+        to_zero = [i for i,val in enumerate(seq_info_unique) if val in missing]
+        if len(to_zero) >= 1:
             for i in to_zero:
                 ddm_residue[i,:] = 0
                 ddm_residue[:,i] = 0
@@ -285,6 +379,7 @@ class Difference_distance_analysis(object):
                 cdict['green'].append([item, g1, g2])
                 cdict['blue'].append([item, b1, b2])
         return mcolors.LinearSegmentedColormap('CustomMap', cdict)
+            
     
     def ddms(self):
         """
@@ -292,19 +387,13 @@ class Difference_distance_analysis(object):
         """
         chains = [chain.id for chain in self.hier1.chains() if chain.is_protein()]
         num_chains = len(set(chains))
-            
+                    
         if num_chains == 1:
             n_cols = 1
         else:
             n_cols = 2
             
         n_rows_prot = int(math.ceil(num_chains/n_cols))
-
-        #if num_lig == 0:
-            #n_rows_lig = 0
-        #else:
-            #n_rows_lig = 1
-        #n_rows = n_rows_prot + n_rows_lig
         
         n_rows = n_rows_prot
 
@@ -323,25 +412,28 @@ class Difference_distance_analysis(object):
 
         col = -1
         row = -1
-        old_chain_id = ''
+        chain_dict = {}
         for chain in self.hier1.chains():
             if chain.is_protein():
                 ID = chain.id
-                if ID != old_chain_id:
+                if ID not in chain_dict.keys():
                     if col == 0:
                         col = 1
                     else:
                         col = 0
                         row +=1
+                    chain_dict[ID]=(row,col)
                     chain1 = chain.detached_copy()
-                    offset = self.get_offset(chain1)
-                    
+                    offset = self.get_offset(self.hier1, ID)
                     for c in self.hier2.chains():
                         if c.is_protein():
-                            if (c.id == ID and self.get_offset(c) == offset):
+                            if (c.id == ID and self.get_offset(self.hier2, ID) == offset):
                                 chain2 = c.detached_copy()
-                    try: 
-                        ddm, seq_info, missing = self.calculate_ddm(chain1, chain2)
+                    try:
+                        if use_pandas:
+                            df1, ddm = self.calculate_ddm(chain1, chain2)
+                        else:
+                            ddm, seq_info, missing = self.calculate_ddm_nopandas(chain1, chain2)
                     except NameError:
                         print("There exist an inconsistency between the two models: %s and %s.\nMake sure that they have the samen chain ID and start with the same residue number" %(self.pdb1_name, self.pdb2_name))
                         continue
@@ -357,30 +449,15 @@ class Difference_distance_analysis(object):
                     
                     assert n==m, "Difference matrix for chain %s is incorrect"
                     
-                    #For all atom ddm
-                    #mask = np.zeros_like(ddm, dtype=np.bool)
-                    #mask[np.triu_indices_from(mask)] = True
-                    #FINAL2 = np.ma.array(ddm, mask=mask)
-                    
-                    #last = self.get_last_residue_number(self.hier1, chain1)
-                    #total = last+offset+1
-                    ##steps = int(total/10)
-                    #seq_info = np.array(list(map(lambda x: int(x), seq_info)))
-                    #seq_ticks = seq_info[0::int(len(seq_info)/15)]
-                    #tick_pos  = [np.where(seq_info==i)[0][0] for i in seq_ticks]
-                    #steps = len(seq_ticks)
-                    #if self.scale is None:
-                        #scale = max(np.abs(np.min(ddm)), np.abs(np.max(ddm)))
-                    #else:
-                        #scale = self.scale
-                    
                     #For per residue ddm
-                    ddm_residue, seq_info_unique = self.ddm_residue(ddm, seq_info, missing)
+                    if use_pandas:
+                        ddm_residue, seq_info_unique = self.ddm_residue(ddm, df1)
+                    else:
+                        ddm_residue, seq_info_unique = self.ddm_residue_nopandas(ddm, seq_info, missing)
                     
                     #write info to pickle file
                     stats = [chain.id, ddm_residue, seq_info_unique]
                     pickle.dump(stats, outname_pickle)
-                    
                     
                     mask = np.zeros_like(ddm_residue, dtype=np.bool)
                     mask[np.triu_indices_from(mask)] = True
@@ -399,27 +476,24 @@ class Difference_distance_analysis(object):
                         #scale = self.scale
                         
                     #if (n_rows > 1 and n_cols > 1):
-                    img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-self.scale, vmax=self.scale)
+                    img = axs[chain_dict[ID]].imshow(FINAL2, cmap=rvb, vmin=-self.scale, vmax=self.scale)
                     
-                    axs[row, col].set_xticks(tick_pos)
-                    axs[row, col].set_xticklabels(seq_ticks)
+                    axs[chain_dict[ID]].set_xticks(tick_pos)
+                    axs[chain_dict[ID]].set_xticklabels(seq_ticks)
                     plt.setp(axs[row, col].xaxis.get_majorticklabels(), rotation=90, fontsize='small')
                     
-                    axs[row, col].set_yticks(tick_pos)
-                    axs[row, col].set_yticklabels(seq_ticks)
+                    axs[chain_dict[ID]].set_yticks(tick_pos)
+                    axs[chain_dict[ID]].set_yticklabels(seq_ticks)
 
-                    axs[row, col].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
-                    axs[row, col].set_xlabel('Residues')
-                    axs[row, col].set_ylabel('Residues')
+                    axs[chain_dict[ID]].set_title('Chain %s' %ID, fontsize = 'medium',fontweight="bold")
+                    axs[chain_dict[ID]].set_xlabel('Residues')
+                    axs[chain_dict[ID]].set_ylabel('Residues')
                     
-                    axs[row, col].spines['top'].set_visible(False)
-                    axs[row, col].spines['right'].set_visible(False)
+                    axs[chain_dict[ID]].spines['top'].set_visible(False)
+                    axs[chain_dict[ID]].spines['right'].set_visible(False)
                     
-                    fig.colorbar(img, ax=axs[row, col], fraction=0.046, pad=0.04)
+                    fig.colorbar(img, ax=axs[chain_dict[ID]], fraction=0.046, pad=0.04)
                         
-                        
-                    old_chain_id = ID
-                    
                     del chain2
                     
         fig.tight_layout()

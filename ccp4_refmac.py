@@ -20,6 +20,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+from __future__ import print_function
 import re, sys
 import os
 import iotbx.pdb
@@ -27,13 +28,14 @@ import iotbx.file_reader
 from mmtbx.scaling.matthews import p_vm_calculator
 from libtbx import adopt_init_args
 from Fextr_utils import get_name
+from iotbx.file_reader import any_file
+from cctbx import miller
 
-class refmac_refinements(object):
+class Refmac_refinement(object):
     def __init__(self,
                  mtz_in,
                  pdb_in,
                  additional,
-                 ligands,
                  F_column_labels = 'QFEXTR',
                  rfree_col       = 'FreeR_flag',
                  fill_missing    = False,
@@ -53,9 +55,6 @@ class refmac_refinements(object):
                  jelly_body_sigma      = 0.03,
                  jelly_body_additional_restraints = None,
                  map_sharpening        = False,
-                 density_modification  = False,
-                 dm_combine            = "PERT",
-                 dm_ncycle             = 10.,
                  additional_reciprocal_keywords = []):
         
         #Try this instead of huge repetition of the arguments
@@ -200,7 +199,7 @@ eof\n'%(mtz_out, ccp4_diff_map_name))
             #can be estended with n_bases=.overall_countsresname_classes.get("common_rna_dna", 0)
         return vm_calc.solc(vm=vm_calc.vm(copies=1))
         
-    def write_density_modification_script(self, mtz_in, mtz_out, log_file):
+    def write_density_modification_script(self, mtz_in, mtz_out, combine, cycles, log_file):
         """
         Write script to perform density modification with dm
         """
@@ -218,7 +217,7 @@ COMBINE %s\n\
 NCYC %d\n\
 LABI FP=%s SIGFP=SIG%s PHIO=PHIC_ALL FOMO=FOM\n\
 LABO FDM=FDM PHIDM=PHIDM\n\
-eor\n' %(mtz_in, mtz_out, log_file, solc, self.dm_combine, self.dm_ncycle, self.F_column_labels, self.F_column_labels))
+eor\n' %(mtz_in, mtz_out, log_file, solc, combine, cycles, self.F_column_labels, self.F_column_labels))
       
         ccp4_map_name = re.sub(r".mtz$", ".ccp4", mtz_out)
       
@@ -231,7 +230,7 @@ eof' %(mtz_out, ccp4_map_name))
         os.system("chmod +x %s" %(script_out))
         return script_out        
         
-    def refmac_reciprocal_space_refinement(self):
+    def reciprocal_space_refinement(self):
         try:
             if self.F_column_labels.lower().startswith('q'):
                 maptype = "q"+self.F_column_labels.lower()[1:].capitalize()
@@ -249,31 +248,47 @@ eof' %(mtz_out, ccp4_map_name))
             
         script_refmac = self.write_refmac_input_reciprocal_space_refinement(mtz_out, pdb_out, log_file)
         print('Running Refmac, output written to %s. Please wait...'%(log_file))
-        os.system("./%s" %(script_refmac))
+        reciprocal = os.system("./%s" %(script_refmac))
         
-        if os.path.isfile(pdb_out) == False:
-            print("pdb file from refinement not found. Refinement probably failed")
-            pdb_out = self.pdb_in
-        if os.path.isfile(mtz_out) == False:
-            print("mtz file from refinement not found. Refinement probably failed")
-            self.density_modification = False
-            mtz_out = self.mtz_in
+        if reciprocal != 0:
+            mtz_out = "not_a_file"
+            pdb_out = "refinement_did_not_finish_correcty"
+
+        
+        # if os.path.isfile(pdb_out) == False:
+        #     print("pdb file from refinement not found. Refinement probably failed")
+        #     pdb_out = self.pdb_in
+        # if os.path.isfile(mtz_out) == False:
+        #     print("mtz file from refinement not found. Refinement probably failed")
+        #     mtz_out = self.mtz_in
             
-        if self.density_modification:
-            print("density modification")
-            mtz_out_dm = re.sub(r".mtz$", "_dm.mtz", mtz_out)
+        return mtz_out, pdb_out
+    
+    def ccp4_dm(self, pdb_in, combine, cycles):
+        """
+        Use dm to perform density modification
+        """
+        mtz_for_dm = re.sub(r".pdb$", ".mtz", pdb_in)
+        mtz_out_dm = re.sub(r".pdb$", "_dm.mtz", pdb_in)
+        if os.path.isfile(mtz_for_dm):
             log_file = re.sub(r".mtz$", ".log", mtz_out_dm)
-            script_dm = self.write_density_modification_script(mtz_out, mtz_out_dm, log_file)
+            script_dm = self.write_density_modification_script(mtz_for_dm, mtz_out_dm, combine, cycles, log_file)
             print('Running density modification, output written to %s. Please wait...'%(log_file))
             os.system("./%s" %(script_dm))
-            return mtz_out, pdb_out, mtz_out_dm
-        else:
-            print("no density modification")
-            mtz_out_dm = mtz_out
-            return mtz_out, pdb_out, mtz_out_dm
+        
+        return mtz_out_dm
+
+
+class Coot_refinement(object):
+    def __init__(self,
+                 ligands,
+                 additional = ''):
+        
+        self.ligands    = ligands
+        self.additional = additional
     
-    def ligands_refinement(self):
-        pdb_hier = iotbx.pdb.hierarchy.input(file_name=self.pdb_in)
+    def ligands_refinement(self, pdb_in):
+        pdb_hier = iotbx.pdb.hierarchy.input(file_name=pdb_in)
         hier = pdb_hier.hierarchy
         
         if len(self.ligands) == 0:
@@ -288,6 +303,46 @@ eof' %(mtz_out, ccp4_map_name))
                                 if atom_group.resname==lig:
                                     ligand_refinement+=('refine_zone(0,"%s",%d,%d,"%s")\naccept_regularizement()\n'%(chain.id, res_group.resseq_as_int(), res_group.resseq_as_int(), atom_group.altloc))
         return ligand_refinement
+    
+    def check_mtz_column(self, mtz_in, column_labels):
+        """
+        Check if the column is present in the mtz file, use the column labels. e.g. '2FOFCWT,PH2FOFCWT'
+        """
+        column_found = False
+        hkl = any_file(mtz_in,force_type="hkl", raise_sorry_if_errors=False)
+        for array in hkl.file_object.as_miller_arrays():
+            if array.info().label_string() == column_labels:
+                column_found = True
+                
+        return column_found
+    
+    def suggest_mtz_column(self, mtz_in, column_labels, column_label_strings_constraint=''):
+        """
+        Find the closest column labels in an mtz file.
+        Additional constraints could be added to the string, e.g. should contain "2F" if searching for the 2FoFc type
+        """
+        from difflib import get_close_matches
+        
+        column_label_strings = []
+        hkl = any_file(mtz_in,force_type="hkl", raise_sorry_if_errors=False)
+        for array in hkl.file_object.as_miller_arrays():
+            column_label_strings.append(array.info().label_string())
+        
+        column_suggestions = get_close_matches(column_labels, column_label_strings)
+        column_suggestions.sort()
+        
+        close_column_found = False
+        if len(column_suggestions) >=2:
+            for suggestion in column_suggestions:
+                if column_label_strings_constraint in suggestion:
+                    close_column_found = True
+                    column_labels_new = suggestion
+                    break
+                
+        if close_column_found == False:
+            column_labels_new = "2FOFCWT,PH2FOFCWT"
+            
+        return column_labels_new.split(",")
 
     def write_coot_input_real_space_refinement_mtz(self, pdb_in, mtz_in, column_labels):
         """
@@ -304,14 +359,33 @@ eof' %(mtz_out, ccp4_map_name))
         column_labels_1_F = column_labels.split(",")[2].lstrip().rstrip()
         column_labels_1_P = column_labels.split(",")[3].lstrip().rstrip()
         
+        if self.check_mtz_column(mtz_in, "{:s},{:s}".format(column_labels_0_F,column_labels_0_P)) == False:
+            print("{:s}: column labels {:s},{:s} not found".format(mtz_in, column_labels_0_F,column_labels_0_P))
+            column_labels_0_F,column_labels_0_P = self.suggest_mtz_column(mtz_in, "{:s},{:s}".format(column_labels_0_F,column_labels_0_P), column_label_strings_constraint="2")
+            print("{:s}: columns {:s},{:s} will be used".format(mtz_in, column_labels_0_F, column_labels_0_P))
+
+        if self.check_mtz_column(mtz_in, "{:s},{:s}".format(column_labels_1_F,column_labels_1_P)) == False:
+            print("{:s}: column labels {:s},{:s} not found".format(mtz_in, column_labels_1_F,column_labels_1_P))
+            column_labels_1_F,column_labels_1_P = self.suggest_mtz_column(mtz_in, "{:s},{:s}".format(column_labels_1_F,column_labels_1_P))
+            print("{:s}: columns {:s},{:s} will be used".format(mtz_in, column_labels_1_F, column_labels_1_P))
+        
         additional_lines = ""
         for cif in self.additional.split():
             if cif.endswith(".cif"):
                 additional_lines+='read_cif_dictionary("%s")\n'%(cif)
 
-        pdb_out = "%s_coot_real_space_refined.pdb"%(mtz_name)
+        pdb_out = "%s_coot_real_space_refined_000.pdb"%(mtz_name)
         
-        script_out = 'coot_real_space_refinement.py'
+        script_root = 'coot_real_space_refinement'
+        script_out = '%s.py' %(script_root)
+        j = 1
+        while os.path.exists(script_out):
+            script_root = "%s_%d" %(script_root, j)
+            script_out = '%s.py' %(script_root)
+            j += 1
+            if j == 100: #to avoid endless loop
+                break
+        
         i = open(script_out,'w')
         i.write('handle_read_draw_molecule("%s")\n\
 %s\
@@ -331,9 +405,11 @@ accept_regularizement()\n\
 fit_waters(0)\n\
 accept_regularizement()\n\
 write_pdb_file(0,"%s")\n\
-coot_no_state_real_exit(1)' %(pdb_in, additional_lines, column_labels_0_F, column_labels_0_P, column_labels_1_F, column_labels_1_P, mtz_in, self.ligands_refinement(), pdb_out))        
+coot_no_state_real_exit(1)' %(pdb_in, additional_lines, column_labels_0_F, column_labels_0_P, column_labels_1_F, column_labels_1_P, mtz_in, self.ligands_refinement(pdb_in), pdb_out))   
+        
+        i.close()
                 
-        #save_state_file_py("%s_coot_real_space_refined.py")\n\        
+        #save_state_file_py("%s_coot_real_space_refined.py")\n\   
                 
         return script_out, pdb_out
     
@@ -347,10 +423,20 @@ coot_no_state_real_exit(1)' %(pdb_in, additional_lines, column_labels_0_F, colum
         for cif in self.additional.split():
             if cif.endswith(".cif"):
                 additional_lines+='read_cif_dictionary("%s")\n'%(cif)
-
-        pdb_out = "%s_coot_real_space_refined.pdb"%(ccp4_name)
+                
+                
+        pdb_out = "%s_coot_real_space_refined_000.pdb"%(ccp4_name)
         
-        script_out = 'coot_real_space_refinement.py'
+        script_root = 'coot_real_space_refinement'
+        script_out = '%s.py' %(script_root)
+        j = 1
+        while os.path.exists(script_out):
+            script_root = "%s_%d" %(script_root, j)
+            script_out = '%s.py' %(script_root)
+            j += 1
+            if j == 100: #to avoid endless loop
+                break
+            
         i = open(script_out,'w')
         i.write('handle_read_draw_molecule("%s")\n\
 %s\
@@ -366,32 +452,44 @@ accept_regularizement()\n\
 fit_waters(0)\n\
 accept_regularizement()\n\
 write_pdb_file(0,"%s")\n\
-coot_no_state_real_exit(1)' %(pdb_in, additional_lines, ccp4_in, self.ligands_refinement(), pdb_out))        
+coot_no_state_real_exit(1)' %(pdb_in, additional_lines, ccp4_in, self.ligands_refinement(pdb_in), pdb_out))        
+        
+        i.close()
                 
         #save_state_file_py("%s_coot_real_space_refined.py")\n\        
                 
         return script_out, pdb_out
+    
+    def get_mtz_resolution(self, mtz_in):
+        """
+        Easy extraction of the resolution boundaries of an mtz file
+        """
+        reflections = any_file(mtz_in, force_type="hkl", raise_sorry_if_errors=True)
+        low_res, high_res = reflections.file_content.file_content().max_min_resolution()
+         
+        return low_res, high_res
  
         
-    def coot_real_space_refinement_mtz(self, pdb_in, mtz_in, column_labels):
+    def real_space_refinement_mtz(self,  mtz_in, pdb_in, column_labels):
         """
         Real space refinement within COOT based on an mtz file and spefic columns
         """
-        coot_log = '%s_coot.log' %(get_name(mtz_in))
+        coot_log = '%s_coot_real_space_refined_000.log' %(get_name(mtz_in))
         script_coot, pdb_out = self.write_coot_input_real_space_refinement_mtz(pdb_in, mtz_in, column_labels)
         print('Running Real space refinement in COOT, output written to %s. Please wait...' %(coot_log))
         os.system("coot --no-graphics --script %s > %s" %(script_coot, coot_log)) #Use a second coot install to avoid interference with other coot windows that might already be open
         
         return pdb_out
     
-    def coot_real_space_refinement_ccp4(self, pdb_in, ccp4_in):
+    def real_space_refinement_ccp4(self, ccp4_in, pdb_in, resolution):
         """
         Real space refinement within COOT based on a ccp4 file. No ambiguitiy stemming from multiple different columns
+        
+        Resolution is not required, but passed as an argument to remain consistent with real_space_refinement_ccp4 function within the Phenix_real_space_refinement class
         """
-        coot_log = '%s_coot.log' %(get_name(ccp4_in))
+        coot_log = '%s_coot_real_space_refined_000.log' %(get_name(ccp4_in))
         script_coot, pdb_out = self.write_coot_input_real_space_refinement_ccp4(pdb_in, ccp4_in)
         print('Running Real space refinement in COOT, output written to %s. Please wait...' %(coot_log))
         os.system("coot --no-graphics --script %s > %s" %(script_coot, coot_log)) #Use a second coot install to avoid interference with other coot windows that might already be open
         
         return pdb_out
-    
