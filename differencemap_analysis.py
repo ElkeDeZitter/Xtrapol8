@@ -63,6 +63,56 @@ from map_explorer_analysis import Map_explorer_analysis
 from plotalpha import plotalpha
 from Fextr_utils import check_file_existance
 
+from master import master_phil
+Xtrapol8_master_phil = master_phil
+
+master_phil = iotbx.phil.parse("""
+input{
+    Xtrapol8_out = None
+        .type = path
+        .help = Xtrapol8_out.phil which can be found in the Xtrapol8 output directory
+        .expert_level = 0
+    f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
+        .type = choice(multi=False)
+        .help = The type of ESFAs for which the difference map analysis will be carried out. The Xtrapol8 run prior to these analysis should include the ESFA type of choice. You can only specify one, launch mutliple runs if you want to repeat on with different ESFA types.
+        .expert_level = 0
+    }
+map_explorer{
+    residue_list = None
+        .type = str
+        .help = list with residues to take into account for the occupancy estimation in same style as the output from map-explorer in an Xtrapol8 run (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.
+        .expert_level = 0
+    peak_integration_floor = 3.5
+        .type = float
+        .help = Floor value for peak integration (sigma). Peaks will be integrated from their maximum value towards this lower bound to avoid integration of noise.
+        .expert_level = 0
+    peak_detection_threshold = 4.0
+        .type = float
+        .help = Peak detection threshold (sigma). Only peaks with an absolute value equal or above this value will be integrated.
+    radius = None
+        .type = float
+        .help = Maximum radius (A) to allocate a density blob to a protein atom in map explorer. Resolution will be used if not specified.
+        .expert_level = 0
+    z_score = 2.0
+        .type = float
+        .help = Z-score to determine residue list with only highest peaks.
+        .expert_level = 0
+    }
+output{
+    outdir = None
+        .type = str
+        .help = Output directory. 'Differencemap_analysis' be used if not specified.
+        .expert_level = 0
+    suffix = ''
+        .type = str
+        .help = suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).
+        .expert_level = 0
+    log_file = None
+        .type = str
+        .help = write results to a file.
+        .expert_level = 0
+}
+""", process_includes=True)
 
 class Difference_analysis(object):
     def __init__(self,
@@ -282,35 +332,36 @@ class Difference_analysis(object):
 
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description = 'Standalone version of the difference map analysis for occupancy estimation.')
-    
-    #input files
-    parser.add_argument('-f', '--fofo_map', default="my_input.map", help="Fourier difference map (FoFo) in ccp4 or xplor format (.ccp4 or .map)")
-    parser.add_argument('-m', '--model_pdb', default='input.pdb', help='Reference coordinates in pdb format.')
-    parser.add_argument('-a', '--additional_files', default = None, help='Additional files required for correct interpration of the pdb file, e.g ligand cif file, restraints file. Comma-seperated, no spaces.')
-    parser.add_argument('-x', '--fextrfcalc_list', default='mfextr-Dfcalc_with_occ0.1.map,mfextr-Dfcalc_with_occ0.2.map', help='list of mfextr-Dfcalc map files in ccp4 or xplor format (.cpp4 or .map) to be analysed. Comma-seperated, no spaces.')
-    parser.add_argument('-o', '--occupancies', default ='0.1, 0.2', help='list of occupancies, in the same order as the mfextr-Dfcalc map files. Comma-seperated, no spaces.')
-    
-    #map_explorer parameters
-    parser.add_argument('-rl', '--residue_list', default = None, help='list with residues to take into account for the occupancy estimation in same style as the output from map-explorer (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.')
-    parser.add_argument('-r', '--radius', default = 2.0, type=float, help="maximum radius in Angstrom to allocate a density blob to a protein atom (e.g. the resolution of the extrapolated maps)")
-    parser.add_argument('-t', '--peak_integration_floor', default = 3.5, type=float,  help="integration threshold in sigma")
-    parser.add_argument('-p', '--peak_detection_threshold', default = 4.0, type=float, help="Peak detection threshold in sigma")
-    parser.add_argument('-z', '--z_score', default = 2.0, type=float, help='Z-score to determine residue list with only highest peaks (will be used to generate a residue list only if no residue list is provided.')
-
-    #auxiliary paramters
-    parser.add_argument('-s', '--suffix', default = '', help='suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).')
-    parser.add_argument('-l', '--log_file', default=None, help='write results to a file.')
-    parser.add_argument('-d', '--outdir', default="Differencemap_analysis", help='output directory.')
+#     parser = argparse.ArgumentParser(description = 'Standalone version of the difference map analysis for occupancy estimation.')
+#     
+#     #input files
+#     parser.add_argument('-f', '--fofo_map', default="my_input.map", help="Fourier difference map (FoFo) in ccp4 or xplor format (.ccp4 or .map)")
+#     parser.add_argument('-m', '--model_pdb', default='input.pdb', help='Reference coordinates in pdb format.')
+#     parser.add_argument('-a', '--additional_files', default = None, help='Additional files required for correct interpration of the pdb file, e.g ligand cif file, restraints file. Comma-seperated, no spaces.')
+#     parser.add_argument('-x', '--fextrfcalc_list', default='mfextr-Dfcalc_with_occ0.1.map,mfextr-Dfcalc_with_occ0.2.map', help='list of mfextr-Dfcalc map files in ccp4 or xplor format (.cpp4 or .map) to be analysed. Comma-seperated, no spaces.')
+#     parser.add_argument('-o', '--occupancies', default ='0.1, 0.2', help='list of occupancies, in the same order as the mfextr-Dfcalc map files. Comma-seperated, no spaces.')
+#     
+#     #map_explorer parameters
+#     parser.add_argument('-rl', '--residue_list', default = None, help='list with residues to take into account for the occupancy estimation in same style as the output from map-explorer (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.')
+#     parser.add_argument('-r', '--radius', default = 2.0, type=float, help="maximum radius in Angstrom to allocate a density blob to a protein atom (e.g. the resolution of the extrapolated maps)")
+#     parser.add_argument('-t', '--peak_integration_floor', default = 3.5, type=float,  help="integration threshold in sigma")
+#     parser.add_argument('-p', '--peak_detection_threshold', default = 4.0, type=float, help="Peak detection threshold in sigma")
+#     parser.add_argument('-z', '--z_score', default = 2.0, type=float, help='Z-score to determine residue list with only highest peaks (will be used to generate a residue list only if no residue list is provided.')
+# 
+#     #auxiliary paramters
+#     parser.add_argument('-s', '--suffix', default = '', help='suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).')
+#     parser.add_argument('-l', '--log_file', default=None, help='write results to a file.')
+#     parser.add_argument('-d', '--outdir', default="Differencemap_analysis", help='output directory.')
     
     
     #print help if no arguments provided
     if len(sys.argv) < 2:
-           parser.print_help()
+           master_phil.show(attributes_level=1)
+           raise Usage("phenix.python differencemap_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
            sys.exit(1)
 
     #interprete arguments
-    args = parser.parse_args()
+    # args = parser.parse_args()
     
     fofo_map         = os.path.abspath(args.fofo_map)
     model_pdb        = os.path.abspath(args.model_pdb)
