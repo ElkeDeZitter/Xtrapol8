@@ -4,27 +4,34 @@ Script to calculate the occupancy based on the Fourier difference map (FoFo) and
 This is automatically run in Xtrapol8 routine but can be run on a standalone basis using this script.
 
 What do you need?
-- An FoFo map
-- A reference model
-- list with mFextr-DFcalc map files.
-- list with occupancies in the same order as the associated mFextr-DFcalc map files
+- a complete Xtrapol8 run in Calm_and_curious or Fast_and_furious mode
+- an ESFA type (this should have been run in the Xtrapol8 run that precedes the differencemap_analysis
 - map-explorer parameters
 - Optional:
     - Residue list for which the difference map peaks will be used to estimate the occupancy (in the format as an Xtrapol8 residuelist)
         If no residue list provided, a residue list will be calculated based on the Z-score
-    - Outsuffix to be added to the output files (will be used as a prefix for some files)
+    - suffix to be added to the output files (will be used as a prefix for some files)
     - Log-file
     - Output directory
-    
-    
+
 usage
 -----
 To get the help message:
 $ phenix.python difference_analysis.py
+or
+$ phenix.python difference_analysis.py --help
+or
+$ phenix.python difference_analysis.py -h
 
-To run with a specific set of arguments:
-$ phenix.python difference_analysis.py -f my_fofo.map -m my_model.pdb -x occ1/mfextr-Dfcalc_with_occ0.1.map,occ2/mfextr-Dfcalc_with_occ0.2.map -o 0.1,0.2
+To run with an input file:
+$ phenix.python difference_analysis.py difference_analysis.phil
 
+To run with command line arguments:
+$ phenix.python difference_analysis.py input.Xtrapol8=Xtrapol8/Xtrapol8_out.phil input.f_extrapolated_and_maps=qfextr
+ map_explorer.residue_list=residlist_adapted.txt map_explorer.peak_integration_floor=4 map_explorer.peak_detection_threshold=4 output.outdir=diffmap_test
+
+To run with an input file and command line arguments:
+$ phenix.python difference_analysis.py difference_analysis.phil input.f_extrapolated_and_maps=fextr_calc
 -------
 
 authors and contact information
