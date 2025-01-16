@@ -62,6 +62,7 @@ from map_explorer import map_explorer
 from map_explorer_analysis import Map_explorer_analysis
 from plotalpha import plotalpha
 from Fextr_utils import check_file_existance
+from libtbx.utils import Usage
 
 from master import master_phil
 Xtrapol8_master_phil = master_phil
@@ -99,11 +100,11 @@ map_explorer{
         .expert_level = 0
     }
 output{
-    outdir = None
+    outdir = Differencemap_analysis
         .type = str
         .help = Output directory. 'Differencemap_analysis' be used if not specified.
         .expert_level = 0
-    suffix = ''
+    suffix = None
         .type = str
         .help = suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).
         .expert_level = 0
@@ -329,64 +330,121 @@ class Difference_analysis(object):
         _, _ , _, _= plotalpha(self.occupancies, self.map_exp_files[1:], self.map_exp_files[0], self.prefix, log=self.log).estimate_alpha()
     
         print("---------------------------------------------", file=self.log)
+        
+class Filefinder(object):
+    def __init__(self,
+                 X8_outdir ="Xtrapol8",
+                 X8_outname = "Xtrapol8",
+                 X8_list_occ = [0.1],
+                 X8_fofo_type = "qFoFo",
+                 X8_f_extrapolated_and_maps = "qFextr",
+                 diffmap_f_extrapolated_and_maps = "qFextr"):
+        self.X8_outdir                  = X8_outdir
+        self.X8_outname                 = X8_outname
+        self.X8_list_occ                = X8_list_occ
+        self.X8_fofo_type               = X8_fofo_type
+        self.X8_f_extrapolated_and_maps = X8_f_extrapolated_and_maps
+        self.diffmap_f_extrapolated_and_maps = diffmap_f_extrapolated_and_maps
+        
+    def find_fofo(self):
+        """
+        Find the FoFo map based on the X8_outdir and X8_fofo_type and X8_outname
+        """
+        maptype = re.sub("f","F", self.X8_fofo_type)
+        last_part = "m{:s}.ccp4".format(maptype)
 
+        f = "{:s}/{:s}_{:s}".format(self.X8_outdir, self.X8_outname,last_part)
+        fofo = os.path.abspath(check_file_existance(f))
+        
+        return fofo
+    
+    def find_fextfc(self):
+        """
+        Find the Fextr-Fc type of maps given the X8_outdir, X8_outname, the X8_list_occ list and X8_f_extrapolated_and_maps 
+        """
+        if self.diffmap_f_extrapolated_and_maps not in self.X8_f_extrapolated_and_maps:
+            print("ESFA file type not found in Xtrapol8 output (this might be a bug)")
+        
+        if self.diffmap_f_extrapolated_and_maps.startswith("q"):
+            first_part = "qweight_"
+        elif self.diffmap_f_extrapolated_and_maps.startswith("k"):
+            first_part = "kweight_"
+        else:
+            first_part = ''
+            
+        maptype = re.sub("f","F", self.diffmap_f_extrapolated_and_maps)
+        last_part = "m{:s}-DFc.ccp4".format(maptype)
+                
+        fextrfcalc_list = []
+        for occ in self.X8_list_occ:
+            f = "{:s}/{:s}occupancy_{:.3f}/{:s}_occ{:.3f}_{:s}".format(self.X8_outdir, first_part, occ, self.X8_outname, occ, last_part)
+            fextrfcalc_list.append(os.path.abspath(check_file_existance(f)))
+            
+        return fextrfcalc_list
+            
 if __name__ == "__main__":
     
-#     parser = argparse.ArgumentParser(description = 'Standalone version of the difference map analysis for occupancy estimation.')
-#     
-#     #input files
-#     parser.add_argument('-f', '--fofo_map', default="my_input.map", help="Fourier difference map (FoFo) in ccp4 or xplor format (.ccp4 or .map)")
-#     parser.add_argument('-m', '--model_pdb', default='input.pdb', help='Reference coordinates in pdb format.')
-#     parser.add_argument('-a', '--additional_files', default = None, help='Additional files required for correct interpration of the pdb file, e.g ligand cif file, restraints file. Comma-seperated, no spaces.')
-#     parser.add_argument('-x', '--fextrfcalc_list', default='mfextr-Dfcalc_with_occ0.1.map,mfextr-Dfcalc_with_occ0.2.map', help='list of mfextr-Dfcalc map files in ccp4 or xplor format (.cpp4 or .map) to be analysed. Comma-seperated, no spaces.')
-#     parser.add_argument('-o', '--occupancies', default ='0.1, 0.2', help='list of occupancies, in the same order as the mfextr-Dfcalc map files. Comma-seperated, no spaces.')
-#     
-#     #map_explorer parameters
-#     parser.add_argument('-rl', '--residue_list', default = None, help='list with residues to take into account for the occupancy estimation in same style as the output from map-explorer (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.')
-#     parser.add_argument('-r', '--radius', default = 2.0, type=float, help="maximum radius in Angstrom to allocate a density blob to a protein atom (e.g. the resolution of the extrapolated maps)")
-#     parser.add_argument('-t', '--peak_integration_floor', default = 3.5, type=float,  help="integration threshold in sigma")
-#     parser.add_argument('-p', '--peak_detection_threshold', default = 4.0, type=float, help="Peak detection threshold in sigma")
-#     parser.add_argument('-z', '--z_score', default = 2.0, type=float, help='Z-score to determine residue list with only highest peaks (will be used to generate a residue list only if no residue list is provided.')
-# 
-#     #auxiliary paramters
-#     parser.add_argument('-s', '--suffix', default = '', help='suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).')
-#     parser.add_argument('-l', '--log_file', default=None, help='write results to a file.')
-#     parser.add_argument('-d', '--outdir', default="Differencemap_analysis", help='output directory.')
-    
-    
-    #print help if no arguments provided
+    #print help if no arguments provided or "--help" or "-h"
     if len(sys.argv) < 2:
            master_phil.show(attributes_level=1)
            raise Usage("phenix.python differencemap_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
            sys.exit(1)
+    if "--help" in sys.argv or "-h" in sys.argv:
+           master_phil.show(attributes_level=1)
+           raise Usage("phenix.python differencemap_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
+           sys.exit(1)
 
-    #interprete arguments
-    # args = parser.parse_args()
+    #Extract input from inputfile and command line
+    input_objects = iotbx.phil.process_command_line_with_files(
+        args=sys.argv[1:],
+        master_phil=master_phil
+        )
+    params = input_objects.work.extract()
     
-    fofo_map         = os.path.abspath(args.fofo_map)
-    model_pdb        = os.path.abspath(args.model_pdb)
-    if args.additional_files != None:
-        additional_files = list(map(lambda x: os.path.abspath(x), args.additional_files.split(",")))
-    else:
-        additional_files = []
-    fextrfcalcs      = list(map(lambda x: os.path.abspath(x),args.fextrfcalc_list.split(",")))
-    occupancies      = list(map(lambda x : float(x), args.occupancies.split(",")))
-        
-    if args.residue_list != None:
-        residue_list = os.path.abspath(args.residue_list)
-    else:
-        residue_list = args.residue_list
-    radius       = args.radius
-    threshold    = args.peak_integration_floor
-    peak         = args.peak_detection_threshold
-    z_score      = args.z_score
-    suffix       = args.suffix
+    #Extract info form Xtrapol8 run
+    Xtrapol8_input_objects = iotbx.phil.process_command_line_with_files(
+        args = [params.input.Xtrapol8_out],
+        master_phil = Xtrapol8_master_phil
+        )
+    Xtrapol8_params = Xtrapol8_input_objects.work.extract()
+    
+    fofo_map = Filefinder(X8_outdir = Xtrapol8_params.output.outdir,
+                          X8_outname = Xtrapol8_params.output.outname,
+                          X8_fofo_type = Xtrapol8_params.f_and_maps.fofo_type).find_fofo()
+    
+    model_pdb = Xtrapol8_params.input.reference_pdb
+    
+    additional_files = Xtrapol8_params.input.additional_files
+
+    fextrfcalcs = Filefinder(X8_outdir = Xtrapol8_params.output.outdir,
+                             X8_outname = Xtrapol8_params.output.outname,
+                             X8_f_extrapolated_and_maps = Xtrapol8_params.f_and_maps.f_extrapolated_and_maps,
+                             X8_list_occ = Xtrapol8_params.occupancies.list_occ,
+                             diffmap_f_extrapolated_and_maps = params.input.f_extrapolated_and_maps).find_fextfc()
+    
+    occupancies = Xtrapol8_params.occupancies.list_occ
     
     if len(fextrfcalcs) != len(occupancies):
         print("Number of occupancies and mFextr-DFcalc maps is not equal. Please provide a single occupancy for each map.")
-        sys.exit()
+        sys.exit(1)
+
         
-    outdir = args.outdir
+    if params.map_explorer.residue_list != None:
+        residue_list = os.path.abspath(params.map_explorer.residue_list)
+    else:
+        residue_list = None
+        
+    radius    = params.map_explorer.radius
+    threshold = params.map_explorer.peak_integration_floor
+    peak      = params.map_explorer.peak_detection_threshold
+    z_score   = params.map_explorer.z_score
+    
+    if params.output.suffix != None:
+        suffix = params.output.suffix
+    else:
+        suffix = params.input.f_extrapolated_and_maps
+            
+    outdir = params.output.outdir
     i = 1
     while os.path.exists(outdir):
         if os.path.isdir(outdir):
@@ -397,7 +455,7 @@ if __name__ == "__main__":
         #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
             #outdir = self.outdir
             #break
-        outdir = "%s_%d" %(args.outdir, i)
+        outdir = "%s_%d" %(params.output.outdir, i)
         i += 1
         if i == 1000: #to avoid endless loop, but this leads to a max of 1000 runs
             break
@@ -413,10 +471,10 @@ if __name__ == "__main__":
     os.chdir(outdir)
 
 
-    if args.log_file == None:
+    if params.output.log_file == None:
         log = open('differencemap_analysis_%s.log' %(suffix), 'w')
     else:
-        log = open(args.log_file, 'w')
+        log = open(params.output.log_file, 'w')
         
         
     #Run the analysis
