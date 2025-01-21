@@ -71,57 +71,6 @@ from plotalpha import plotalpha
 from Fextr_utils import check_file_existance
 from libtbx.utils import Usage
 
-from master import master_phil
-Xtrapol8_master_phil = master_phil
-
-master_phil = iotbx.phil.parse("""
-input{
-    Xtrapol8_out = None
-        .type = path
-        .help = Xtrapol8_out.phil which can be found in the Xtrapol8 output directory
-        .expert_level = 0
-    f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
-        .type = choice(multi=False)
-        .help = The type of ESFAs for which the difference map analysis will be carried out. The Xtrapol8 run prior to these analysis should include the ESFA type of choice. You can only specify one, launch mutliple runs if you want to repeat on with different ESFA types.
-        .expert_level = 0
-    }
-map_explorer{
-    residue_list = None
-        .type = str
-        .help = list with residues to take into account for the occupancy estimation in same style as the output from map-explorer in an Xtrapol8 run (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.
-        .expert_level = 0
-    peak_integration_floor = 3.5
-        .type = float
-        .help = Floor value for peak integration (sigma). Peaks will be integrated from their maximum value towards this lower bound to avoid integration of noise.
-        .expert_level = 0
-    peak_detection_threshold = 4.0
-        .type = float
-        .help = Peak detection threshold (sigma). Only peaks with an absolute value equal or above this value will be integrated.
-    radius = None
-        .type = float
-        .help = Maximum radius (A) to allocate a density blob to a protein atom in map explorer. Resolution will be used if not specified.
-        .expert_level = 0
-    z_score = 2.0
-        .type = float
-        .help = Z-score to determine residue list with only highest peaks.
-        .expert_level = 0
-    }
-output{
-    outdir = Differencemap_analysis
-        .type = str
-        .help = Output directory. 'Differencemap_analysis' be used if not specified.
-        .expert_level = 0
-    suffix = None
-        .type = str
-        .help = suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).
-        .expert_level = 0
-    log_file = None
-        .type = str
-        .help = write results to a file.
-        .expert_level = 0
-}
-""", process_includes=True)
-
 class Difference_analysis(object):
     def __init__(self,
                  pdb_in,
@@ -391,6 +340,57 @@ class Filefinder(object):
             
 if __name__ == "__main__":
     
+    from master import master_phil
+    Xtrapol8_master_phil = master_phil
+
+    master_phil = iotbx.phil.parse("""
+    input{
+        Xtrapol8_out = None
+            .type = path
+            .help = Xtrapol8_out.phil which can be found in the Xtrapol8 output directory
+            .expert_level = 0
+        f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
+            .type = choice(multi=False)
+            .help = The type of ESFAs for which the difference map analysis will be carried out. The Xtrapol8 run prior to these analysis should include the ESFA type of choice. You can only specify one, launch mutliple runs if you want to repeat on with different ESFA types.
+            .expert_level = 0
+        }
+    map_explorer{
+        residue_list = None
+            .type = str
+            .help = list with residues to take into account for the occupancy estimation in same style as the output from map-explorer in an Xtrapol8 run (e.g. residlist_Zscore2.00.txt). If no file is provided, a residue list will be generated based on the map_explorer analysis and Z-score value.
+            .expert_level = 0
+        peak_integration_floor = 3.5
+            .type = float
+            .help = Floor value for peak integration (sigma). Peaks will be integrated from their maximum value towards this lower bound to avoid integration of noise.
+            .expert_level = 0
+        peak_detection_threshold = 4.0
+            .type = float
+            .help = Peak detection threshold (sigma). Only peaks with an absolute value equal or above this value will be integrated.
+        radius = None
+            .type = float
+            .help = Maximum radius (A) to allocate a density blob to a protein atom in map explorer. Resolution will be used if not specified.
+            .expert_level = 0
+        z_score = 2.0
+            .type = float
+            .help = Z-score to determine residue list with only highest peaks.
+            .expert_level = 0
+        }
+    output{
+        outdir = Differencemap_analysis
+            .type = str
+            .help = Output directory. 'Differencemap_analysis' be used if not specified.
+            .expert_level = 0
+        suffix = None
+            .type = str
+            .help = suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).
+            .expert_level = 0
+        log_file = None
+            .type = str
+            .help = write results to a file.
+            .expert_level = 0
+    }
+    """, process_includes=True)
+    
     #print help if no arguments provided or "--help" or "-h"
     if len(sys.argv) < 2:
            master_phil.show(attributes_level=1)
@@ -415,6 +415,7 @@ if __name__ == "__main__":
         )
     Xtrapol8_params = Xtrapol8_input_objects.work.extract()
     
+    #extract and search for difference-map-analysis parameters and input files
     fofo_map = Filefinder(X8_outdir = Xtrapol8_params.output.outdir,
                           X8_outname = Xtrapol8_params.output.outname,
                           X8_fofo_type = Xtrapol8_params.f_and_maps.fofo_type).find_fofo()
@@ -456,12 +457,7 @@ if __name__ == "__main__":
     while os.path.exists(outdir):
         if os.path.isdir(outdir):
             if len(os.listdir(outdir)) ==0:
-                #outdir = self.outdir
                 break
-        ##Keep outdir given by user if it only contains Xtrapol8 log-files:
-        #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
-            #outdir = self.outdir
-            #break
         outdir = "%s_%d" %(params.output.outdir, i)
         i += 1
         if i == 1000: #to avoid endless loop, but this leads to a max of 1000 runs
@@ -484,7 +480,7 @@ if __name__ == "__main__":
         log = open(params.output.log_file, 'w')
         
         
-    #Run the analysis
+    #Run the difference-map analysis
     Difference_analysis(model_pdb,
                         fofo_map,
                         additional_files,
