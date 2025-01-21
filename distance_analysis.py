@@ -956,7 +956,7 @@ if __name__ == '__main__':
             .expert_level = 0
         reference_pdb = None
             .type = path
-            .help = Reference model for difference map analysis
+            .help = Reference model for difference map analysis, in PDB or mmcif format
             .expert_level = 0
         }
     map_explorer{
