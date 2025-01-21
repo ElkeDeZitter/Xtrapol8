@@ -88,6 +88,9 @@ def sigmoid_fit_2(fact,x):
     
     
 def logfit(x, a, b, c):
+    """
+    logistic function = logfit
+    """
     #c = 0
     return a * (1- np.exp(-b * (x-1))) + c * x
 
@@ -106,6 +109,9 @@ def totalsumsquares(arr):
     return np.sum((arr-np.mean(arr))**2)
 
 def fitting(sel, x):
+    """
+    fit with logfit model. Not used anymore.
+    """
     if np.all(sel ==0):
         return np.array([0.,0.,0.])
     else:
@@ -177,21 +183,6 @@ def sigmoid_fitting(sel, x):
             except RuntimeError:
                 popt = np.array([0.,0.,0.])
             
-        ##Exclude fits with boundary values, which means that the fit isn't done properly.
-        ##Even if we check the R2 and chi2, it is better to throw them out.
-        #if np.round(popt[1],3) == np.round(kmax,3):
-            #print("kmax reached", np.array([popt[0], popt[1], popt[2]]))
-            ##return np.array([0.,0.,0.])
-        #if np.round(popt[1],3) == np.round(kmin,3):
-            #print("kmin reached", np.array([popt[0], popt[1], popt[2]]))
-            ##return np.array([0.,0.,0.])
-        #if np.round(popt[2],3) == np.round(x0max,3):
-            ##return np.array([0.,0.,0.])
-            #print("x0max reached", np.array([popt[0], popt[1], popt[2]]))
-        #if np.round(popt[2],3) == np.round(1,3):
-            ##return np.array([0.,0.,0.])
-            #print("x0min reached", np.array([popt[0], popt[1], popt[2]]))
-            
         #Exclude based on alpha. 
         alpha = ((val)/popt[1])+ popt[2]
         if alpha < 1.0:
@@ -204,6 +195,11 @@ def sigmoid_fitting(sel, x):
         return np.array(popt)
     
 class Distance_analysis(object):
+    """
+    Class to carry out the distance analysis. Fitting is done with a sigmoidal function. In the past we used an exponential function but the sigmoidal appears to work better.
+    Needs a list of pdb files, with the first one being the reference file. 
+    The occupancy list should be in the same order as the pdb files and no value should be given for the first pdb file (we'll add an alpha value of 1)
+    """
     def __init__(self, pdblst, occupancies, resids_lst = None, plateau_fraction=0.99, use_waters = True, outsuffix = '', log = sys.stdout):
         self.resids_lst       = resids_lst
         if plateau_fraction < 0.0:
@@ -222,19 +218,6 @@ class Distance_analysis(object):
         print("DISTANCE ANALYSIS")
         print("DISTANCE ANALYSIS", file=self.log)
         alphas = list(map(lambda x: round(1/x, 3), occupancies))
-            
-        ##Assumes the alpha of the reference still needs to be added and that this will be the first pdb in the list...
-        ##in order to force the curvefitting to be as low possible between alpha of 0 and 1 (which is physically impossble), duplicate the reference model pdb at alpha of 1
-        #if (0.01 not in alphas and 1.0 not in alphas and len(alphas) != len(pdblst)):
-            #pdblst = [pdblst[0]]+pdblst
-            #alphas = [0.01,1]+alphas
-        ##if alpha of 1 IS present (so occ of 1 is tested):
-        #elif (0.01 not in alphas and len(alphas) != len(pdblst)):
-            #alphas = [0.01]+alphas
-        ##if alpha of 0.01 IS present (so reference model is given), and hence the number of alpha-values and pdbs are equal, still assuming that this is going to be the fist pdb in the list
-        #elif (1 not in alphas and len(alphas) == len(pdblst)):
-            #pdblst = [pdblst[0]]+pdblst
-            #alphas = [1]+alphas #Sorting of alphas will be done below
             
         if (1.0 not in alphas and len(alphas) != len(pdblst)):
             alphas = [1]+alphas
@@ -270,8 +253,9 @@ class Distance_analysis(object):
         #To estimate alpha however, we should take into account that alpha between 0 and 1 is impossible, hence the curve should actually start at 1.
         #   This comes down to shifting the complete sigmoidal to the right. Hence to calcalute alpha, one should use the following formula
         #   k x (alpha - alphainflection) -1 = val
-        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
         global val
+        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
+        
      
         #Sort the pdb files and alphas in order to have alpha from small to large, this is important for fitting
         #This might not work in pyhton3
@@ -281,8 +265,8 @@ class Distance_analysis(object):
         self.alphas = list(alphas)
         self.pdblst = list(pdblst)
         
-        maxalpha = np.max(self.alphas)
         global maxalpha
+        maxalpha = np.max(self.alphas)
      
         print("Reference pdb file:", self.pdblst[0], file=log)
         print("Reference pdb file:", self.pdblst[0])
@@ -298,6 +282,9 @@ class Distance_analysis(object):
                 
         
     def get_residlist(self):
+        """
+        Make a residue list based on an input map-explorer like file
+        """
         if self.resids_lst != None:
             with open(self.resids_lst) as rs_lst:
                 residlst = rs_lst.read().split("\n")
@@ -313,6 +300,9 @@ class Distance_analysis(object):
             self.residlst = np.array(residlst_unique)
             
     def get_residlist_from_all_atoms(self, pdb_file):
+        """
+        Make a residue list based on all atoms in a PDB file
+        """
         pdb_hier = hierarchy.input(file_name=pdb_file)
         hier = pdb_hier.hierarchy        
         
@@ -544,10 +534,6 @@ class Distance_analysis(object):
         
         info_for_print = [[i[0],i[2],i[1].lstrip().rstrip(), '(%s%s)'%(i[4].lstrip().rstrip(), i[3].lstrip().rstrip())] for i in self.info]
         
-        #fulllist      = []
-        #possible_b    = []
-        #possible_amp   = []
-        
         #Set all differences to a positive value
         self.alldifferences = np.abs(self.alldifferences)
 
@@ -637,9 +623,9 @@ class Distance_analysis(object):
         #print("np.max(toplot_matrix)", np.max(toplot_matrix))
     
         #Extraction of possible b and amplitude. This assumes that both of them are non-zero
-        #for simoidal plot, keep similar names as to avoid too much changes:
-        #k = possible_b
-        #L = possible_amp
+        #for simoidal plot, keep similar names as for the exponential fit avoid too much changes:
+            #k = possible_b
+            #L = possible_amp
         possible_b = np.multiply(fitting_matrix[1], toplot_matrix)
         possible_b = possible_b.ravel(order='C')[np.flatnonzero(possible_b)]
         
@@ -900,6 +886,9 @@ class Distance_analysis(object):
 
 
 class Filefinder(object):
+    """
+    Find input files for the standalone version of the distance_analysis, based on the output of an Xtrapol8 run.
+    """
     def __init__(self,
                  X8_outdir ="Xtrapol8",
                  X8_outname = "Xtrapol8",
