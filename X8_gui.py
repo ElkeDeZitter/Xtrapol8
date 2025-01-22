@@ -37,6 +37,7 @@ from libtbx.phil import parse
 
 from Fextr import master_phil
 from wx.aui import AuiNotebook
+import version
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
 
@@ -210,7 +211,7 @@ class MainFrame(wx.Frame):
     def __init__(self,args):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "XtrapolG8",
+                          "XtrapolG8 -- version %s" %(version.VERSION),
                           size=(1100, 1000)
                           )
 
@@ -236,7 +237,7 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
+        # self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
         self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
         self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
         self.ToolBar.Bind(wx.EVT_TOOL, self.OnToolBar)
@@ -395,9 +396,9 @@ class MainFrame(wx.Frame):
 
     def OnToolBar(self, event):
         id = event.GetId()
-        if id == 101:
-            return
-        elif id == 102:
+        # if id == 101:
+        #     return
+        if id == 102:
             self.OnrunX8()
         elif id == 103:
             self.OnStopRun()
@@ -682,13 +683,17 @@ class MainFrame(wx.Frame):
         tabRef = self.notebook.Configure.tabRefine
 
         tabRef.RunRef.SetValue(user_params.refinement.run_refinement)
+        tabRef.onRefChanged(None)
+        
+        tabRef.SoftChoiceReci.SetStringSelection(user_params.refinement.reciprocal_space)
+        tabRef.SoftChoiceReal.SetStringSelection(user_params.refinement.real_space)
+        
         if user_params.refinement.use_refmac_instead_of_phenix:
-            tabRef.SoftChoice.SetSelection(1)
-            tabRef.onSoftChanged(None)
-        else:
-            tabRef.SoftChoice.SetSelection(0)
-            tabRef.onSoftChanged(None)
+            tabRef.SoftChoiceReci.SetSelection(1)
+            tabRef.SoftChoiceReal.SetSelection(1)
 
+        tabRef.onSoftReciChanged(None)
+        tabRef.onSoftRealChanged(None)
 
         tabRef.wxc_scale_TextCtrl.SetValue(str(user_params.refinement.phenix_keywords.target_weights.wxc_scale))
         tabRef.wxu_scale_TextCtrl.SetValue(str(user_params.refinement.phenix_keywords.target_weights.wxu_scale))
@@ -1013,14 +1018,11 @@ class MainFrame(wx.Frame):
         ### Phenix - Ref_tab ###
         ########################
         tabRefine = self.notebook.Configure.tabRefine
-
-        Soft = tabRefine.SoftChoice.GetStringSelection()
-        if Soft == 'Phenix':
-            Use_Ref = False
-        else:
-            Use_Ref = True
+        
         tobeparsed += "refinement.run_refinement = %s\n" % tabRefine.RunRef.IsChecked() + \
-                      "refinement.use_refmac_instead_of_phenix = %s\n" % Use_Ref +\
+                      "refinement.use_refmac_instead_of_phenix = False\n" +\
+                      "refinement.reciprocal_space = %s\n" %tabRefine.SoftChoiceReci.GetStringSelection() +\
+                      "refinement.real_space = %s\n" %tabRefine.SoftChoiceReal.GetStringSelection() + \
                       "refinement.phenix_keywords.target_weights.wxc_scale = %s\n" % self.get_txtctrl_values(tabRefine.wxc_scale_TextCtrl) +\
                       "refinement.phenix_keywords.target_weights.wxu_scale = %s\n" % self.get_txtctrl_values(tabRefine.wxu_scale_TextCtrl) +\
                       "refinement.phenix_keywords.target_weights.weight_selection_criteria.bonds_rmsd = %s\n" % self.get_txtctrl_values(tabRefine.bonds_rmsd_TextCtrl) + \

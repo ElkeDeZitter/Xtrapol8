@@ -27,7 +27,7 @@ __citation__ = "doi.org/10.1038/s42003-022-03575-7"
 
 major = 1
 minor = 2
-micro = 6
+micro = 8
 tag = "Dev-electron" #can be None or "Dev"
 #tag = None #can be None or "Dev"
 
