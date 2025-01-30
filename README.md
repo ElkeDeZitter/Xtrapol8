@@ -44,14 +44,22 @@
 
 Xtrapol8 is software for the calculation of Fourier difference maps, extrapolated structure factor ampltiudes (ESFAs) and estimation of the occupancy of at triggered state that occupies the crystal at low occupancy. It is based on the cctbx toolbox and uses some CCP4 programs. In order to run Xtrapol8, you will need to have a proper licence for Phenix and CCP4 and have both software suites installed. Please use Phenix 1.19 or higher.
 
-An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the [youtube channel of CCP4](https://www.youtube.com/watch?v=H21L3-M_ge4)
+An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the YoutTube channel of CCP4 [CCP4 Study Weekend 2022](https://www.youtube.com/watch?v=H21L3-M_ge4) and [CCP4 Study Weekend 2024](https://www.youtube.com/watch?v=t6-7OBwtVts)
 
-If Xtrapol8 was useful in your project, please cite us: De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1):640, 2022. 
+If Xtrapol8 was useful in your project, please cite us:
+De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1), 640 (2022).
+Don't forget to cite the software on which we build:
+* Liebschner, D. et al., [Macromolecular structure determination using X-rays, neutrons and electrons: recent developments in Phenix](https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html), Acta Crystallogr. D. Struct. Biol. 75, 861–877 (2019).
+* Agirre, J. et al., [The CCP4 suite: integrative software for macromolecular crystallography](https://journals.iucr.org/d/issues/2023/06/00/ai5011/index.html), Acta Crystallogr. D. Biol. Crystallogr. 67, 235–242 (2011).
+* Emsley, P. et al., [Features and development of Coot](https://journals.iucr.org/d/issues/2010/04/00/ba5144/index.html), Acta Crystallogr. D. Biol. Crystallogr. 66, 486–501 (2010).
+* Grosse-Kunstleve, et al., [The Computational Crystallography Toolbox: crystallographic algorithms in a reusable software framework](https://journals.iucr.org/paper?ks0118), J. Appl. Crystallogr. 35, 126–136 (2002).
 
-## New in version 1.2.0
+## New since version 1.2.0
 * Untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. 
 * Resolution boundaries for scaling can be specified.
-
+* Refinement can be done with a combination of different programs, one should not restrict themselves to the CCP4 or Phenix suite.
+* Easier usages of standalone verison to redo the difference-map and distance analysis for alpha estimation.
+* New keywords.
 See release notes and manual for more info and other new features.
 
 <!-- GETTING STARTED -->
