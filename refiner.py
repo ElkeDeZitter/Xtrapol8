@@ -108,6 +108,10 @@ input{
         .help = Low resolution cutoff (Angstrom).
         .expert_level = 0
     }
+scattering_table = *n_gaussian wk1995 it1992 electron neutron
+    .type = choice(multi=False)
+    .help = Scattering table. For testing only. It is unclear if Xtrapol8 will give proper results with data other than originating from X-ray diffraction and a scattering table different from n_gaussian
+    .expert_level = 3
 occupancies{
     low_occ = 0.1
         .type = float(value_min=0, value_max=1)
@@ -575,6 +579,7 @@ class Refiner(object):
                   additional = '',
                   reciprocal_phil = '',
                   real_phil = '',
+                  scattering_table = "n_gaussian",
                   density_modification = {}):
         self.pdb_in               = pdb_in
         self.maptype              = maptype.split("_map")[0]
@@ -583,6 +588,7 @@ class Refiner(object):
         self.additional           = additional
         self.reciprocal_phil      = reciprocal_phil
         self.real_phil            = real_phil
+        self.scattering_table     = scattering_table
         self.density_modification = density_modification
         
     def check_single_file(self, fle):
@@ -642,14 +648,14 @@ class Refiner(object):
         print("Phenix version: %s" %(phenix_version))
 
         if phenix_subversion <= 20:
-            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
+            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 "
         else: #phenix version 1.21
             r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
             #data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
             #Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
 
-        reciprocal = os.system("phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true" %(self.reciprocal_phil, self.mtz_file, self.additional, self.pdb_in, outprefix, r_free_flag_parameters)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+        reciprocal = os.system("phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true refinement.main.scattering_table=%s " %(self.reciprocal_phil, self.mtz_file, self.additional, self.pdb_in, outprefix, r_free_flag_parameters, self.scattering_table)) # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
          
         #Find output files
         if reciprocal == 0: #os.system has correctly finished, then search for the last refined structure
@@ -682,6 +688,9 @@ class Refiner(object):
         
         pdb_ini = iotbx.pdb.input(pdb_in)
         xray_structure = pdb_ini.xray_structure_simple()
+        
+        #scattering table should not be specified here because the structure is onluy used
+        #to calculate the solvent content. No usage to calculate f_model
         
         vm_calc = p_vm_calculator(xray_structure.crystal_symmetry(),
             n_residues=overall_counts.resname_classes.get("common_amino_acid", 0))
@@ -863,8 +872,8 @@ eof' % (mtz_out, ccp4_map_name))
 
         # print("phenix.real_space_refine %s %s %s %s %s %s label='%s'" % (self.real_phil,
         # mtz_in, self.additional, pdb_in, output_prefix, model_format, column_labels))
-        real = os.system("phenix.real_space_refine %s %s %s %s %s %s label='%s' scattering_table=n_gaussian" %(
-            self.real_phil, mtz_in, self.additional, pdb_in, output_prefix, model_format, column_labels))
+        real = os.system("phenix.real_space_refine %s %s %s %s %s %s label='%s' scattering_table=%s" %(
+            self.real_phil, mtz_in, self.additional, pdb_in, output_prefix, model_format, column_labels, self.scattering_table))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
@@ -915,8 +924,8 @@ eof' % (mtz_out, ccp4_map_name))
             # outpdb        = "%s_independent_real_space_refined.pdb"%(ccp4_name)
 
         #launch phenix.real_space_refine
-        real = os.system("phenix.real_space_refine %s %s %s %s %s %s resolution=%.2f scattering_table=n_gaussian" %(
-            self.real_phil, ccp4_in, self.additional, pdb_in, output_prefix, model_format, resolution))
+        real = os.system("phenix.real_space_refine %s %s %s %s %s %s resolution=%.2f scattering_table=%s" %(
+            self.real_phil, ccp4_in, self.additional, pdb_in, output_prefix, model_format, resolution, self.scattering_table))
 
         #Find output file
         if real == 0 : #os.system has correctly finished. Then search for the last refined structure
@@ -1362,6 +1371,7 @@ def run(args):
                                                         DH.additional,
                                                         reciprocal_phil = DH.reciprocal_space_phil,
                                                         real_phil = DH.real_space_phil,
+                                                        scattering_table = Xtrapol8_params.scattering_table,
                                                         density_modification = Xtrapol8_params.refinement.phenix_keywords.density_modification).run_refinements()
             
             print("--------------", file=log)
