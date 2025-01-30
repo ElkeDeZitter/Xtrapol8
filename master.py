@@ -50,6 +50,10 @@ input{
         .help = Low resolution cutoff (Angstrom).
         .expert_level = 0
     }
+scattering_table = *n_gaussian wk1995 it1992 electron neutron
+    .type = choice(multi=False)
+    .help = Scattering table, in developement. It is unclear if Xtrapol8 will give proper results with data other than originating from X-ray diffraction and a scattering table different from n_gaussian. If using anything else than n_gaussian, use only phenix for refinement.
+    .expert_level = 3
 occupancies{
     low_occ = 0.1
         .type = float(value_min=0, value_max=1)
