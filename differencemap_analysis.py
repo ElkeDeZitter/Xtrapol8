@@ -409,6 +409,13 @@ if __name__ == "__main__":
     params = input_objects.work.extract()
     
     #Extract info form Xtrapol8 run
+    if params.input.Xtrapol8_out == None:
+        print("input.Xtrapol8_out not defined")
+        sys.exit(1)
+    if os.path.isfile(params.input.Xtrapol8_out) == False:
+        print("File not found: {:s}". format(params.input.Xtrapol8_out))
+        sys.exit(1)
+              
     Xtrapol8_input_objects = iotbx.phil.process_command_line_with_files(
         args = [params.input.Xtrapol8_out],
         master_phil = Xtrapol8_master_phil
@@ -438,6 +445,9 @@ if __name__ == "__main__":
 
         
     if params.map_explorer.residue_list != None:
+        if os.path.isfile(params.map_explorer.residue_list) == False:
+            print("File not found: {:s}". format(params.map_explorer.residue_list))
+            sys.exit(1)
         residue_list = os.path.abspath(params.map_explorer.residue_list)
     else:
         residue_list = None
