@@ -6,18 +6,33 @@ coefficients calculated with different occupancy (alpha).
 Automatically run in Xtrapol8 routine but can be run on a standalone basis.
 
 What do you need?
-- list with PDB files. The first PDB file in the list is the reference
-- list with occupancies in the same order as the associated pdb's in the list.
-    You don't need to provide an occupancy for the reference (in that case the lenght of the list
-    with occupancies is the lenght of the pdb-list -1) or you can give it an occupancy of 100
+- a complete Xtrapol8 run in Calm_and_curious or Fast_and_furious mode
+- an ESFA type (this should have been run in the Xtrapol8 run that precedes the differencemap_analysis
 - Optional:
-    - Residue list for which the distances will be calculated (in the format as an Xtrapol8 residuelist)
-        If no residue list provided, the analysis will be performed using all atoms. Depending on the
-        size of the ASU, this can become computationally very intensive (You are warned and I take no
-        responsibility of your computer crashes)
-    - Outsuffix to be added to the output figure
-    - Log-file. If not provided, then output will written to a predifined file
+    - Residue list for which the difference map peaks will be used to estimate the occupancy (in the format as an Xtrapol8 residuelist)
+        If no residue list provided, a residue list will be calculated based on the Z-score
+    - suffix to be added to the output files (will be used as a prefix for some files)
+    - Log-file
+    - Output directory
     
+usage
+-----
+To get the help message:
+$ phenix.python distance_analysis.py
+or
+$ phenix.python distance_analysis.py --help
+or
+$ phenix.python distance_analysis.py -h
+
+To run with an input file:
+$ phenix.python distance_analysis.py distance_analysis.phil
+
+To run with command line arguments:
+$ phenix.python distance_analysis.py input.Xtrapol8=Xtrapol8/Xtrapol8_out.phil input.f_extrapolated_and_maps=qfextr
+ map_explorer.residue_list=residlist_adapted.txt output.outdir=distance_test
+
+To run with an input file and command line arguments:
+$ phenix.python distance_analysis.py distance_analysis.phil input.f_extrapolated_and_maps=fextr_calc
 -------
 
 authors and contact information
@@ -40,7 +55,7 @@ TODO: find elegant alternative for global variables
 """
 
 from __future__ import division, print_function
-import sys, re
+import sys, re, os
 import string
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,6 +63,8 @@ import scipy.signal
 from iotbx.pdb import hierarchy
 from scipy.optimize import curve_fit
 import scipy.stats
+import glob
+from Fextr_utils import check_file_existance
 
 colorlib=['purple','indigo','rebeccapurple', 'midnightblue', 'darkblue', 'mediumblue', 'blue', 'royalblue', 'dodgerblue', 'cornflowerblue', 'deepskyblue', 'lightskyblue', 'cadetblue','darkcyan', 'darkturquoise', 'mediumturquoise', 'turquoise', 'aqua', 'mediumaquamarine', 'aquamarine', 'mediumspringgreen', 'springgreen', 'green', 'lime', 'lawngreen', 'chartreuse', 'greenyellow', 'yellow', 'gold', 'goldenrod', 'orange', 'darkorange', 'chocolate', 'darksalmon', 'orangered', 'red', 'firebrick', 'maroon', 'darkred', 'black']
 
@@ -71,6 +88,9 @@ def sigmoid_fit_2(fact,x):
     
     
 def logfit(x, a, b, c):
+    """
+    logistic function = logfit
+    """
     #c = 0
     return a * (1- np.exp(-b * (x-1))) + c * x
 
@@ -89,6 +109,9 @@ def totalsumsquares(arr):
     return np.sum((arr-np.mean(arr))**2)
 
 def fitting(sel, x):
+    """
+    fit with logfit model. Not used anymore.
+    """
     if np.all(sel ==0):
         return np.array([0.,0.,0.])
     else:
@@ -160,21 +183,6 @@ def sigmoid_fitting(sel, x):
             except RuntimeError:
                 popt = np.array([0.,0.,0.])
             
-        ##Exclude fits with boundary values, which means that the fit isn't done properly.
-        ##Even if we check the R2 and chi2, it is better to throw them out.
-        #if np.round(popt[1],3) == np.round(kmax,3):
-            #print("kmax reached", np.array([popt[0], popt[1], popt[2]]))
-            ##return np.array([0.,0.,0.])
-        #if np.round(popt[1],3) == np.round(kmin,3):
-            #print("kmin reached", np.array([popt[0], popt[1], popt[2]]))
-            ##return np.array([0.,0.,0.])
-        #if np.round(popt[2],3) == np.round(x0max,3):
-            ##return np.array([0.,0.,0.])
-            #print("x0max reached", np.array([popt[0], popt[1], popt[2]]))
-        #if np.round(popt[2],3) == np.round(1,3):
-            ##return np.array([0.,0.,0.])
-            #print("x0min reached", np.array([popt[0], popt[1], popt[2]]))
-            
         #Exclude based on alpha. 
         alpha = ((val)/popt[1])+ popt[2]
         if alpha < 1.0:
@@ -187,6 +195,11 @@ def sigmoid_fitting(sel, x):
         return np.array(popt)
     
 class Distance_analysis(object):
+    """
+    Class to carry out the distance analysis. Fitting is done with a sigmoidal function. In the past we used an exponential function but the sigmoidal appears to work better.
+    Needs a list of pdb files, with the first one being the reference file. 
+    The occupancy list should be in the same order as the pdb files and no value should be given for the first pdb file (we'll add an alpha value of 1)
+    """
     def __init__(self, pdblst, occupancies, resids_lst = None, plateau_fraction=0.99, use_waters = True, outsuffix = '', log = sys.stdout):
         self.resids_lst       = resids_lst
         if plateau_fraction < 0.0:
@@ -205,19 +218,6 @@ class Distance_analysis(object):
         print("DISTANCE ANALYSIS")
         print("DISTANCE ANALYSIS", file=self.log)
         alphas = list(map(lambda x: round(1/x, 3), occupancies))
-            
-        ##Assumes the alpha of the reference still needs to be added and that this will be the first pdb in the list...
-        ##in order to force the curvefitting to be as low possible between alpha of 0 and 1 (which is physically impossble), duplicate the reference model pdb at alpha of 1
-        #if (0.01 not in alphas and 1.0 not in alphas and len(alphas) != len(pdblst)):
-            #pdblst = [pdblst[0]]+pdblst
-            #alphas = [0.01,1]+alphas
-        ##if alpha of 1 IS present (so occ of 1 is tested):
-        #elif (0.01 not in alphas and len(alphas) != len(pdblst)):
-            #alphas = [0.01]+alphas
-        ##if alpha of 0.01 IS present (so reference model is given), and hence the number of alpha-values and pdbs are equal, still assuming that this is going to be the fist pdb in the list
-        #elif (1 not in alphas and len(alphas) == len(pdblst)):
-            #pdblst = [pdblst[0]]+pdblst
-            #alphas = [1]+alphas #Sorting of alphas will be done below
             
         if (1.0 not in alphas and len(alphas) != len(pdblst)):
             alphas = [1]+alphas
@@ -253,8 +253,9 @@ class Distance_analysis(object):
         #To estimate alpha however, we should take into account that alpha between 0 and 1 is impossible, hence the curve should actually start at 1.
         #   This comes down to shifting the complete sigmoidal to the right. Hence to calcalute alpha, one should use the following formula
         #   k x (alpha - alphainflection) -1 = val
-        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
         global val
+        val = -1 * np.log((1/self.plateau_fraction)-1) + 1
+        
      
         #Sort the pdb files and alphas in order to have alpha from small to large, this is important for fitting
         #This might not work in pyhton3
@@ -264,8 +265,8 @@ class Distance_analysis(object):
         self.alphas = list(alphas)
         self.pdblst = list(pdblst)
         
-        maxalpha = np.max(self.alphas)
         global maxalpha
+        maxalpha = np.max(self.alphas)
      
         print("Reference pdb file:", self.pdblst[0], file=log)
         print("Reference pdb file:", self.pdblst[0])
@@ -281,6 +282,9 @@ class Distance_analysis(object):
                 
         
     def get_residlist(self):
+        """
+        Make a residue list based on an input map-explorer like file
+        """
         if self.resids_lst != None:
             with open(self.resids_lst) as rs_lst:
                 residlst = rs_lst.read().split("\n")
@@ -296,6 +300,9 @@ class Distance_analysis(object):
             self.residlst = np.array(residlst_unique)
             
     def get_residlist_from_all_atoms(self, pdb_file):
+        """
+        Make a residue list based on all atoms in a PDB file
+        """
         pdb_hier = hierarchy.input(file_name=pdb_file)
         hier = pdb_hier.hierarchy        
         
@@ -527,10 +534,6 @@ class Distance_analysis(object):
         
         info_for_print = [[i[0],i[2],i[1].lstrip().rstrip(), '(%s%s)'%(i[4].lstrip().rstrip(), i[3].lstrip().rstrip())] for i in self.info]
         
-        #fulllist      = []
-        #possible_b    = []
-        #possible_amp   = []
-        
         #Set all differences to a positive value
         self.alldifferences = np.abs(self.alldifferences)
 
@@ -620,9 +623,9 @@ class Distance_analysis(object):
         #print("np.max(toplot_matrix)", np.max(toplot_matrix))
     
         #Extraction of possible b and amplitude. This assumes that both of them are non-zero
-        #for simoidal plot, keep similar names as to avoid too much changes:
-        #k = possible_b
-        #L = possible_amp
+        #for simoidal plot, keep similar names as for the exponential fit avoid too much changes:
+            #k = possible_b
+            #L = possible_amp
         possible_b = np.multiply(fitting_matrix[1], toplot_matrix)
         possible_b = possible_b.ravel(order='C')[np.flatnonzero(possible_b)]
         
@@ -882,54 +885,201 @@ class Distance_analysis(object):
         return alp_mean, occ_mean
 
 
-def do_the_distance_analysis(pdblst, occupancies, resids_lst= None, use_waters = True, outsuffix = '',log = sys.stdout):
+class Filefinder(object):
+    """
+    Find input files for the standalone version of the distance_analysis, based on the output of an Xtrapol8 run.
+    """
+    def __init__(self,
+                 X8_outdir ="Xtrapol8",
+                 X8_outname = "Xtrapol8",
+                 X8_list_occ = [0.1],
+                 X8_f_extrapolated_and_maps = "qFextr",
+                 distance_f_extrapolated_and_maps = "qFextr"):
+        self.X8_outdir                  = X8_outdir
+        self.X8_outname                 = X8_outname
+        self.X8_list_occ                = X8_list_occ
+        self.X8_f_extrapolated_and_maps = X8_f_extrapolated_and_maps
+        self.distance_f_extrapolated_and_maps = distance_f_extrapolated_and_maps
     
-    Distance_analysis(pdblst, occupancies, resids_lst, use_waters = use_waters, outsuffix = outsuffix, log = log).extract_alpha()
-    
+    def find_pdbs(self):
+        """
+        Find the PDB files  given the X8_outdir, X8_outname, the X8_list_occ list and X8_f_extrapolated_and_maps 
+        """
+        if self.distance_f_extrapolated_and_maps not in self.X8_f_extrapolated_and_maps:
+            print("ESFA file type not found in Xtrapol8 output (this might be a bug)")
+        
+        if self.distance_f_extrapolated_and_maps.startswith("q"):
+            first_part = "qweight_"
+        elif self.distance_f_extrapolated_and_maps.startswith("k"):
+            first_part = "kweight_"
+        else:
+            first_part = ''
+                        
+        maptype = re.sub("f","F", self.distance_f_extrapolated_and_maps)
+        last_part = "2m{:s}-DFc".format(maptype)
+                
+        pdb_list = []
+        for occ in self.X8_list_occ:
+            d = "{:s}/{:s}occupancy_{:.3f}/{:s}_occ{:.3f}_{:s}".format(self.X8_outdir, first_part, occ, self.X8_outname, occ, last_part)
+            
+            try:
+                pdb_fles = glob.glob("{:s}*real_space*.pdb".format(d))
+                pdb_fles.sort(key=lambda x: os.path.getmtime(x))
+                pdb_out = pdb_fles[-1]
+            except IndexError:
+                pdb_out = glob.glob("{:s}*.pdb".format(d))
+                pdb_fles.sort(key=lambda x: os.path.getmtime(x))
+                pdb_out = pdb_fles[-1]
+                
+            pdb_list.append(os.path.abspath(check_file_existance(pdb_out)))
+            print("occ: {:.3f} pdb found: {:s}".format(occ, pdb_out))
+
+        return pdb_list
     
 if __name__ == '__main__':
 
-    import argparse
+    import iotbx.phil
+    from libtbx.utils import Usage
     
-    parser = argparse.ArgumentParser(description = 'Standalone version of the distance analysis method for occupancy estimation.')
-    parser.add_argument('-m' , '--model_pdb', default='input.pdb', help='Reference coordinates in pdb format.')
-    parser.add_argument('-p' , '--pdb_list', default='mypdb_with_occ0.1.pdb,mypdb_with_occ0.2.pdb', help='list of pdb files to be analysed. Comma-seperated, no spaces.')
-    parser.add_argument('-o' , '--occupancies', default ='0.1, 0.2', help='list of occupancies, in the same order as the pdb-files. Comma-seperated, no spaces.')
-    parser.add_argument('-r' , '--residue_list', default = None, help='list with residues to take into account for the occupancy estimation in same style as the output from map-explorer (e.g. residlist_Zscore2.00.txt). All residues will be used if no residue_list is provided.')
-    parser.add_argument('-s' , '--suffix', default = '', help='suffix to be added to the output plot.')
-    parser.add_argument('--use_waters', action = 'store_true', help='also use the water molecules in the analysis. This requires that waters have not been removed or added in comparison to the reference model.')
-    parser.add_argument('-l' , '--log_file', default=None, help='write results to a file.')
-    
-    print("------------------")
-    print("You can safely ignore any SyntaxWarning messages concerning global parameters")
-    print("------------------")
-    
-    #print help if no arguments provided
+    from master import master_phil
+    Xtrapol8_master_phil = master_phil
+
+    master_phil = iotbx.phil.parse("""
+    input{
+        Xtrapol8_out = None
+            .type = path
+            .help = Xtrapol8_out.phil which can be found in the Xtrapol8 output directory
+            .expert_level = 0
+        f_extrapolated_and_maps = *qfextr fextr kfextr qfgenick fgenick kfgenick qfextr_calc fextr_calc kfextr_calc
+            .type = choice(multi=False)
+            .help = The type of ESFAs for which the difference map analysis will be carried out. The Xtrapol8 run prior to these analysis should include the ESFA type of choice. You can only specify one, launch mutliple runs if you want to repeat on with different ESFA types.
+            .expert_level = 0
+        reference_pdb = None
+            .type = path
+            .help = Reference model for difference map analysis, in PDB or mmcif format
+            .expert_level = 0
+        }
+    map_explorer{
+        residue_list = None
+            .type = path
+            .help = list with residues to take into account for the occupancy estimation in same style as the output from map-explorer (e.g. residlist_Zscore2.00.txt). All residues in the reference model will be used if no residue_list is provided.
+            .expert_level = 0
+        use_waters = False
+            .type = bool
+            .help = Also use the water molecules in the analysis. This requires that waters have not been removed or added in comparison to the reference model
+            .expert_level = 0
+        }
+    output{
+        outdir = Distance_analysis
+            .type = str
+            .help = Output directory. 'Distance_analysis' will be used if not specified.
+            .expert_level = 0
+        suffix = None
+            .type = str
+            .help = suffix/prefix to be added to the output files (e.g. the Fextrapoled map type).
+            .expert_level = 0
+        log_file = None
+            .type = str
+            .help = write results to a file.
+            .expert_level = 0
+    }
+    """, process_includes=True)
+
+    #print help if no arguments provided or "--help" or "-h"
     if len(sys.argv) < 2:
-           parser.print_help()
+           master_phil.show(attributes_level=1)
+           raise Usage("phenix.python distance_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
+           sys.exit(1)
+    if "--help" in sys.argv or "-h" in sys.argv:
+           master_phil.show(attributes_level=1)
+           raise Usage("phenix.python distance_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last")
            sys.exit(1)
 
-    #interprete arguments
-    args = parser.parse_args()
+    #Extract input from inputfile and command line
+    input_objects = iotbx.phil.process_command_line_with_files(
+        args=sys.argv[1:],
+        master_phil=master_phil
+        )
+    params = input_objects.work.extract()
+        
+    #Extract info form Xtrapol8 run
+    if params.input.Xtrapol8_out == None:
+        print("input.Xtrapol8_out not defined")
+        sys.exit(1)
+    if os.path.isfile(params.input.Xtrapol8_out) == False:
+        print("File not found: {:s}". format(params.input.Xtrapol8_out))
+        sys.exit(1)
 
-    pdbs        = [args.model_pdb,]+args.pdb_list.split(",")
-    occupancies = list(map(lambda x : float(x), args.occupancies.split(",")))
-    assert len(pdbs) == len(occupancies)+1, "Please provide a model PDB and an occupancy value for each pdb in the PDB list"
-
-    resids_lst = args.residue_list
-    outsuffix  = args.suffix
-    use_waters = args.use_waters
-
-    if args.log_file == None:
-        log = open('distance_analysis_%s.log' %(outsuffix), 'w')
-    else:
-        log = open(args.log_file, 'w')
+    Xtrapol8_input_objects = iotbx.phil.process_command_line_with_files(
+        args = [params.input.Xtrapol8_out],
+        master_phil = Xtrapol8_master_phil
+        )
+    Xtrapol8_params = Xtrapol8_input_objects.work.extract()
     
-    if resids_lst == None:
-       do_the_distance_analysis(pdbs, occupancies, use_waters = use_waters, outsuffix = outsuffix, log = log)
-    else:
-        do_the_distance_analysis(pdbs, occupancies, resids_lst, use_waters = use_waters, outsuffix = outsuffix, log = log)        
+    if params.input.reference_pdb == None:
+        print("input.reference_pdb not defined")
+        sys.exit(1)
+    if os.path.isfile(params.input.reference_pdb) == False:
+        print("File not found: {:s}". format(params.input.reference_pdb))
+        sys.exit(1)
+    model_pdb = os.path.abspath(params.input.reference_pdb)
+    
+    #extract and search for distance-analysis parameters and input files
+    pdbs = Filefinder(X8_outdir = Xtrapol8_params.output.outdir,
+                      X8_outname = Xtrapol8_params.output.outname,
+                      X8_list_occ = Xtrapol8_params.occupancies.list_occ,
+                      X8_f_extrapolated_and_maps = Xtrapol8_params.f_and_maps.f_extrapolated_and_maps,
+                      distance_f_extrapolated_and_maps = params.input.f_extrapolated_and_maps).find_pdbs()
+                      
+    pdblst = [model_pdb]+pdbs
+    occupancies = Xtrapol8_params.occupancies.list_occ
+    
+    assert len(pdblst) == len(occupancies)+1, "Please provide a model PDB and an occupancy value for each pdb in the PDB list"
 
-    #if  args.log_file != None:
-        #log.close()
+    if params.output.suffix != None:
+        suffix = params.output.suffix
+    else:
+        suffix = params.input.f_extrapolated_and_maps
+        
+    use_waters = params.map_explorer.use_waters
+
+    if params.map_explorer.residue_list != None:
+        if os.path.isfile(params.map_explorer.residue_list) == False:
+            print("File not found: {:s}". format(params.map_explorer.residue_list))
+            sys.exit(1)
+        residue_list = os.path.abspath(params.map_explorer.residue_list)
+    else:
+        residue_list = None
+        
+    outdir = params.output.outdir
+    i = 1
+    while os.path.exists(outdir):
+        if os.path.isdir(outdir):
+            if len(os.listdir(outdir)) ==0:
+                break
+        outdir = "%s_%d" %(params.output.outdir, i)
+        i += 1
+        if i == 1000: #to avoid endless loop, but this leads to a max of 1000 runs
+            break
+    try:
+        os.mkdir(outdir)
+        print('Output directory being created: %s'%(outdir))
+    except OSError:
+        try:
+            os.makedirs(outdir)
+            print('Output directory being created: %s'%(outdir))
+        except OSError:
+            print("Output directory: %s" %(outdir))
+            
+    os.chdir(outdir)
+    
+    if params.output.log_file == None:
+        log = open('distance_analysis_%s.log' %(suffix), 'w')
+    else:
+        log = open(params.output.log_file, 'w')
+        
+    #Run the distance analysis
+    Distance_analysis(pdblst, occupancies, residue_list, use_waters = use_waters, outsuffix = suffix, log = log).extract_alpha()
+
+    #Close the log file
     log.close()
