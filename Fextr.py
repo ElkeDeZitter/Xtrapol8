@@ -1758,7 +1758,7 @@ class Filesandmaps(object):
         resolution factor =0.25 and buffer = 5.0 default values in mtz2map
         """
         fft_map_2mfodfc = mc_map.fft_map(
-            crystal_gridding =self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
+            crystal_gridding =self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
         #fft_map_2mfodfc.as_ccp4_map(file_name = self.ccp4_name_2FoFc) #Origin not correct, causes problems with pymol
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
@@ -1777,8 +1777,8 @@ class Filesandmaps(object):
             #file_name  = self.xplor_name_2FoFc)
         
         fft_map_mfodfc = mc_diff.fft_map(
-            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_sigma_scaling()
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
+        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_volume_scaling()
         #fft_map_mfodfc.as_ccp4_map(file_name = self.ccp4_name_FoFc)
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
@@ -1806,7 +1806,7 @@ class Filesandmaps(object):
         """
         #Calculate 2mFo-DFc type of map
         fft_map_2mfodfc = mc_map.fft_map(
-            crystal_gridding =self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
+            crystal_gridding =self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
         #fft_map_2mfodfc.as_ccp4_map(file_name = self.ccp4_name_2FoFc) #Origin not correct, causes problems with pymol
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
@@ -1818,8 +1818,8 @@ class Filesandmaps(object):
         
         #Calculate mFo-DFc type of map
         fft_map_mfodfc = mc_diff.fft_map(
-            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_sigma_scaling()
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
+        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_volume_scaling()
         #fft_map_mfodfc.as_ccp4_map(file_name = self.ccp4_name_FoFc)
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
@@ -1844,7 +1844,7 @@ class Filesandmaps(object):
         mtz_object = mtz_dataset.mtz_object()
         mtz_object.write(file_name = mtz_name)
         fft_map_mfofo = mc_mfofo.fft_map(
-            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
+            crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_volume_scaling()
         #fft_map_mfofo.as_ccp4_map(file_name  = ccp4_name) #works too but below is how xplor-files arewritten with mtz2map
         iotbx.map_tools.write_ccp4_map(
           sites_cart = self.sites_cart,
