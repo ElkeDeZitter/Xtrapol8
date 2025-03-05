@@ -2321,14 +2321,14 @@ def run(args):
     
     #Print reflection statistics to screen and log-file
     print("----Summary reference data:----")
-    print(DH.fobs_on.show_comprehensive_summary())
-    print("----Summary reference data:----", file=log)
-    print(DH.fobs_on.show_comprehensive_summary(f=log), file=log)
-    print("----Summarry triggered data:----")
     print(DH.fobs_off.show_comprehensive_summary())
+    print("----Summary reference data:----", file=log)
+    print(DH.fobs_off.show_comprehensive_summary(f=log), file=log)
+    print("----Summarry triggered data:----")
+    print(DH.fobs_on.show_comprehensive_summary())
     print("------------------------------------")
     print("----Summarry triggered data:----", file=log)
-    print(DH.fobs_off.show_comprehensive_summary(f=log), file=log)
+    print(DH.fobs_on.show_comprehensive_summary(f=log), file=log)
     print("------------------------------------", file=log)
 
     #Scale the data sets. Different steps taken:
@@ -2413,15 +2413,14 @@ def run(args):
     print("Resolution range= %2f - %2f A" %(dmax, dmin))
     print('---------------------------')
 
-    
-    print("----Summary triggered scaled and sorted common reflections with reference data:----")
-    print(DH.fobs_on_scaled.show_comprehensive_summary())
-    print("----Summary triggered scaled and sorted common reflections with reference data:----", file=log)
-    print(DH.fobs_on_scaled.show_comprehensive_summary(f=log), file=log)
     print("----Summary reference scaled and sorted common reflections with triggered data:----")
     print(DH.fobs_off_scaled.show_comprehensive_summary())
     print("----Summary reference scaled and sorted common reflections with triggered data:----", file=log)
     print(DH.fobs_off_scaled.show_comprehensive_summary(f=log), file=log)
+    print("----Summary triggered scaled and sorted common reflections with reference data:----")
+    print(DH.fobs_on_scaled.show_comprehensive_summary())
+    print("----Summary triggered scaled and sorted common reflections with reference data:----", file=log)
+    print(DH.fobs_on_scaled.show_comprehensive_summary(f=log), file=log)
     #time.sleep(3)
 
     print('-----------------------------------------')
