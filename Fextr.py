@@ -304,7 +304,7 @@ class DataHandler(object):
             self.pdb_in = os.path.abspath(self.pdb_in) #We will need absolute path of pdb file for later refinements in subdirectories
         return self.pdb_in
 
-    def extract_fobs(self, low_res, high_res):
+    def extract_fobs(self, low_res, high_res, french_wilson_scaling = "cctbx"):
         """
         Extract the actual reflections from the data files and cut at resolution limits (if set)
         For now Friedel pairs will have to be merged.
@@ -313,7 +313,7 @@ class DataHandler(object):
                                                         self.reflections_on,
                                                         low_res,
                                                         high_res,
-                                                        log = log).extract_columns()
+                                                        log = log).extract_columns(french_wilson_scaling = french_wilson_scaling)
         
         if self.fobs_off.anomalous_flag():
             print("I promised to keep the anomalous flags, but that was a lie. Xtrapol8 is not yet ready to handle anomalous data. For now, your Friedel pairs will be merged.", file=log)
@@ -521,6 +521,8 @@ class DataHandler(object):
                     [f_model_scaled, f_obs_on, f_obs_off, f_obs_off_scaled, rfree]) == False:
                 print (
                 "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.")
+                print (
+                "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.", file=log)
                 
         off_fin = f_obs_off.data().size()
         on_fin  = f_obs_on.data().size()
@@ -2266,7 +2268,9 @@ def run(args):
     
     #extract columns from mtz files that needs to be substracted
     print("----Column extraction from reflection files----")
-    DH.extract_fobs(params.input.low_resolution,params.input.high_resolution)
+    DH.extract_fobs(params.input.low_resolution,
+                    params.input.high_resolution,
+                    french_wilson_scaling=params.scaling.french_wilson)
     print('---------------------------')
     
     # compatibilty test between mtz-files and model

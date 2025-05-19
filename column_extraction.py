@@ -24,7 +24,8 @@ from __future__ import print_function
 import os,sys
 from cctbx import miller, xray
 from iotbx.file_reader import any_file
-
+from cctbx import french_wilson
+from libtbx.utils import null_out
 
 class Column_extraction(object):
     def __init__(self, reflections_ref, reflections_trig, low_res=None, high_res=None, log=sys.stdout):
@@ -96,12 +97,12 @@ class Column_extraction(object):
                     #i_obs = array.map_to_asu()
                     i_obs = array
                     labels = i_obs.info().labels
-                    print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
-                    print("Found I's: %s Conversion to Fs with truncate" %(labels))
+                    print("Found I's: %s" %(labels), file = self.log)
+                    print("Found I's: %s" %(labels))
                     
                 if (f_obs == None and i_obs != None): #I's found, need to convert to F's
-                    print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
-                    print("Found I's: %s Conversion to Fs with truncate" %(labels))
+                    print("Found I's: %s" %(labels), file = self.log)
+                    print("Found I's: %s" %(labels))
                     
                     #merge bijvoet mates incase of anomalous data:
                     if ano_flag:
@@ -140,8 +141,8 @@ class Column_extraction(object):
                     #print("Found I's: %s" %(labels))
         
         if (f_obs == None and i_obs != None): #I's found, need to convert to F's
-            print("Found I's: %s Conversion to Fs with truncate" %(labels), file = self.log)
-            print("Found I's: %s Conversion to Fs with truncate" %(labels))
+            print("Found I's: %s" %(labels), file = self.log)
+            print("Found I's: %s" %(labels))
             
             #merge bijvoet mates incase of anomalous data:
             if ano_flag:
@@ -181,7 +182,7 @@ class Column_extraction(object):
 
     def write_pointless_input(self, reflections, reflections_ref, prefix):
         """
-        Prepaare mtz files and script for pointless
+        Prepare mtz files and script for pointless
         """
         mtz_for_pointless = "%s_forpointless.mtz" % (prefix)
         if type(reflections.observation_type()) == xray.observation_types.intensity:
@@ -250,7 +251,6 @@ eof_pointless" %(mtz_for_pointless, mtz_from_pointless, mtz_reference_for_pointl
         """
         mtz_out, script_truncate = self.write_truncate_input(reflections, prefix, high_res, low_res)
         os.system("chmod +x %s" %(script_truncate))
-        print("Running truncate, see %s" %(script_truncate))
         os.system("./%s" %(script_truncate))
         reflections_off = any_file(mtz_out, force_type="hkl", raise_sorry_if_errors=True)
         return reflections_off
@@ -311,6 +311,35 @@ eof_truncate"
         i.close()
         return mtz_from_truncate, script_out
     
+    
+    def cctbx_french_wilson_scaling(self, reflections, prefix, high_res, low_res):
+        """
+        Convert intensities to Fs with cctbx.french_wilson.french_wilson_scale
+        arguments:
+        - reflections: intensities to convert
+        - prefix: (is actually used as suffix)
+        - high_res: high resolution resolution_cutoff
+        - low_res: low resolution cutoff
+        """
+        #Make sure the input type are intensities
+        assert type(reflections.observation_type()) == xray.observation_types.intensity
+        
+        #cut the resolution if requires
+        reflections = reflections.resolution_filter(high_res, low_res)
+        
+        #Merge Friedel pairs because right now we cannot deal with them
+        reflections = reflections.average_bijvoet_mates()
+        
+        #French-Wilson conversion, write output to log file
+        # with open("cctbx_french_wilson_scale_{:s}.log".format(prefix), "w") as log_file:
+        f_obs = french_wilson.french_wilson_scale(
+            miller_array = reflections,
+            log = null_out())
+            # log = log_file)
+
+        return f_obs
+        
+    
     def resolution_cutoff(self, obs):
         """
         Cut data at low and high resolution, only if the data extend beyond the limit.
@@ -322,8 +351,13 @@ eof_truncate"
             dmax = self.low_res
         return dmax, dmin
 
-    def extract_columns(self):
+    def extract_columns(self, french_wilson_scaling = "cctbx"):
         """
+        Conversion from I to F using french_wilson scaling:
+        - truncate
+        - cctbx
+        cctbx will be used if not defined properly
+        
         Extract columns:
         1) check if the data should be kept anomalous or not. This is only the case if both data sets are anomalous.
         If only one of them is anomalous, then it will be converted to non-anomalous!
@@ -352,29 +386,31 @@ eof_truncate"
 
         print("Reference")
         print("Reference", file=self.log)
-        f_obs_ref, i_obs_ref, run_truncate, labels_ref = self.get_F(self.reflections_ref, ano_flag=ano_ref)
-        if run_truncate: #Data is I
+        f_obs_ref, i_obs_ref, I_to_F_conversion, labels_ref = self.get_F(self.reflections_ref, ano_flag=ano_ref)
+        if I_to_F_conversion: #Data is I
             dmax, dmin = self.resolution_cutoff(i_obs_ref)
-            # Run truncate to convert I to F
-            self.reflections_ref = self.run_truncate(i_obs_ref, "reference", dmax, dmin)
-            f_obs_ref,_,_,_ = self.get_F(self.reflections_ref, ano_flag=False)
-            #f_obs_ref,_,_,_ = self.get_F(self.reflections_ref, ano_flag=ano_ref) #when we can handle anomalous data properly
+            if french_wilson_scaling == "truncate":
+                print("I to F conversion with truncate")
+                print("I to F conversion with truncate", file=self.log)
+                # Run truncate to convert I to F
+                self.reflections_ref = self.run_truncate(i_obs_ref, "reference", dmax, dmin)
+                f_obs_ref,_,_,_ = self.get_F(self.reflections_ref, ano_flag=False)
+                #f_obs_ref,_,_,_ = self.get_F(self.reflections_ref, ano_flag=ano_ref) #when we can handle anomalous data 
+            else: #french_wilson_scaling == "cctbx"
+                print("I to F conversion with cctbx")
+                print("I to F conversion with cctbx", file=self.log)
+                f_obs_ref = self.cctbx_french_wilson_scaling(i_obs_ref, "reference", dmax, dmin)
+
         else: #Data is F
             dmax, dmin = self.resolution_cutoff(f_obs_ref)
-        #This should not be done anymore because bijvoet mates already merged in get_F
-        #if (self.check_if_ano(self.reflections_ref) == True and self.ano == False): 
-            ##merge Friedel pairs in case reflections_ref is ano but reflections_trig is not.
-            #print("Merge Friedel pairs for reference data set",file=self.log)
-            #print("Merge Friedel pairs for reference data set")
-            #f_obs_ref = f_obs_ref.average_bijvoet_mates()
-        f_obs_ref = f_obs_ref.resolution_filter(dmax, dmin)
+            f_obs_ref = f_obs_ref.resolution_filter(dmax, dmin)
 
         print("------")
         print("------", file=self.log)
         print("Triggered")
         print("Triggered", file=self.log)
-        f_obs_2, i_obs_2, run_truncate,_ = self.get_F(self.reflections_trig, labels_ref, ano_flag=ano_trig)
-        if run_truncate: #Data is I
+        f_obs_2, i_obs_2, I_to_F_conversion,_ = self.get_F(self.reflections_trig, labels_ref, ano_flag=ano_trig)
+        if I_to_F_conversion: #Data is I
             dmax, dmin = self.resolution_cutoff(i_obs_2)
             #Run pointless to avoid indexing issues
             mtz_pointless, pointless_success = self.run_pointless(i_obs_2, f_obs_ref, "triggered")
@@ -386,9 +422,17 @@ eof_truncate"
                 print("Pointless failed, data not reindexed.")
                 print("Pointless failed, data not reindexed.", file=self.log)
             #Run truncate to convert I to F
-            self.reflections_trig = self.run_truncate(i_obs_2, "triggered", dmax, dmin)
-            f_obs_2,_,_,_= self.get_F(self.reflections_trig, ano_flag=False)
-            #f_obs_2,_,_,_= self.get_F(self.reflections_trig, ano_flag=ano_trig) #when we can handle anomalous data properly
+            if french_wilson_scaling == "truncate":
+                print("I to F conversion with truncate")
+                print("I to F conversion with truncate", file=self.log)
+                self.reflections_trig = self.run_truncate(i_obs_2, "triggered", dmax, dmin)
+                f_obs_2,_,_,_= self.get_F(self.reflections_trig, ano_flag=False)
+                #f_obs_2,_,_,_= self.get_F(self.reflections_trig, ano_flag=ano_trig) #when we can handle anomalous data properly
+            else: #french_wilson_scaling == "cctbx"
+                print("I to F conversion with cctbx")
+                print("I to F conversion with cctbx", file=self.log)
+                f_obs_2 = self.cctbx_french_wilson_scaling(i_obs_2, "triggered", dmax, dmin)
+
         else: #Data is F
             # Run pointless to avoid indexing issues
             dmax, dmin = self.resolution_cutoff(f_obs_2)
@@ -400,13 +444,7 @@ eof_truncate"
             else: #Pointless run incorrectly
                 print("Pointless failed, data not reindexed.")
                 print("Pointless failed, data not reindexed.", file=self.log)
-        ##This should not be done anymore because bijvoet mates already merged in get_F
-        #if (self.check_if_ano(self.reflections_trig) == True and self.ano == False):
-            ##merge Friedel pairs in case reflections_trig is ano but reflections_ref is not
-            #print("Merge Friedel pairs for other data sets", file=self.log)
-            #print("Merge Friedel pairs for other data sets")
-            #f_obs_2 = f_obs_2.average_bijvoet_mates()
-        f_obs_2 = f_obs_2.resolution_filter(dmax, dmin)
+            f_obs_2 = f_obs_2.resolution_filter(dmax, dmin)
 
         print("------")
         print("------", file=self.log)
@@ -461,8 +499,6 @@ eof_truncate"
         """
         mtz_out, script_truncate = self.write_truncate_input()
         os.system("chmod +x %s" %(script_truncate))
-        print("Running truncate, see %s, to convert Is to Fs" %(script_truncate))
-        print("Running truncate, see %s, to convert Is to Fs" %(script_truncate), file=self.log)
         os.system("./%s" %(script_truncate))
         reflections_extrapolate = any_file(mtz_out, force_type="hkl", raise_sorry_if_errors=False)
         return reflections_extrapolate

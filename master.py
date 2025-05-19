@@ -73,6 +73,10 @@ occupancies{
         .expert_level = 0
     }
 scaling{
+    french_wilson = cctbx *truncate
+        .type = choice(multi=False)
+        .help = algorithm for I to F conversion with French-Wilson scaling
+        .expert_level=3
     b_scaling = no isotropic *anisotropic 
         .type = choice(multi=False)
         .help = B-factor scaling for scaling triggered data vs reference data using scaleit.
