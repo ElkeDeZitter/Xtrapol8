@@ -77,7 +77,7 @@ scaling{
         .type = choice(multi=False)
         .help = Algorithm for I to F conversion with French-Wilson scaling. Truncate from CCP4 or the conversion algorithm from cctbx can be used. In both cases, Frnech-Wilson scaling will be applied.
         .expert_level=3
-    data_scaling = cctbx scaleit no
+    data_scaling = cctbx *scaleit no
         .type = choice(multi=False)
         .help = Algorithm for scaling the triggered to the reference data set. Scaleit from CCP4 or the multiscale algorithm from cctbx can be chosen. Select 'no' if the data sets should not be scaled.
         .expert_level =3

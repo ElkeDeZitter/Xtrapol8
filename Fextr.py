@@ -102,8 +102,6 @@ from iotbx import ccp4_map
 from scipy.stats import pearsonr
 from wx.lib.pubsub import pub
 
-#sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
-
 from calculate_q import calculate_q, outlier_rejection_only
 from calculate_k import calculate_k
 from map_explorer import map_explorer
@@ -507,22 +505,24 @@ class DataHandler(object):
         off_ini = f_obs_off.data().size()
         on_ini  = f_obs_on.data().size()
         
-        f_model_scaled, f_obs_on = f_model_scaled.common_sets(f_obs_on)
-        f_model_scaled, f_obs_off = f_model_scaled.common_sets(f_obs_off)
-        f_model_scaled, f_obs_off_scaled = f_model_scaled.common_sets(f_obs_off_scaled)
-        f_model_scaled, rfree = f_model_scaled.common_sets(rfree)
-        if check_common_indices(
-                [f_model_scaled, f_obs_on, f_obs_off, f_obs_off_scaled, rfree]) == False:
+        i_max = 10
+        i = 0
+        while not check_common_indices([f_model_scaled, f_obs_on, f_obs_off, f_obs_off_scaled, rfree]) and i < i_max:
             f_model_scaled, f_obs_on = f_model_scaled.common_sets(f_obs_on)
             f_model_scaled, f_obs_off = f_model_scaled.common_sets(f_obs_off)
             f_model_scaled, f_obs_off_scaled = f_model_scaled.common_sets(f_obs_off_scaled)
             f_model_scaled, rfree = f_model_scaled.common_sets(rfree)
-            if check_common_indices(
-                    [f_model_scaled, f_obs_on, f_obs_off, f_obs_off_scaled, rfree]) == False:
-                print (
-                "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.")
-                print (
-                "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.", file=log)
+            f_model_scaled = f_model_scaled.sort()
+            f_obs_on = f_obs_on.sort()
+            f_obs_off = f_obs_off.sort()
+            f_obs_off_scaled = f_obs_off_scaled.sort()
+            rfree = rfree.sort()
+            i += 1
+        if i == i_max:
+            print (
+            "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.")
+            print (
+            "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.", file=log)
                 
         off_fin = f_obs_off.data().size()
         on_fin  = f_obs_on.data().size()
@@ -2138,6 +2138,10 @@ def run(args):
     if params.f_and_maps.all_maps: #calculate all Fextr map types
         qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = Fextr_calc_map = kFextr_map = kFgenick_map = kFextr_calc_map = True
         
+    #Convert the old params.scaling.b_scaling=no to the new params.scaling.data_scaling=no argument
+    if params.scaling.b_scaling == "no":
+        params.scaling.data_scaling = 'no'
+        
     #convert the old use_occupancy_from_distance_analysis to the new occupancy_estimation keyword
     if params.map_explorer.use_occupancy_from_distance_analysis == True:
         remark = "map_explorer.use_occupancy_from_distance_analysis will become obsolete. Use map_explorer.occupancy_estimation=distance_analysis in the future."
@@ -2381,7 +2385,7 @@ def run(args):
     #Add scattering_table argument to make f_model with adapted scattering table
     DH.generate_f_model(DH.fobs_off, scattering_table=params.scattering_table)
     #DH.fmodel.show()
-    if params.scaling.b_scaling != "no":
+    if params.scaling.data_scaling != 'no':
         print("Updating all fmodel scales.")
         try:
             DH.fmodel.update_all_scales(show=True)#, log=log)
@@ -2431,6 +2435,8 @@ def run(args):
     print("Overall cc_iso = %.4f " %(cciso))
     print("Overall R_iso = %.4f " %(riso), file=log)
     print("Overall cc_iso = %.4f " %(cciso), file=log)
+
+    sys.exit()
 
     #Extract the minimum and maximum resolution, as defined by the input parameters and/or the common reflections between the two scaled datasets
     dmax, dmin = DH.fobs_off_scaled.d_max_min()
