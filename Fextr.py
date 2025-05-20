@@ -564,38 +564,67 @@ class DataHandler(object):
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
         
-    def scale_fobss(self, b_scaling, low_res=None, high_res=None):
+    def scale_fobss(self, data_scaling="cctbx", b_scaling='anisotropic', low_res=None, high_res=None):
         """
-        Scale triggered mtz with internally scaled reference mtz using scaleit.
+        Scale triggered mtz with internally scaled reference mtz using scaleit or cctbx multiscale
+        arguments:
+        - data scaling:
+            - "no": no scaling
+            - "scaleit": use scaleit for scaling
+            - "cctbx": use cctbx multiscale
+        - b-scaling: "scale_only", "isotropic" or "anisotropic", only for scaling with scaleit and will be used with the REFINE keyword.
+            "no" is an old b-scaling keyword that refered to no scaling. Using b_scaling = 'no' will become obsolete in the future.
+        - low_res: low resolution boundary for scaling, the data will not be truncated. Only used with scaleit.
+        - high_res: high resolution boundary for scaling,the data will not be truncated. Only used with scaleit. 
         """
-        if b_scaling == 'no':
-            print("Fobs,reference and Fobs,triggered not being scaled", file=log)
-            print("Fobs,reference and Fobs,triggered not being scaled")
+        
+        #Define the scaling resolution boundaries. Only used for scaling with scaleit, but specified so that variables exist.
+        #They are not used for anything if no scaling or scaling with cctbx
+        dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
+        dmax_on, dmin_on = self.fobs_on.d_max_min()
+        self.scaling_dmin = np.max([dmin_off, dmin_on])
+        self.scaling_dmax = np.min([dmax_off, dmax_on])
+        
+        if (b_scaling == 'no') or (data_scaling == "no"): #no scaling
+            print("Fobs,reference and Fobs,triggered not scaled", file=log)
+            print("Fobs,reference and Fobs,triggered not scaled")
             self.fobs_on_scaled = self.fobs_on #don't scale
-            #define the scaling resolution boundaries so that variables exist.
-            dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
-            dmax_on, dmin_on = self.fobs_on.d_max_min()
-            self.scaling_dmin = np.max([dmin_off, dmin_on])
-            self.scaling_dmax = np.min([dmax_off, dmax_on])
-        else:
-            dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
-            dmax_on, dmin_on = self.fobs_on.d_max_min()
+            #define the scaling resolution boundaries so that variables exist. They are not used for anything
+            # dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
+            # dmax_on, dmin_on = self.fobs_on.d_max_min()
+            # self.scaling_dmin = np.max([dmin_off, dmin_on])
+            # self.scaling_dmax = np.min([dmax_off, dmax_on])
+        elif data_scaling == "scaleit": #scaling with scaleit
+            # dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
+            # dmax_on, dmin_on = self.fobs_on.d_max_min()
             #get the high resolution edge for scaling (no data truncation)
             if high_res != None:
                 self.scaling_dmin = np.max([high_res, dmin_off, dmin_on])
-            else:
-                self.scaling_dmin = np.max([dmin_off, dmin_on])
+            # else:
+            #     self.scaling_dmin = np.max([dmin_off, dmin_on])
             #get the low resolution edge for scaling (no data truncation)
             if low_res != None:
                 self.scaling_dmax = np.min([low_res, dmax_off, dmax_on])
-            else:
-                self.scaling_dmax = np.min([dmax_off, dmax_on])
-                
+            # else:
+            #     self.scaling_dmax = np.min([dmax_off, dmax_on])
             print("Fobs,reference and Fobs,triggered scaled using scaleit", file=log)
             print("Fobs,reference and Fobs,triggered scaled using scaleit")
-            #self.fobs_on_scaled = scalef_cnslike(self.fobs_off_scaled, self.fobs_on, self.SG, self.rfree, bscale=b_scaling) #run CNS-like scaling
             self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling, low_res=self.scaling_dmax, high_res=self.scaling_dmin) #prepare mtz-file and run scaleit
 
+        else: #scaling with cctbx multiscale
+            print("Fobs,reference and Fobs,triggered scaled using the multiscale method from cctbx", file=log)
+            print("Fobs,reference and Fobs,triggered scaled using the multiscale method from cctbx")
+            #sclaing with cctbx multiscale
+            self.fobs_on_scaled = self.fobs_on.multiscale(other = self.fobs_off_scaled, reflections_per_bin=250)
+            #define the scaling resolution boundaries so that variables exist. They are not further used for anything
+            # dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
+            # dmax_on, dmin_on = self.fobs_on.d_max_min()
+            # self.scaling_dmin = np.max([dmin_off, dmin_on])
+            # self.scaling_dmax = np.min([dmax_off, dmax_on])
+            
+        print("type(self.fobs_off_scaled)", type(self.fobs_off_scaled))
+        print("type(self.fobs_on_scaled)", type(self.fobs_on_scaled))
+            
 class FobsFobs(object):
     """
     Class for the calculation of weighting difference structure factors and maps.
@@ -2387,9 +2416,11 @@ def run(args):
     DH.fobs_on = DH.get_common_indices_and_Fobs_off(DH.fobs_on) #compare reflections and reassemble off_state data set after scaling of f_obs_off 
     print("----Scaling Ftriggered with Freference----", file=log)
     print("----Scaling Ftriggered with Freference----")
-    DH.scale_fobss(params.scaling.b_scaling,
-                params.scaling.low_resolution,
-                params.scaling.high_resolution)
+    DH.scale_fobss(data_scaling = params.scaling.data_scaling,
+                b_scaling = params.scaling.b_scaling,
+                low_res = params.scaling.low_resolution,
+                high_res = params.scaling.high_resolution)
+    
     #update the parameters so that they appear correct in the output phil files
     params.scaling.high_resolution = DH.scaling_dmin
     params.scaling.low_resolution  = DH.scaling_dmax
@@ -2400,7 +2431,6 @@ def run(args):
     print("Overall cc_iso = %.4f " %(cciso))
     print("Overall R_iso = %.4f " %(riso), file=log)
     print("Overall cc_iso = %.4f " %(cciso), file=log)
-
 
     #Extract the minimum and maximum resolution, as defined by the input parameters and/or the common reflections between the two scaled datasets
     dmax, dmin = DH.fobs_off_scaled.d_max_min()

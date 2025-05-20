@@ -75,11 +75,15 @@ occupancies{
 scaling{
     french_wilson = cctbx *truncate
         .type = choice(multi=False)
-        .help = algorithm for I to F conversion with French-Wilson scaling
+        .help = Algorithm for I to F conversion with French-Wilson scaling. Truncate from CCP4 or the conversion algorithm from cctbx can be used. In both cases, Frnech-Wilson scaling will be applied.
         .expert_level=3
-    b_scaling = no isotropic *anisotropic 
+    data_scaling = cctbx scaleit no
         .type = choice(multi=False)
-        .help = B-factor scaling for scaling triggered data vs reference data using scaleit.
+        .help = Algorithm for scaling the triggered to the reference data set. Scaleit from CCP4 or the multiscale algorithm from cctbx can be chosen. Select 'no' if the data sets should not be scaled.
+        .expert_level =3
+    b_scaling = isotropic *anisotropic scale_only no 
+        .type = choice(multi=False)
+        .help = B-factor scaling for scaling triggered data vs reference data using scaleit. Use scale_only for only applying the main scale factor. The option 'no' has become obsolute and is replaced by data_sclaing=no 
         .expert_level = 0
     high_resolution = None
         .type = float
