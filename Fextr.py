@@ -2436,8 +2436,6 @@ def run(args):
     print("Overall R_iso = %.4f " %(riso), file=log)
     print("Overall cc_iso = %.4f " %(cciso), file=log)
 
-    sys.exit()
-
     #Extract the minimum and maximum resolution, as defined by the input parameters and/or the common reflections between the two scaled datasets
     dmax, dmin = DH.fobs_off_scaled.d_max_min()
     
