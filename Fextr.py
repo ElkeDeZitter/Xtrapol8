@@ -512,11 +512,11 @@ class DataHandler(object):
             f_model_scaled, f_obs_off = f_model_scaled.common_sets(f_obs_off)
             f_model_scaled, f_obs_off_scaled = f_model_scaled.common_sets(f_obs_off_scaled)
             f_model_scaled, rfree = f_model_scaled.common_sets(rfree)
-            f_model_scaled = f_model_scaled.sort()
-            f_obs_on = f_obs_on.sort()
-            f_obs_off = f_obs_off.sort()
-            f_obs_off_scaled = f_obs_off_scaled.sort()
-            rfree = rfree.sort()
+            # f_model_scaled = f_model_scaled.sort("packed_indices")
+            # f_obs_on = f_obs_on.sort("packed_indices")
+            # f_obs_off = f_obs_off.sort("packed_indices")
+            # f_obs_off_scaled = f_obs_off_scaled.sort("packed_indices")
+            # rfree = rfree.sort("packed_indices")
             i += 1
         if i == i_max:
             print (
@@ -589,24 +589,13 @@ class DataHandler(object):
             print("Fobs,reference and Fobs,triggered not scaled", file=log)
             print("Fobs,reference and Fobs,triggered not scaled")
             self.fobs_on_scaled = self.fobs_on #don't scale
-            #define the scaling resolution boundaries so that variables exist. They are not used for anything
-            # dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
-            # dmax_on, dmin_on = self.fobs_on.d_max_min()
-            # self.scaling_dmin = np.max([dmin_off, dmin_on])
-            # self.scaling_dmax = np.min([dmax_off, dmax_on])
         elif data_scaling == "scaleit": #scaling with scaleit
-            # dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
-            # dmax_on, dmin_on = self.fobs_on.d_max_min()
             #get the high resolution edge for scaling (no data truncation)
             if high_res != None:
                 self.scaling_dmin = np.max([high_res, dmin_off, dmin_on])
-            # else:
-            #     self.scaling_dmin = np.max([dmin_off, dmin_on])
             #get the low resolution edge for scaling (no data truncation)
             if low_res != None:
                 self.scaling_dmax = np.min([low_res, dmax_off, dmax_on])
-            # else:
-            #     self.scaling_dmax = np.min([dmax_off, dmax_on])
             print("Fobs,reference and Fobs,triggered scaled using scaleit", file=log)
             print("Fobs,reference and Fobs,triggered scaled using scaleit")
             self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling, low_res=self.scaling_dmax, high_res=self.scaling_dmin) #prepare mtz-file and run scaleit
@@ -616,11 +605,6 @@ class DataHandler(object):
             print("Fobs,reference and Fobs,triggered scaled using the multiscale method from cctbx")
             #sclaing with cctbx multiscale
             self.fobs_on_scaled = self.fobs_on.multiscale(other = self.fobs_off_scaled, reflections_per_bin=250)
-            #define the scaling resolution boundaries so that variables exist. They are not further used for anything
-            # dmax_off, dmin_off = self.fobs_off_scaled.d_max_min()
-            # dmax_on, dmin_on = self.fobs_on.d_max_min()
-            # self.scaling_dmin = np.max([dmin_off, dmin_on])
-            # self.scaling_dmax = np.min([dmax_off, dmax_on])
             
         print("type(self.fobs_off_scaled)", type(self.fobs_off_scaled))
         print("type(self.fobs_on_scaled)", type(self.fobs_on_scaled))

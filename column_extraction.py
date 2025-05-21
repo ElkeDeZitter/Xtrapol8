@@ -450,6 +450,10 @@ eof_truncate"
         print("------", file=self.log)
 
         #print("f_obs_ref.indices().size()",f_obs_ref.indices().size())
+        
+        f_obs_ref = f_obs_ref.sort("packed_indices")
+        f_obs_2   = f_obs_2.sort("packed_indices")
+        
         return f_obs_ref, f_obs_2
 
 class Extrapolated_column_extraction(object):
