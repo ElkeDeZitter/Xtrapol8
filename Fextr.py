@@ -172,29 +172,14 @@ class DataHandler(object):
          This way creates a maximum of 1000 Xtrapol8 output directories
         """
         if self.outdir == None:
-            #self.outdir = os.getcwd()
             self.outdir = "Xtrapol8"
-            
-        #else:
-            #if os.path.exists(self.outdir) == False:
-                #try:
-                    #os.mkdir(self.outdir)
-                    #print('Output directory not present thus being created: %s'%(self.outdir))
-                #except OSError:
-                    #os.makedirs(self.outdir)
-            #self.outdir = os.path.abspath(self.outdir)
             
         outdir = self.outdir
         i = 1
         while os.path.exists(outdir):
             if os.path.isdir(outdir):
                 if len(os.listdir(outdir)) ==0:
-                    #outdir = self.outdir
                     break
-            ##Keep outdir given by user if it only contains Xtrapol8 log-files:
-            #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
-                #outdir = self.outdir
-                #break
             outdir = "%s_%d" %(self.outdir, i)
             i += 1
             if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
@@ -305,6 +290,7 @@ class DataHandler(object):
     def extract_fobs(self, low_res, high_res, french_wilson_scaling = "cctbx"):
         """
         Extract the actual reflections from the data files and cut at resolution limits (if set)
+        Convert intensities to structure factor amplitudes with French-Wilson scaling.
         For now Friedel pairs will have to be merged.
         """
         self.fobs_off, self.fobs_on = Column_extraction(self.reflections_off,
@@ -335,14 +321,12 @@ class DataHandler(object):
         """
         Extract unit cell and space group from the model.
         """
-        #self.SG = re.search(r"(.+?)\(No",self.fobs_off.space_group_info().symbol_and_number()).group(1)
-        #self.UC = self.fobs_off.unit_cell()
         self.SG = str(self.model_in.crystal_symmetry().space_group_info())
         self.UC = self.model_in.crystal_symmetry().unit_cell()
                     
     def resolution_cutoff(self, f_obs, low_res, high_res):
         """
-        Cut data at low and high resolution, only if the data extend beyond the limit.
+        Cut data at low and high resolution, only if the data extend beyond the given limits.
         """
         dmax, dmin = f_obs.d_max_min()
         if (high_res != None and high_res > dmin):
@@ -369,7 +353,6 @@ class DataHandler(object):
                             self.cif_objects.append((fle,cif_object))
                 if len(fle) > 0:
                     if self.check_single_file(fle):
-                        #new_add = os.path.abspath(fle)
                         new_add = os.path.realpath(fle)
                         additional = additional + "%s " %(new_add)
         SpaceGroup=sgtbx.space_group_info(symbol=self.SG)
@@ -415,27 +398,13 @@ class DataHandler(object):
     def generate_Rfree(self, array, fraction):
         """
         Generate random Rfree reflections.
-        Not so clever because only created at random without taking symmetry into account.
         """
-        #tot = self.fobs_off.data().size()
-        #num_free = int(tot * fraction)
-        #free_ind = random.sample(range(tot), num_free)
-        #free_col = np.zeros(tot, dtype=np.int32)
-        #for i in range(tot):
-            #if i in free_ind:
-                #free_col[i] = 1
-        #self.rfree = miller.array(miller_set=self.fobs_off, data=flex.int(free_col))
-        
         self.rfree = array.generate_r_free_flags(fraction=fraction)
 
     def generate_f_model(self, fobs, scattering_table = "n_gaussian"):
         """
         Make an fmodel from data and input model
         """
-        #Not sure if neg reflections are already removed from start. Next might always be 0 neg regflections instead of real number
-        #print("Generate fmodel from off-state dataset. %d negative reflections will be converted to positive reflections. This is %.2f %% of the total amount of reflections and might impact calculation of Fo-Fo and extrapolated structure factors and maps." %(fobs.select(~(fobs.data() >=0)).data().size(), fobs.select(~(fobs.data() >=0)).data().size()/fobs.data().size() *100))
-        #print("Generate fmodel from off-state dataset. %d negative reflections. This is %.2f %% of the total amount of reflections and might impact calculation of Fo-Fo and extrapolated structure factors and maps." %(fobs.select(~(fobs.data() >=0)).data().size(), fobs.select(~(fobs.data() >=0)).data().size()/fobs.data().size() *100), file=log)
-        
         #r_free_flags = miller.array(miller_set=self.rfree, data=self.rfree.data().as_bool())
         
         pdb_ini = iotbx.pdb.input(self.pdb_in)
@@ -457,7 +426,8 @@ class DataHandler(object):
     def update_fmodel(self, fobs):
         """
         to change f_obs or remove reflections.
-        if the number of Rfree-flagged reflections is too low (consequennce of outlier rejection during scaling), re-assign
+        if the number of Rfree-flagged reflections is too low (consequence of outlier rejection during scaling), re-make a new R-free column.
+            -> not good, ideally keep the current and extend.
         """
         if self.fmodel.f_obs().data().size() > fobs.data().size():
             #print('updating fmodel, this can take a while...')
@@ -512,12 +482,6 @@ class DataHandler(object):
             f_model_scaled, f_obs_off = f_model_scaled.common_sets(f_obs_off)
             f_model_scaled, f_obs_off_scaled = f_model_scaled.common_sets(f_obs_off_scaled)
             f_model_scaled, rfree = f_model_scaled.common_sets(rfree)
-            # f_model_scaled = f_model_scaled.sort("packed_indices")
-            # f_obs_on = f_obs_on.sort("packed_indices")
-            # f_obs_off = f_obs_off.sort("packed_indices")
-            # f_obs_off_scaled = f_obs_off_scaled.sort("packed_indices")
-            # rfree = rfree.sort("packed_indices")
-            i += 1
         if i == i_max:
             print (
             "I tried to maintain only those indices which all three data sets have in common. Nevertheless, the two data sets have not the same indices. The program will probably stop with and error and/or output will be nonsense.")
@@ -556,7 +520,7 @@ class DataHandler(object):
     
     def scale_sigmas_from_fmodel(self):
         """
-        Scale sigmas. As performed in phenix.FoFo
+        Scale sigmas
         """
         sc = flex.sum(self.fobs_off_scaled.data()*self.f_model_scaled.amplitudes().data())/flex.sum(self.f_model_scaled.amplitudes().data()*self.f_model_scaled.amplitudes().data())
         #self.fobs_off_scaled = make_miller_array(self.fobs_off_scaled.data(),self.fobs_off.sigmas()/sc, self.SG, self.UC, self.indices)
