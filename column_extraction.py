@@ -325,7 +325,7 @@ eof_truncate"
         assert type(reflections.observation_type()) == xray.observation_types.intensity
         
         #cut the resolution if required
-        reflections = reflections.resolution_filter(low_res, high_res)
+        reflections = reflections.resolution_filter(high_res, low_res)
         
         #Merge Friedel pairs because right now we cannot deal with them
         reflections = reflections.average_bijvoet_mates()
