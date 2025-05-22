@@ -80,20 +80,20 @@ class Column_extraction(object):
         intensity_types = [xray.observation_types.intensity,]
         
         f_obs = i_obs = None
-        run_truncate = False
+        run_conversion = False
         
         if labels != None:
             array = self.find_column_with_labels(hkl, labels)
             if array != None:
                 if type(array.observation_type()) in amplitude_types:
-                    run_truncate = False
+                    run_conversion = False
                     #f_obs = array.map_to_asu()
                     f_obs = array
                     labels = f_obs.info().labels
                     print("Found F's: %s" %(labels), file = self.log)
                     print("Found F's: %s" %(labels))
                 if type(array.observation_type()) in intensity_types:
-                    run_truncate = True
+                    run_conversion = True
                     #i_obs = array.map_to_asu()
                     i_obs = array
                     labels = i_obs.info().labels
@@ -118,14 +118,14 @@ class Column_extraction(object):
                     print("Could not find F's nor I's, please check the input file.")
                     hkl.show_summary()
                 
-                return f_obs, i_obs, run_truncate, labels
+                return f_obs, i_obs, run_conversion, labels
 
         for array in hkl.file_object.as_miller_arrays():
             #print(array)
             if array.anomalous_flag() == ano_flag:
                 #print("ano flag", array.anomalous_flag())
                 if type(array.observation_type()) in amplitude_types:
-                    run_truncate = False
+                    run_conversion = False
                     #f_obs = array.map_to_asu()
                     f_obs = array
                     labels = f_obs.info().labels
@@ -133,7 +133,7 @@ class Column_extraction(object):
                     print("Found F's: %s" %(labels))
                     break
                 if type(array.observation_type()) in intensity_types:
-                    run_truncate = True
+                    run_conversion = True
                     #i_obs = array.map_to_asu()
                     i_obs = array
                     labels = i_obs.info().labels
@@ -158,7 +158,7 @@ class Column_extraction(object):
             print("Could not find F's nor I's, please check the input file.")
             hkl.show_summary()
     
-        return f_obs, i_obs, run_truncate, labels
+        return f_obs, i_obs, run_conversion, labels
 
     def run_pointless(self, reflections, reflections_ref, prefix):
         """
@@ -317,15 +317,15 @@ eof_truncate"
         Convert intensities to Fs with cctbx.french_wilson.french_wilson_scale
         arguments:
         - reflections: intensities to convert
-        - prefix: (is actually used as suffix)
+        - prefix: (is actually not used)
         - high_res: high resolution resolution_cutoff
         - low_res: low resolution cutoff
         """
         #Make sure the input type are intensities
         assert type(reflections.observation_type()) == xray.observation_types.intensity
         
-        #cut the resolution if requires
-        reflections = reflections.resolution_filter(high_res, low_res)
+        #cut the resolution if required
+        reflections = reflections.resolution_filter(low_res, high_res)
         
         #Merge Friedel pairs because right now we cannot deal with them
         reflections = reflections.average_bijvoet_mates()
