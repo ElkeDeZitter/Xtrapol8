@@ -515,7 +515,7 @@ class DataHandler(object):
         self.indices         = self.fobs_off.indices()
                 
         # self.scale_sigmas_from_fmodel()        
-        # self.fobs_off_scaled = self.scale_sigmas(self.fobs_off, self.fobs_off_scaled, self.f_model_scaled.amplitudes())
+        # self.fobs_off_scaled = self.scale_sigmas(self.fobs_off, self.fobs_off_scaled)#, self.f_model_scaled.amplitudes())
         
         return f_obs_on
 
@@ -532,7 +532,8 @@ class DataHandler(object):
     
     def scale_sigmas_from_fmodel(self):
         """
-        Scale sigmas after rescaling data
+        Scale sigmas after rescaling data.
+        Not used anymore
         """
         sc = flex.sum(self.fobs_off_scaled.data()*self.f_model_scaled.amplitudes().data())/flex.sum(self.f_model_scaled.amplitudes().data()*self.f_model_scaled.amplitudes().data())
         print("scale_factor:", sc)
@@ -541,39 +542,35 @@ class DataHandler(object):
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
         
-    def scale_sigmas(self, f_initial, f_scaled, f_reference):
+    def scale_sigmas(self, f_initial, f_scaled):
         """
         Scale sigmas after rescaling data
         arguments:
         - f_initial: original unscaled data (miller array: indices, data and sigmas)
         - f_scaled: scaled data (miller array: indices, data)
-        - f_reference: the reference data for scaling (miller array: indices, data)
         
-        after scaling fobs to fcalc (fmodel.update_all_scales()):
+        after scaling fobs to fcalc (not with fmodel.update_all_scales() because sigma scaling is already performed):
         - f_initial: self.fobs_off
         - f_scaled: self.fobs_off_scaled
-        - f_reference: self.f_model_scaled.amplitudes()
         
-        after scaling fobs_2 to Fobs_ref
+        after scaling fobs_2 to Fobs_ref (with multiscale)
         - f_initial: self.fobs_on
         - f_scaled: self.fobs_on_scaled
-        - f_reference: self.fobs_off_scaled
         """
-        num = flex.sum(f_scaled.data()*f_reference.data())
-        den = flex.sum(f_reference.data()*f_reference.data())
-        sc = num / den
-        print("scale factor:", sc)
+        #get only the common indices. 
+        f_initial, f_scaled = f_initial.common_sets(f_scaled)
+        
+        sc = f_initial.data()/f_scaled.data()
+        print("average scale factor:", flex.mean(sc))
         #f_scaled = make_miller_array(f_scaled.data(),f_initial.sigmas()/sc, self.SG, self.UC, self.indices)
         f_scaled = miller.array(miller_set=f_initial,
                                             data=f_scaled.data(),
                                             sigmas=f_initial.sigmas()/sc)
         
-        # common_scaled, common_unscaled = f_scaled.common_sets(f_initial)
-        # sc = flex.mean(common_scaled/common_unscaled)
-        # print("average scale factor:", sc)
-        # f_scaled = miller.array(miller_set=f_initial,
-        #                                     data=f_scaled.data(),
-        #                                     sigmas=f_initial.sigmas()*sc)
+        print("initial data:", list(f_initial.data())[:5])
+        print("intial sigmas:", list(f_initial.sigmas())[:5])
+        print("scaled data:", list(f_scaled.data())[:5])
+        print("final data:", list(f_scaled.sigmas())[:5])
         
         return f_scaled
     
@@ -584,7 +581,6 @@ class DataHandler(object):
         - update_scales: (True / False) scale the data or not.
           if False the fobs wont be updated but other scale factors will be calculated
         """
-        
         if update_scales:
             print("Updating all fmodel scales.")
             try:
@@ -594,9 +590,8 @@ class DataHandler(object):
                 self.fmodel.update_all_scales(show=True,
                                             fast=False)
             
-            #Update the sigmas accordingly
-            self.fobs_off_scaled = self.scale_sigmas(self.fobs_off, self.fmodel.f_obs(), self.fmodel.f_model().amplitudes())
-            
+            #Update the sigmas accordingly #Not needed, sigmas are updated in update_all_scales()
+            # self.fobs_off_scaled = self.scale_sigmas(self.fobs_off, self.fmodel.f_obs())#, self.fmodel.f_model().amplitudes())
         else: #only update the Fmodel part but keep the Fobs as they were
             print("Updating only the Fmodel part of the fmodel scales.")
             try:
@@ -658,7 +653,7 @@ class DataHandler(object):
             self.fobs_on_scaled = self.fobs_on.multiscale(other = self.fobs_off_scaled, reflections_per_bin=250)
             
             #scale sigmas
-        self.fobs_on_scaled = self.scale_sigmas(self.fobs_on, self.fobs_on_scaled, self.fobs_off_scaled)
+        self.fobs_on_scaled = self.scale_sigmas(self.fobs_on, self.fobs_on_scaled)#, self.fobs_off_scaled)
 
             
 class FobsFobs(object):
