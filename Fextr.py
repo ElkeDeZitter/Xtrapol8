@@ -561,16 +561,10 @@ class DataHandler(object):
         f_initial, f_scaled = f_initial.common_sets(f_scaled)
         
         sc = f_initial.data()/f_scaled.data()
-        print("average scale factor:", flex.mean(sc))
         #f_scaled = make_miller_array(f_scaled.data(),f_initial.sigmas()/sc, self.SG, self.UC, self.indices)
         f_scaled = miller.array(miller_set=f_initial,
                                             data=f_scaled.data(),
                                             sigmas=f_initial.sigmas()/sc)
-        
-        print("initial data:", list(f_initial.data())[:5])
-        print("intial sigmas:", list(f_initial.sigmas())[:5])
-        print("scaled data:", list(f_scaled.data())[:5])
-        print("final data:", list(f_scaled.sigmas())[:5])
         
         return f_scaled
     
@@ -653,7 +647,7 @@ class DataHandler(object):
             self.fobs_on_scaled = self.fobs_on.multiscale(other = self.fobs_off_scaled, reflections_per_bin=250)
             
             #scale sigmas
-        self.fobs_on_scaled = self.scale_sigmas(self.fobs_on, self.fobs_on_scaled)#, self.fobs_off_scaled)
+            self.fobs_on_scaled = self.scale_sigmas(self.fobs_on, self.fobs_on_scaled)#, self.fobs_off_scaled)
 
             
 class FobsFobs(object):
@@ -2420,31 +2414,6 @@ def run(args):
         DH.scale_fmodel()
     else:
         DH.scale_fmodel(update_scales = False)
-#         print("Updating all fmodel scales.")
-#         try:
-#             DH.fmodel.update_all_scales(show=True)#, log=log)
-#         except RuntimeError:
-#             print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
-#             DH.fmodel.update_all_scales(show=True,
-#                                         fast=False)
-#         DH.fobs_off_scaled = DH.scale_sigmas(DH.fobs_off, DH.fmodel.f_obs(), DH.fmodel.f_model().amplitudes())
-#         
-#     else: #only update the Fmodel part but keep the Fobs as they were
-#         print("Updating only the Fmodel part of the fmodel scales.")
-#         try:
-#             DH.fmodel.update_all_scales(update_f_part1=True,
-#                                         remove_outliers=False,
-#                                         bulk_solvent_and_scaling=True,
-#                                         apply_scale_k1_to_f_obs=False,
-#                                         show=True)
-#         except RuntimeError:
-#             print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
-#             DH.fmodel.update_all_scales(update_f_part1=True,
-#                                         remove_outliers=False,
-#                                         bulk_solvent_and_scaling=True,
-#                                         apply_scale_k1_to_f_obs=False,
-#                                         fast=False,
-#                                         show=True)
     #DH.fmodel.show()
     DH.fmodel.info().show_rfactors_targets_scales_overall(out=sys.stdout)
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model")
