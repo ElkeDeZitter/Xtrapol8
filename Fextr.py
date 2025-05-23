@@ -462,15 +462,26 @@ class DataHandler(object):
                 self.fmodel.update(r_free_flags = self.rfree)
         
             
-    def get_common_indices_and_Fobs_off(self, f_obs_on):
+    def get_common_indices(self, f_obs_on):
         """
         Ugly function to compare all reflections and only keep those that are common between the datasets
         """
         
-        f_model_scaled   = self.fmodel.f_model()
         f_obs_off        = self.fobs_off
-        f_obs_off_scaled = self.fmodel.f_obs()
         rfree            = self.rfree
+        # f_model_scaled   = self.fmodel.f_model()
+        # f_obs_off_scaled = self.fmodel.f_obs()
+        try:
+            f_model_scaled = self.f_model_scaled
+        except (NameError, AttributeError) as e:
+            # print("f_model_scaled not defined. Using self.fmodel.f_model()")
+            f_model_scaled = self.fmodel.f_model()
+        
+        try:
+            f_obs_off_scaled = self.f_obs_off_scaled
+        except (NameError, AttributeError) as e:
+            # print("f_obs_off_scaled not defined. Using self.fmodel.f_obs()")
+            f_obs_off_scaled = self.fmodel.f_obs()
         
         off_ini = f_obs_off.data().size()
         on_ini  = f_obs_on.data().size()
@@ -503,7 +514,8 @@ class DataHandler(object):
         self.rfree           = rfree
         self.indices         = self.fobs_off.indices()
                 
-        self.scale_sigmas_from_fmodel()        
+        # self.scale_sigmas_from_fmodel()        
+        # self.fobs_off_scaled = self.scale_sigmas(self.fobs_off, self.fobs_off_scaled, self.f_model_scaled.amplitudes())
         
         return f_obs_on
 
@@ -520,13 +532,88 @@ class DataHandler(object):
     
     def scale_sigmas_from_fmodel(self):
         """
-        Scale sigmas
+        Scale sigmas after rescaling data
         """
         sc = flex.sum(self.fobs_off_scaled.data()*self.f_model_scaled.amplitudes().data())/flex.sum(self.f_model_scaled.amplitudes().data()*self.f_model_scaled.amplitudes().data())
+        print("scale_factor:", sc)
         #self.fobs_off_scaled = make_miller_array(self.fobs_off_scaled.data(),self.fobs_off.sigmas()/sc, self.SG, self.UC, self.indices)
         self.fobs_off_scaled = miller.array(miller_set=self.fobs_off,
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
+        
+    def scale_sigmas(self, f_initial, f_scaled, f_reference):
+        """
+        Scale sigmas after rescaling data
+        arguments:
+        - f_initial: original unscaled data (miller array: indices, data and sigmas)
+        - f_scaled: scaled data (miller array: indices, data)
+        - f_reference: the reference data for scaling (miller array: indices, data)
+        
+        after scaling fobs to fcalc (fmodel.update_all_scales()):
+        - f_initial: self.fobs_off
+        - f_scaled: self.fobs_off_scaled
+        - f_reference: self.f_model_scaled.amplitudes()
+        
+        after scaling fobs_2 to Fobs_ref
+        - f_initial: self.fobs_on
+        - f_scaled: self.fobs_on_scaled
+        - f_reference: self.fobs_off_scaled
+        """
+        num = flex.sum(f_scaled.data()*f_reference.data())
+        den = flex.sum(f_reference.data()*f_reference.data())
+        sc = num / den
+        print("scale factor:", sc)
+        #f_scaled = make_miller_array(f_scaled.data(),f_initial.sigmas()/sc, self.SG, self.UC, self.indices)
+        f_scaled = miller.array(miller_set=f_initial,
+                                            data=f_scaled.data(),
+                                            sigmas=f_initial.sigmas()/sc)
+        
+        # common_scaled, common_unscaled = f_scaled.common_sets(f_initial)
+        # sc = flex.mean(common_scaled/common_unscaled)
+        # print("average scale factor:", sc)
+        # f_scaled = miller.array(miller_set=f_initial,
+        #                                     data=f_scaled.data(),
+        #                                     sigmas=f_initial.sigmas()*sc)
+        
+        return f_scaled
+    
+    def scale_fmodel(self, update_scales = True):
+        """
+        scale fobs to fcalc with update_all_scales
+        arguments:
+        - update_scales: (True / False) scale the data or not.
+          if False the fobs wont be updated but other scale factors will be calculated
+        """
+        
+        if update_scales:
+            print("Updating all fmodel scales.")
+            try:
+                self.fmodel.update_all_scales(show=True)#, log=log)
+            except RuntimeError:
+                print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
+                self.fmodel.update_all_scales(show=True,
+                                            fast=False)
+            
+            #Update the sigmas accordingly
+            self.fobs_off_scaled = self.scale_sigmas(self.fobs_off, self.fmodel.f_obs(), self.fmodel.f_model().amplitudes())
+            
+        else: #only update the Fmodel part but keep the Fobs as they were
+            print("Updating only the Fmodel part of the fmodel scales.")
+            try:
+                self.fmodel.update_all_scales(update_f_part1=True,
+                                            remove_outliers=False,
+                                            bulk_solvent_and_scaling=True,
+                                            apply_scale_k1_to_f_obs=False,
+                                            show=True)
+            except RuntimeError:
+                print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
+                self.fmodel.update_all_scales(update_f_part1=True,
+                                            remove_outliers=False,
+                                            bulk_solvent_and_scaling=True,
+                                            apply_scale_k1_to_f_obs=False,
+                                            fast=False,
+                                            show=True)
+
         
     def scale_fobss(self, data_scaling="cctbx", b_scaling='anisotropic', low_res=None, high_res=None):
         """
@@ -537,7 +624,7 @@ class DataHandler(object):
             - "scaleit": use scaleit for scaling
             - "cctbx": use cctbx multiscale
         - b-scaling: "scale_only", "isotropic" or "anisotropic", only for scaling with scaleit and will be used with the REFINE keyword.
-            "no" is an old b-scaling keyword that refered to no scaling. Using b_scaling = 'no' will become obsolete in the future.
+            "no" is an old b-scaling keyword that refered to no scaling. Using b_scaling = 'no' has become obsolete, use data_scaling='no' instead.
         - low_res: low resolution boundary for scaling, the data will not be truncated. Only used with scaleit.
         - high_res: high resolution boundary for scaling,the data will not be truncated. Only used with scaleit. 
         """
@@ -549,7 +636,7 @@ class DataHandler(object):
         self.scaling_dmin = np.max([dmin_off, dmin_on])
         self.scaling_dmax = np.min([dmax_off, dmax_on])
         
-        if (b_scaling == 'no') or (data_scaling == "no"): #no scaling
+        if data_scaling == "no": #no scaling
             print("Fobs,reference and Fobs,triggered not scaled", file=log)
             print("Fobs,reference and Fobs,triggered not scaled")
             self.fobs_on_scaled = self.fobs_on #don't scale
@@ -570,8 +657,9 @@ class DataHandler(object):
             #sclaing with cctbx multiscale
             self.fobs_on_scaled = self.fobs_on.multiscale(other = self.fobs_off_scaled, reflections_per_bin=250)
             
-        print("type(self.fobs_off_scaled)", type(self.fobs_off_scaled))
-        print("type(self.fobs_on_scaled)", type(self.fobs_on_scaled))
+            #scale sigmas
+        self.fobs_on_scaled = self.scale_sigmas(self.fobs_on, self.fobs_on_scaled, self.fobs_off_scaled)
+
             
 class FobsFobs(object):
     """
@@ -2334,29 +2422,34 @@ def run(args):
     DH.generate_f_model(DH.fobs_off, scattering_table=params.scattering_table)
     #DH.fmodel.show()
     if params.scaling.data_scaling != 'no':
-        print("Updating all fmodel scales.")
-        try:
-            DH.fmodel.update_all_scales(show=True)#, log=log)
-        except RuntimeError:
-            print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
-            DH.fmodel.update_all_scales(show=True,
-                                        fast=False)
-    else: #only update the Fmodel part but keep the Fobs as they were
-        print("Updating only the Fmodel part of the fmodel scales.")
-        try:
-            DH.fmodel.update_all_scales(update_f_part1=True,
-                                        remove_outliers=False,
-                                        bulk_solvent_and_scaling=True,
-                                        apply_scale_k1_to_f_obs=False,
-                                        show=True)
-        except RuntimeError:
-            print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
-            DH.fmodel.update_all_scales(update_f_part1=True,
-                                        remove_outliers=False,
-                                        bulk_solvent_and_scaling=True,
-                                        apply_scale_k1_to_f_obs=False,
-                                        fast=False,
-                                        show=True)
+        DH.scale_fmodel()
+    else:
+        DH.scale_fmodel(update_scales = False)
+#         print("Updating all fmodel scales.")
+#         try:
+#             DH.fmodel.update_all_scales(show=True)#, log=log)
+#         except RuntimeError:
+#             print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
+#             DH.fmodel.update_all_scales(show=True,
+#                                         fast=False)
+#         DH.fobs_off_scaled = DH.scale_sigmas(DH.fobs_off, DH.fmodel.f_obs(), DH.fmodel.f_model().amplitudes())
+#         
+#     else: #only update the Fmodel part but keep the Fobs as they were
+#         print("Updating only the Fmodel part of the fmodel scales.")
+#         try:
+#             DH.fmodel.update_all_scales(update_f_part1=True,
+#                                         remove_outliers=False,
+#                                         bulk_solvent_and_scaling=True,
+#                                         apply_scale_k1_to_f_obs=False,
+#                                         show=True)
+#         except RuntimeError:
+#             print("Fast method failed. Try again with slow method. This may lead to wrong scaling.")
+#             DH.fmodel.update_all_scales(update_f_part1=True,
+#                                         remove_outliers=False,
+#                                         bulk_solvent_and_scaling=True,
+#                                         apply_scale_k1_to_f_obs=False,
+#                                         fast=False,
+#                                         show=True)
     #DH.fmodel.show()
     DH.fmodel.info().show_rfactors_targets_scales_overall(out=sys.stdout)
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model")
@@ -2365,18 +2458,17 @@ def run(args):
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model", file=log)
     print('R_work:', DH.fmodel.r_work(), file=log)
     print('R_free:', DH.fmodel.r_free(), file=log)
-    DH.fobs_on = DH.get_common_indices_and_Fobs_off(DH.fobs_on) #compare reflections and reassemble off_state data set after scaling of f_obs_off 
+    DH.fobs_on = DH.get_common_indices(DH.fobs_on) #compare reflections and reassemble off_state data set after scaling of f_obs_off 
     print("----Scaling Ftriggered with Freference----", file=log)
     print("----Scaling Ftriggered with Freference----")
     DH.scale_fobss(data_scaling = params.scaling.data_scaling,
                 b_scaling = params.scaling.b_scaling,
                 low_res = params.scaling.low_resolution,
                 high_res = params.scaling.high_resolution)
-    
     #update the parameters so that they appear correct in the output phil files
     params.scaling.high_resolution = DH.scaling_dmin
     params.scaling.low_resolution  = DH.scaling_dmax
-    DH.fobs_on_scaled = DH.get_common_indices_and_Fobs_off(DH.fobs_on_scaled) #compare reflections and reassemble off_state data set after scaling of f_obs_on
+    DH.fobs_on_scaled = DH.get_common_indices(DH.fobs_on_scaled) #compare reflections and reassemble off_state data set after scaling of f_obs_on
     DH.update_fmodel(DH.fobs_off_scaled) #alter fmodel to remove reflections that were removed during fobs_on scaling
     riso, cciso = compute_r_factors(DH.fobs_off_scaled, DH.fobs_on_scaled, DH.rfree, log=log)
     print("Overall R_iso = %.4f " %(riso))
@@ -2408,7 +2500,7 @@ def run(args):
     print("----Summary triggered scaled and sorted common reflections with reference data:----", file=log)
     print(DH.fobs_on_scaled.show_comprehensive_summary(f=log), file=log)
     #time.sleep(3)
-
+    
     print('-----------------------------------------')
     print('DATA PREPARATION DONE')
     print('-----------------------------------------')
