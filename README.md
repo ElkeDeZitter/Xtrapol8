@@ -16,7 +16,10 @@
   <summary>Table of Contents</summary>
   <ol>
     <li>
-      <a href="#xtrapol8">Xtrapol8</a>
+      <a href="#about">About</a>
+      <ul>
+        <li><a href="#new-since-version-1.2.0">New since version 1.2.0</a></li>
+      </ul>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -25,29 +28,28 @@
         <li><a href="#installation">Installation</a></li>
       </ul>
     </li>
-      <a href="#Usage">Usage</a></li>
+      <a href="#usage">Usage</a></li>
       <ul>
-        <li><a href="#Command-line-usage">Command line usage</a></li>
-        <li><a href="#Graphical-User-Interface-usage">Graphical User Interface usage</a></li>
+        <li><a href="#command-line-usage">Command line usage</a></li>
+        <li><a href="#graphical-User-Interface-usage">Graphical User Interface usage</a></li>
+        <li><a href="#tutorial">Tutorial</a></li>
       </ul>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
   </ol>
 </details>
 
-
-
 <!-- ABOUT THE PROJECT -->
-## Xtrapol8
+# About
 
 <!-- [![Product Name Screen Shot][product-screenshot]](https://example.com) -->
 
 Xtrapol8 is software for the calculation of Fourier difference maps, extrapolated structure factor ampltiudes (ESFAs) and estimation of the occupancy of at triggered state that occupies the crystal at low occupancy. It is based on the cctbx toolbox and uses some CCP4 programs. In order to run Xtrapol8, you will need to have a proper licence for Phenix and CCP4 and have both software suites installed. Please use Phenix 1.19 or higher.
 
-An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the YoutTube channel of CCP4 [CCP4 Study Weekend 2022](https://www.youtube.com/watch?v=H21L3-M_ge4) and [CCP4 Study Weekend 2024](https://www.youtube.com/watch?v=t6-7OBwtVts)
+An introduction into Fourier difference maps, structure factor extrapolation and the software itself can be found on the YouTube channel of CCP4 [CCP4 Study Weekend 2022](https://www.youtube.com/watch?v=H21L3-M_ge4) and [CCP4 Study Weekend 2024](https://www.youtube.com/watch?v=t6-7OBwtVts)
 
 If Xtrapol8 was useful in your project, please cite us:
-De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1), 640 (2022).
+De Zitter, E., Coquelle, N., Oeser, P., Barends, T. R. M., Colletier, J.-P., [Xtrapol8 enables automatic elucidation of low-occupancy intermediate-states in crystallographic studies](https://doi.org/10.1038/s42003-022-03575-7), Communications Biology, 5(1), 640 (2022).<br />
 Don't forget to cite the software on which we build:
 * Liebschner, D. et al., [Macromolecular structure determination using X-rays, neutrons and electrons: recent developments in Phenix](https://journals.iucr.org/d/issues/2019/10/00/di5033/index.html), Acta Crystallogr. D. Struct. Biol. 75, 861–877 (2019).
 * Agirre, J. et al., [The CCP4 suite: integrative software for macromolecular crystallography](https://journals.iucr.org/d/issues/2023/06/00/ai5011/index.html), Acta Crystallogr. D. Biol. Crystallogr. 67, 235–242 (2011).
@@ -59,103 +61,109 @@ Don't forget to cite the software on which we build:
 * Resolution boundaries for scaling can be specified.
 * Refinement can be done with a combination of different programs, one should not restrict themselves to the CCP4 or Phenix suite.
 * Easier usages of standalone verison to redo the difference-map and distance analysis for alpha estimation.
+* Possibility to change the scattering table.
 * New keywords.
-See release notes and manual for more info and other new features.
+* Updated GUI.
+* Several bug fixes.
+
+See [release notes](https://github.com/ElkeDeZitter/Xtrapol8/releases) and manual for more info and other new features.
 
 <!-- GETTING STARTED -->
-## Getting Started
+# Getting Started
 
-Xtrapol8 uses no external modules in addition to standard python and those from cctbx (which comes with Phenix). It also uses some programs from CCP4. This means that you have CCP4 and Phenix, you are ready to go. Follow the steps below to make sure that Xtrapol8 can find what it needs.
+Xtrapol8 uses no external modules in addition to standard python and those from cctbx (which comes with Phenix). It also uses some programs from CCP4 and Coot. This means that you have CCP4, Coot and Phenix, you are ready to go. Follow the steps below to make sure that Xtrapol8 can find what it needs.
 
-### Prerequisites
+## Prerequisites
 
-You need the [ccp4](https://www.ccp4.ac.uk) and [Phenix](https://www.phenix-online.org) software suites, and both should be setup via the command line. Below you find a detailed description on how to setup CCP4 and phenix correctly for Xtrapol8 using a terminal on Mac:
+You need the [ccp4](https://www.ccp4.ac.uk) and [Phenix](https://www.phenix-online.org) software suites, and Coot. All should be setup via the command line. Below you find a detailed description on how to setup CCP4 and phenix correctly for Xtrapol8 using a terminal on Mac:
 1. Add Phenix and the cctbx modules to your PATH: Source the file phenix_env.sh folder (you can use Finder to find out which Phenix version you have installed and where to find phenix_env.sh):
-   ```sh
+   ```bash
    source /Applications/phenix-1.19.1-4122/phenix_env.sh
    ```
-2. Add CCP4 to your PATH: In the same terminal source ccp4.setup-sh (again you can use Finder to find out which CCP4 version you have installed and where to find phenix_env.sh):
-   ```sh
+2. Add CCP4 to your PATH: In the same terminal source ccp4.setup-sh (again you can use Finder to find out which CCP4 version you have installed and where to find ccp4.setup-sh):
+   ```bash
    source /Applications/ccp4-7.1/bin/ccp4.setup-sh
    ```
 3. Check if Phenix and CCP4 programs can be found (you should get the paths in return):
-   ```sh
+   ```bash
    which phenix.refine
    which scaleit
    ```
 * You can add step 2 and 3 to your ~/.profile, ~/.zprofile or ~/.bashrc file if you want to avoid doing these steps each time you open a new terminal. Using your favorite editor (e.g. nano):
-   ```sh
+   ```bash
    nano ~/.zprofile
    #Setting Phenix and ccp4
    source /Applications/phenix-1.19.1-4122/phenix_env.sh
    source /Applications/ccp4-7.1/bin/ccp4.setup-sh
    ```
    
-### Installation
+Coot should be fine if you installed it via CCP4 and you just followed setting up CCP4, or if you already installed it via the command line. Xtrapol8 is not yet compatible with Coot1 versions.
+
+## Installation
 
 Clone or download the Xtrapol8 repository. Take care that all files are stored in the same directory (don't move any file).
-   ```sh
+   ```bash
    git clone https://github.com/ElkeDeZitter/Xtrapol8.git
    ```
 Or click on "Code" -> "Download ZIP" on the top.
 
 <!-- USAGE EXAMPLES -->
-## Usage
-### Command line usage
+# Usage
+## Command line usage
 
 Upon running Xtrapol8 without arguments, you get the full list of arguments that can be added using an input file or via command line arguments:
-   ```sh
+   ```bash
    phenix.python <folder/to/Xtrapol8>/Fextr.py
    ```
    
 * You can add Xtrapol8 to your path for easier accessibilty, otherwise you just memorize where you've put it
-   ```sh
+   ```bash
    nano ~/.zprofile
-   alias 'X8=phenix.python <folder/to/Xtrapol8>/Fextr.py'
+   alias X8='phenix.python <folder/to/Xtrapol8>/Fextr.py'
    ```
    
 An example input file with all changeable parameters can be found in the [example](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/Xtrapol8_example.phil) or in the [minimal_input](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/Xtrapol8_minimal.phil)
 
 * Example using input file:
   1. Change the Xtrapol8.phil using your favorite text editor:
-   ```sh
+   ```bash
    nano Xtrapol8.phil
    ```
   2. Run Xtrapol8
-  ```sh
+  ```bash
   phenix.python <folder/to/Xtrapol8>/Fextr.py Xtrapol8.phil
   ```
-* example using command line argument only:
-  ```sh
+* Example using command line argument only:
+  ```bash
   phenix.python <folder/to/Xtrapol8>/Fextr.py input.reference_mtz=hiephiep.mtz input.triggered_mtz=hieperdepiep.mtz input.model_pdb=hoera.pdb input.additional_files=jeej.cif input.additional_files=another.cif occupancies.list_occ=0.1,0.3,0.5 f_and_maps.f_extrapolated_and_maps=qfextr,qfgenick map_explorer.peak_integration_floor=3.5 map_explorer.peak_detection_threshold=4 output.outdir=fancy_party
   ```
-* example using input file and command line:
+* Example using input file and command line:
   1. Change the Xtrapol8.phil using your favorite text editor:
-   ```sh
+   ```bash
    nano Xtrapol8.phil
    ```
   2. Run Xtrapol8 with additional arguments. The order of arguments determines how parameters will be overwritten
-  ```sh
+  ```bash
   phenix.python <folder/to/Xtrapol8>/Fextr.py Xtrapol8.phil refinement.phenix_keywords.refine.cycles=3
   ```
   
 _For more information, please have a look into the [Command line Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/Xtrapol8_Command_Line_Manual.pdf)_
 
-### Graphical User Interface usage
+## Graphical User Interface usage
 
 Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launched via the command line:
-  ```sh
+  ```bash
   phenix.python <folder/to/Xtrapol8>X8_gui.py
   ```
 * You can add XtrapolG8 to your path for easier accessibilty, otherwise you just memorize where you've put it
-   ```sh
+   ```bash
    nano ~/.zprofile
-   alias 'XG8=phenix.python <folder/to/Xtrapol8>/X8_gui.py'
+   alias XG8='phenix.python <folder/to/Xtrapol8>/X8_gui.py'
    ```
    
 * XtrapolG8 can also make use of a pre-made input file:
-  * the input file can be loaded directly when launching XtrapolG8:
-  ```sh
+  * The input file can be loaded directly when launching XtrapolG8:
+  ```bash
   phenix.python <folder/to/Xtrapol8>X8_gui.py Xtrapol8.phil
   ```
   * or the input file can be loaded from within XtrapolG8 via the File menu:<br />
@@ -166,15 +174,19 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
   
 _For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/XtrapolG8_Manual.pdf)_
 
+## Tutorial
+
+A [basic tutorial](https://github.com/ElkeDeZitter/Xtrapol8-tutorial) is available, in which you will be able to reproduce the results obtained with one of the examples from the publication.
+
 <!-- LICENSE -->
-## License
+# License
 
 Xtrapol8 is published under the [MIT License](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE)
 Xtrapol8 makes use of adapted cctbx modules, for which we additionally refer to the [cctbx license](https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt)
 The user is responsible to legally correct obtain and install [ccp4](http://www.ccp4.ac.uk/download/), [Coot](http://www.ccp4.ac.uk/download/) and [Phenix](http://www.phenix-online.org/download/).
 
 <!-- CONTACT -->
-## Contact
+# Contact
 
 Elke De Zitter - elke.de-zitter@ibs.fr
 
