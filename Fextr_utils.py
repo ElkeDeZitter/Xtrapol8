@@ -25,6 +25,7 @@ import iotbx
 import math
 import pickle
 import uuid
+import cctbx
 from cctbx import miller, crystal, xray
 from iotbx import mtz, symmetry
 from iotbx.pdb import hierarchy
@@ -41,6 +42,13 @@ def get_python_version():
     Function to get the python version
     """
     version = ".".join(map(lambda x: str(x), sys.version_info[0:3]))
+    return version
+
+def get_cctbx_version():
+    """
+    Function to get the cctbx version
+    """
+    version = cctbx.__version__
     return version
 
 def get_unique_id(id_length=20):

@@ -72,7 +72,7 @@ class Map_explorer_analysis(object):
         peaklines_ligands = [lne for lne in self.peaklines for ligand in self.ligands if (ligand) in lne]
         cnp = [["-".join([line.split()[2], line.split()[0], line.split()[1]]), line.split()[-2]] for line in
                peaklines_ligands]
-        cnp = map(lambda x: [x[0], float(x[-1])], cnp)
+        cnp = list(map(lambda x: [x[0], float(x[-1])], cnp))
         cnp = sorted(cnp, key=lambda x: x[0])
         pos_peaklist = [x for x in cnp if x[-1] > 0]
         pos_peaklist = self.peaksum_per_residue(pos_peaklist)
@@ -160,7 +160,7 @@ class Map_explorer_analysis(object):
         # to be compatible with secondary_structure plot, waters and ligands have to be removed
         self.remove_ligands_from_peaklines()
         cnp = [[line.split()[2], line.split()[1], line.split()[-2]] for line in self.peaklines_noligands]
-        cnp = map(lambda x: [x[0], int(x[1]), float(x[2])], cnp)
+        cnp = list(map(lambda x: [x[0], int(x[1]), float(x[2])], cnp))
         cnp.sort()
         # only keep hihgest peak per residue
         x = 0
@@ -180,7 +180,8 @@ class Map_explorer_analysis(object):
     def get_sorted_peaklist(self):
         self.remove_ligands_from_peaklines()  # to be compatible with secondary_structure plot, waters and ligands have to be removed
         cnp = [[line.split()[2], line.split()[1], line.split()[-2]] for line in self.peaklines_noligands]
-        cnp = map(lambda x: [x[0], int(x[1]), float(x[2])], cnp)
+        cnp = list(map(lambda x: [x[0], int(x[1]), float(x[2])], cnp))
+        print(cnp)
         cnp.sort()
         pos_peaklist = [x for x in cnp if x[2] > 0]
         pos_peaklist = self.peaksum_per_residue(pos_peaklist)

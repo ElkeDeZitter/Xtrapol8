@@ -1158,7 +1158,7 @@ def run(args):
             #This assumption is made in order to avoid storing the log-files in even another list
             #test = map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst)
             #print(test)
-            plot_Rfactors_per_alpha(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst), mp_type)
+            plot_Rfactors_per_alpha(list(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst)), mp_type)
             print("", file=log)
             print("")
 
@@ -1188,18 +1188,18 @@ def run(args):
             #Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
             #Otherwise use the real space refined models + direct maps
             if pdb_list == recrealref_lst:
-                ccp4_list = map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list)
+                ccp4_list = list(map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list))
                 model_label = '%s_reciprocal_real_space'%(mp_type)
                 ccp4_map_label = '%s_reciprocal_space'%(mp)
             else:
                 if mp == 'qFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list))
                 elif mp == 'kFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list))
                 elif mp == 'Fgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list))
                 else:
-                    ccp4_list = map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list))
                 model_label='%s_real_space'%(mp_type)
                 ccp4_map_label='%s'%(mp)
             if len(ccp4_list) == len(pymol_pdb_list) == len(Xtrapol8_params.occupancies.list_occ):
@@ -1355,9 +1355,9 @@ def run(args):
                 
             #Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             #This assumption is made in order to avoid storing the log-files in even another list
-            test = map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst)
+            # test = list(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst))
             #print(test)
-            plot_Rfactors_per_alpha(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst), mp_type)
+            plot_Rfactors_per_alpha(list(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst), mp_type))
             print("", file=log)
             print("")
 
@@ -1378,18 +1378,18 @@ def run(args):
             #Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
             #Otherwise use the real space refined models + direct maps
             if pdb_list == recrealref_lst:
-                ccp4_list = map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list)
+                ccp4_list = list(map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list))
                 model_label = '%s_reciprocal_real_space'%(mp_type)
                 ccp4_map_label = '%s_reciprocal_space'%(mp)
             else:
                 if mp == 'qFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list))
                 elif mp == 'kFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list))
                 elif mp == 'Fgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list))
                 else:
-                    ccp4_list = map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list))
                 model_label='%s_real_space'%(mp_type)
                 ccp4_map_label='%s'%(mp)
             if len(ccp4_list) == len(pymol_pdb_list) == len(Xtrapol8_params.occupancies.list_occ):
