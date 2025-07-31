@@ -45,8 +45,6 @@ class combine(object):
                map_type_str,
                fo_scale,
                fc_scale,
-               #use_shelx_weight, #No Shelx weights
-               #shelx_weight_parameter,
                map_calculation_helper_1=None,
                map_calculation_helper_2=None):
     self.mch_1 = map_calculation_helper_1
@@ -63,11 +61,7 @@ class combine(object):
     else:
       if(self.mch_1 is None): self.mch_1 = self.fmodel_1.map_calculation_helper()
       if(self.mch_2 is None): self.mch_2 = self.fmodel_2.map_calculation_helper()
-      #if(self.fmodel_1.hl_coeffs() is None):
     self.f_obs = self.mch_1.f_obs.data()*fo_scale*self.mch_2.fom #calculation of fo_scale*m*Fo
-      #else:
-        #cp = fmodel.combine_phases(map_calculation_helper = self.mch_1)
-        #self.f_obs = self.mch_1.f_obs.data()*fo_scale*cp.f_obs_phase_and_fom_source()
 
   def map_coefficients(self, f_model=None):
     def compute(fo,fc,miller_set):
@@ -88,8 +82,6 @@ class combine(object):
         f_model_data = self.f_model.data()*self.fc_scale #calculation of fc_scale*Fc
       else:
         f_model_data = self.f_model.data()*self.fc_scale*self.mch_1.alpha.data() #calculation of fc_scale*D*Fc
-    # f_model_data may be multiplied by scales like "-1", so it cannot be
-    # phase source !
     result = compute(fo=self.f_obs, fc=f_model_data,
       miller_set=self.fmodel_1.f_obs())
     return result
@@ -103,18 +95,8 @@ class electron_density_map(object):
                map_calculation_helper_2 = None):
     self.fmodel_1 = fmodel_1
     self.fmodel_2 = fmodel_2
-    #self.anom_diff = None
     self.mch_1 = map_calculation_helper_1
     self.mch_2 = map_calculation_helper_2
-    #if(self.fmodel_1.f_obs().anomalous_flag()):
-      #self.anom_diff = self.fmodel_1.f_obs().anomalous_differences()
-      #f_model = self.fmodel_1.f_model().as_non_anomalous_array().\
-        #merge_equivalents().array()
-      #fmodel_match_anom_diff, anom_diff_common = \
-        #f_model.common_sets(other =  self.anom_diff)
-      #assert anom_diff_common.indices().size()==self.anom_diff.indices().size()
-      #self.anom_diff = anom_diff_common.phase_transfer(
-        #phase_source = fmodel_match_anom_diff)
 
   def map_coefficients(self,
                        map_type,
@@ -126,16 +108,8 @@ class electron_density_map(object):
                        isotropize=True,
                        sharp=False,
                        pdb_hierarchy=None, # XXX required for map_type=llg
-                       #merge_anomalous=None,
-                       #use_shelx_weight=False,
-                       #shelx_weight_parameter=1.5
                        ):
     map_name_manager = mmtbx.map_names(map_name_string = map_type)
-    # No special cases
-    # Special case #1: anomalous map
-    # Special case #2: anomalous residual map
-    # Special case #3: Phaser SAD LLG map
-    # Special case #4: Fcalc map
     if(self.mch_1 is None): self.mch_1 = self.fmodel_1.map_calculation_helper()
     if(self.mch_2 is None): self.mch_2 = self.fmodel_2.map_calculation_helper()
     assert list(self.fmodel_1.f_obs().indices())==list(self.fmodel_2.f_obs().indices())==list(self.mch_1.f_obs.indices())==list(self.mch_2.f_obs.indices())
@@ -153,21 +127,12 @@ class electron_density_map(object):
       fc_scale                 = fc_scale,
       map_calculation_helper_1 = self.mch_1,
       map_calculation_helper_2 = self.mch_2,
-      #use_shelx_weight         = use_shelx_weight,
-      #shelx_weight_parameter   = shelx_weight_parameter
       ).map_coefficients()
     r_free_flags = None
-    # XXX the default scale array (used for the isotropize option) needs to be
-    # calculated and processed now to avoid array size errors
     scale_default = 1. / (self.fmodel_1.k_isotropic()*self.fmodel_1.k_anisotropic())
     scale_array = coeffs.customized_copy(data=scale_default)
     if (exclude_free_r_reflections):
-      #if (coeffs.anomalous_flag()):
-        #coeffs = coeffs.average_bijvoet_mates()
       r_free_flags = self.fmodel.r_free_flags()
-      #if (r_free_flags.anomalous_flag()):
-        #r_free_flags = r_free_flags.average_bijvoet_mates()
-        #scale_array = scale_array.average_bijvoet_mates()
       coeffs = coeffs.select(~r_free_flags.data())
       scale_array = scale_array.select(~r_free_flags.data())
     scale=None
@@ -178,8 +143,6 @@ class electron_density_map(object):
         scale = scale_array.data()
       coeffs = coeffs.customized_copy(data = coeffs.data()*scale)
     if(fill_missing):
-      #if(coeffs.anomalous_flag()):
-        #coeffs = coeffs.average_bijvoet_mates()
       coeffs = mmtbx.map_tools.fill_missing_f_obs(
         coeffs = coeffs,
         fmodel = self.fmodel_1,
@@ -191,6 +154,4 @@ class electron_density_map(object):
         adptbx.u_as_b(1))/2
       k_sharp = 1./flex.exp(-ss * b)
       coeffs = coeffs.customized_copy(data = coeffs.data()*k_sharp)
-    #if (merge_anomalous) and (coeffs.anomalous_flag()):
-      #return coeffs.average_bijvoet_mates()
     return coeffs

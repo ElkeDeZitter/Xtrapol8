@@ -24,7 +24,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import wx
 from wx.lib.pubsub import pub
 
-from utils import CharValidator
+from .utils import CharValidator
 from wx.lib.scrolledpanel import ScrolledPanel
 
 class TabExtrapolation(ScrolledPanel):
@@ -110,9 +110,14 @@ class TabExtrapolation(ScrolledPanel):
         list_occ_sizer.Add(self.ListTextCtrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         self.occ_sizer_final = wx.StaticBoxSizer(Occ, wx.VERTICAL)
-        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
-        #self.occ_sizer_final.AddSpacer(20)
-        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        # python2
+        # self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        # #self.occ_sizer_final.AddSpacer(20)
+        # self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        # python3
+        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL, 0)
+        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL, 0)
+
 
         ########################
         ###  FoFo (earlier called Maps and Scaling)  ###
@@ -266,6 +271,7 @@ class TabExtrapolation(ScrolledPanel):
         self.missChoice.SetFont(defont)
         self.missChoice.SetSelection(0)
         NM_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
+        blank = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         NM_fgs.AddMany([neg, self.negChoice, blank2, missing, self.missChoice])
         self.NM.AddSpacer(5)
         self.NM.Add(NM_fgs, 0, wx.EXPAND, border=5)
