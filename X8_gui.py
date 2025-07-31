@@ -40,6 +40,7 @@ from wx.aui import AuiNotebook
 import version
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
+from Fextr_utils import get_python_version
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Notebook styles to have, or not, a widget to close the tab
@@ -237,14 +238,14 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        # python2
-        ## self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
-        # self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
-        # self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
-        # python3
-        # self.ToolBar.AddTool(101, "Settings",  wx.Bitmap(os.path.join(script_dir, "gui/pngs/settings_scaled.png")))
-        self.ToolBar.AddTool(102, "Run", wx.Bitmap(os.path.join(script_dir, "gui/pngs/run_scaled.png")))
-        self.ToolBar.AddTool(103, "Stop", wx.Bitmap(os.path.join(script_dir, "gui/pngs/cancel_scaled.png")))
+        if int(get_python_version()[0]) == 2: # python2 
+            # self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
+            self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
+            self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
+        else: # python3
+            # self.ToolBar.AddTool(101, "Settings",  wx.Bitmap(os.path.join(script_dir, "gui/pngs/settings_scaled.png")))
+            self.ToolBar.AddTool(102, "Run", wx.Bitmap(os.path.join(script_dir, "gui/pngs/run_scaled.png")))
+            self.ToolBar.AddTool(103, "Stop", wx.Bitmap(os.path.join(script_dir, "gui/pngs/cancel_scaled.png")))
         self.ToolBar.Bind(wx.EVT_TOOL, self.OnToolBar)
         self.ToolBar.Realize()
 

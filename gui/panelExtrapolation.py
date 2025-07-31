@@ -27,6 +27,8 @@ from wx.lib.pubsub import pub
 from .utils import CharValidator
 from wx.lib.scrolledpanel import ScrolledPanel
 
+from Fextr_utils import get_python_version
+
 class TabExtrapolation(ScrolledPanel):
     """
     This will be the second notebook tab with settings for extrapolation calculation and analysis
@@ -110,13 +112,13 @@ class TabExtrapolation(ScrolledPanel):
         list_occ_sizer.Add(self.ListTextCtrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         self.occ_sizer_final = wx.StaticBoxSizer(Occ, wx.VERTICAL)
-        # python2
-        # self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
-        # #self.occ_sizer_final.AddSpacer(20)
-        # self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
-        # python3
-        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL, 0)
-        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL, 0)
+        if int(get_python_version()[0]) == 2: # python2
+            self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+            #self.occ_sizer_final.AddSpacer(20)
+            self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        else: # python3
+            self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL, 0)
+            self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL, 0)
 
 
         ########################

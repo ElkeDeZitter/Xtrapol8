@@ -102,8 +102,6 @@ from iotbx import ccp4_map
 from scipy.stats import pearsonr
 from wx.lib.pubsub import pub
 
-#sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
-
 from calculate_q import calculate_q, outlier_rejection_only
 from calculate_k import calculate_k
 from map_explorer import map_explorer
@@ -1993,6 +1991,7 @@ def run(args):
     print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now))
     print("Phenix version: {:s}".format(get_phenix_version()))
     print("CCP4 version: {:s}".format(get_ccp4_version()))
+    print("Python version: {:s}".format(get_python_version()))
 
     #If no input, show complete help, should be changed in order to give help depending on the attribute level
     if len(args) == 0 :
@@ -2016,6 +2015,7 @@ def run(args):
     print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now), file=log)
     print("Phenix version: {:s}".format(get_phenix_version()), file=log)
     print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
+    print("Python version: {:s}".format(get_python_version()), file=log)
 
     log_dir = os.getcwd()
     
