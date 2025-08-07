@@ -2941,7 +2941,7 @@ def run(args):
                 
             #Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             #This assumption is made in order to avoid storing the log-files in even another list
-            plot_Rfactors_per_alpha(list(map(lambda fle: re.sub(r'mtz$','log', fle)), recref_mtz_lst), mp_type)
+            plot_Rfactors_per_alpha(list(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst)), mp_type)
             print("", file=log)
             print("")
             

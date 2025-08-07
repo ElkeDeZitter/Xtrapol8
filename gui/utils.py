@@ -22,7 +22,8 @@ class CharValidator(wx.PyValidator):
     ''' Validates data as it is entered into the text controls. '''
 
     def __init__(self, flag):
-        wx.PyValidator.__init__(self)
+        # wx.PyValidator.__init__(self)
+        wx.Validator.__init__(self)
         self.flag = flag
         self.Bind(wx.EVT_CHAR, self.OnChar)
 

@@ -44,7 +44,7 @@ class TabRefinement(ScrolledPanel):
         ref_sizer = wx.BoxSizer(wx.HORIZONTAL)
         self.RunRef = wx.CheckBox(self, wx.ID_ANY, label="Run refinement", size=(150,-1))
         self.RunRef.SetValue(True)  # Default
-        ref_sizer.Add(self.RunRef, 0)
+        # ref_sizer.Add(self.RunRef, 0)
         
         ############### Choice of program for real space refinement ###############
         PRReal = wx.StaticBox(self, 1, "Refinement Programs Real space", size=(280, 250))
