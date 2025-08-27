@@ -102,8 +102,6 @@ from iotbx import ccp4_map
 from scipy.stats import pearsonr
 from wx.lib.pubsub import pub
 
-#sys.path.append("/Users/edezitter/Scripts/Fextrapolation")
-
 from calculate_q import calculate_q, outlier_rejection_only
 from calculate_k import calculate_k
 from map_explorer import map_explorer
@@ -365,7 +363,7 @@ class DataHandler(object):
                     try:
                         cif_object=mmtbx.monomer_library.server.read_cif(file_name=fle)
                     except Exception:
-                        raise  AssertionError,"Unable to read the cif file "+fle
+                        raise AssertionError("Unable to read the cif file "+fle)
                     else:
                         if (len(cif_object) > 0):
                             self.cif_objects.append((fle,cif_object))
@@ -478,7 +476,7 @@ class DataHandler(object):
             
             sel = np.zeros(f1.shape[0])
             np.put(sel, selection, 1)
-            sel_bool = map(lambda x: bool(int(x)), list(sel))
+            sel_bool = list(map(lambda x: bool(int(x)), list(sel)))
             selection_flags = flex.bool(sel_bool)
             self.fmodel = self.fmodel.select(selection_flags)
             
@@ -1219,7 +1217,7 @@ class Fextrapolate(object):
             
             sel = np.zeros(f1.shape[0])
             np.put(sel, selection, 1)
-            sel_bool = map(lambda x: bool(int(x)), list(sel))
+            sel_bool = list(map(lambda x: bool(int(x)), list(sel)))
             selection_flags = flex.bool(sel_bool)
             fmodel_fobs_off = self.fmodel_fobs_off.select(selection_flags)
             
@@ -1993,6 +1991,8 @@ def run(args):
     print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now))
     print("Phenix version: {:s}".format(get_phenix_version()))
     print("CCP4 version: {:s}".format(get_ccp4_version()))
+    print("CCTBX version: {:s}".format(get_cctbx_version()))
+    print("Python version: {:s}".format(get_python_version()))
 
     #If no input, show complete help, should be changed in order to give help depending on the attribute level
     if len(args) == 0 :
@@ -2016,6 +2016,8 @@ def run(args):
     print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now), file=log)
     print("Phenix version: {:s}".format(get_phenix_version()), file=log)
     print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
+    print("CCTBX version: {:s}".format(get_cctbx_version()), file=log)
+    print("Python version: {:s}".format(get_python_version()), file=log)
 
     log_dir = os.getcwd()
     
@@ -2939,7 +2941,7 @@ def run(args):
                 
             #Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             #This assumption is made in order to avoid storing the log-files in even another list
-            plot_Rfactors_per_alpha(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst), mp_type)
+            plot_Rfactors_per_alpha(list(map(lambda fle: re.sub(r'mtz$','log', fle), recref_mtz_lst)), mp_type)
             print("", file=log)
             print("")
             
@@ -2968,24 +2970,24 @@ def run(args):
             pymol_pdb_list.remove(DH.pdb_in)
             pymol_mtz_list = recref_mtz_lst[:]
             if outname == 'triggered': #if dummy name applied, the files still contain the dummy name
-                pymol_mtz_list = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_mtz_list)
-                pymol_pdb_list = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_pdb_list)
+                pymol_mtz_list = list(map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_mtz_list))
+                pymol_pdb_list = list(map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_pdb_list))
             #Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
             #Otherwise use the real space refined models + direct maps
             if pdb_list == recrealref_lst:
-                ccp4_list = map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list)
+                ccp4_list = list(map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list))
                 model_label = '%s_reciprocal_real_space'%(mp_type)
                 ccp4_map_label = '%s_reciprocal_space'%(mp)
                 #Pymol_movie(params.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list, resids_lst = residlst, model_label='%s_reciprocal_real_space'%(mp_type), ccp4_map_label='%s_reciprocal_space'%(mp)).write_pymol_script()
             else: 
                 if mp == 'qFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list))
                 elif mp == 'kFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list))
                 elif mp == 'Fgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list))
                 else:
-                    ccp4_list = map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list)
+                    ccp4_list = list(map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list))
                 model_label='%s_real_space'%(mp_type)
                 ccp4_map_label='%s'%(mp)
             if len(ccp4_list) == len(pymol_pdb_list) == len(params.occupancies.list_occ):

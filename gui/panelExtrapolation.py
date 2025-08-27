@@ -24,8 +24,10 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import wx
 from wx.lib.pubsub import pub
 
-from utils import CharValidator
+from .utils import CharValidator
 from wx.lib.scrolledpanel import ScrolledPanel
+
+from Fextr_utils import get_python_version
 
 class TabExtrapolation(ScrolledPanel):
     """
@@ -59,7 +61,7 @@ class TabExtrapolation(ScrolledPanel):
         blank3 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         blank4 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         blank5 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
-
+        blank6 = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         
         #####################
         ###   X8 Modes    ###
@@ -110,9 +112,14 @@ class TabExtrapolation(ScrolledPanel):
         list_occ_sizer.Add(self.ListTextCtrl, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
 
         self.occ_sizer_final = wx.StaticBoxSizer(Occ, wx.VERTICAL)
-        self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
-        #self.occ_sizer_final.AddSpacer(20)
-        self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        if int(get_python_version()[0]) == 2: # python2
+            self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+            #self.occ_sizer_final.AddSpacer(20)
+            self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 0)
+        else: # python3
+            self.occ_sizer_final.Add(occ_sizer, 0, wx.ALL, 0)
+            self.occ_sizer_final.Add(list_occ_sizer, 0, wx.ALL, 0)
+
 
         ########################
         ###  FoFo (earlier called Maps and Scaling)  ###
@@ -266,6 +273,7 @@ class TabExtrapolation(ScrolledPanel):
         self.missChoice.SetFont(defont)
         self.missChoice.SetSelection(0)
         NM_fgs = wx.FlexGridSizer(rows=1, cols=5, vgap=10, hgap=10)
+        # blank = wx.StaticText(self, wx.ID_ANY, "", size=(60, -1))
         NM_fgs.AddMany([neg, self.negChoice, blank2, missing, self.missChoice])
         self.NM.AddSpacer(5)
         self.NM.Add(NM_fgs, 0, wx.EXPAND, border=5)
@@ -289,16 +297,26 @@ class TabExtrapolation(ScrolledPanel):
         ScalingLowResTxt.SetFont(defont)
         self.ScalingLowRes = wx.TextCtrl(self, wx.ID_ANY, "", style=wx.TE_PROCESS_ENTER, size=(width_TextCtrl, height_TextCtrl))
         
-        SR_sizer = wx.BoxSizer(wx.HORIZONTAL)
-        SR_sizer.Add(ScalingHighResTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-        SR_sizer.Add(self.ScalingHighRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-        # SR_sizer.AddSpacer(30)
-        SR_sizer.Add(ScalingLowResTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
-        SR_sizer.Add(self.ScalingLowRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # SR_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        # SR_sizer.Add(ScalingHighResTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # SR_sizer.Add(self.ScalingHighRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # # SR_sizer.AddSpacer(30)
+        # SR_sizer.Add(ScalingLowResTxt, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+        # SR_sizer.Add(self.ScalingLowRes, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
         
         SR_fgs = wx.FlexGridSizer(rows=2, cols=5, vgap=10, hgap=10)
-        SR_fgs.AddMany([ScalingTxt, self.ScalingChoice, blank2, blank3, blank4, 
-                        ScalingLowResTxt, self.ScalingLowRes, blank5, ScalingHighResTxt, self.ScalingHighRes])
+        # SR_fgs.Add(ScalingTxt)
+        # SR_fgs.Add(self.ScalingChoice)
+        # SR_fgs.Add(blank3)
+        # SR_fgs.Add(blank4)
+        # SR_fgs.Add(blank5)
+        # SR_fgs.Add(ScalingLowResTxt)
+        # SR_fgs.Add(self.ScalingLowRes)
+        # SR_fgs.Add(blank6)
+        # SR_fgs.Add(ScalingHighResTxt)
+        # SR_fgs.Add(self.ScalingHighRes)
+        SR_fgs.AddMany([ScalingTxt, self.ScalingChoice, blank3, blank4, blank5, 
+                        ScalingLowResTxt, self.ScalingLowRes, blank6, ScalingHighResTxt, self.ScalingHighRes])
         self.SR.AddSpacer(5)
         self.SR.Add(SR_fgs, 0, wx.EXPAND, border=5)
 

@@ -324,7 +324,9 @@ class Difference_distance_analysis(object):
         """
         From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
         """
-        seq_info_unique, indices = np.unique(np.array(map(lambda x: int(x), seq_info)), return_inverse=True)
+        f = np.vectorize(lambda x: int(x))
+        seq_info_unique, indices = np.unique(f(seq_info), return_inverse=True)
+        # seq_info_unique, indices = np.unique(np.array(list(map(lambda x: int(x), seq_info))), return_inverse=True)
         
         n_residues = seq_info_unique.shape[0]
         ddm_residue = np.zeros((n_residues, n_residues))
@@ -346,7 +348,9 @@ class Difference_distance_analysis(object):
         """
         From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
         """
-        seq_info_unique, indices = np.unique(np.array(map(lambda x: int(x), df.loc[:,"resseq"])), return_inverse=True)
+        f = np.vectorize(lambda x: int(x))
+        seq_info_unique, indices = np.unique(f(df.loc[:,"resseq"]), return_inverse=True)
+        # seq_info_unique, indices = np.unique(np.array(list(map(lambda x: int(x), df.loc[:,"resseq"]))), return_inverse=True)
         
         n_residues = seq_info_unique.shape[0]
         ddm_residue = np.zeros((n_residues, n_residues))

@@ -23,7 +23,7 @@ import os
 import sys
 import wx
 from functools import partial
-from Sizers import DefaultHorizontalSizer
+from .Sizers import DefaultHorizontalSizer
 from iotbx.file_reader import any_file
 
 class TabIO(wx.Panel):

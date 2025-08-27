@@ -40,6 +40,7 @@ from wx.aui import AuiNotebook
 import version
 #from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
 
+from Fextr_utils import get_python_version
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Notebook styles to have, or not, a widget to close the tab
@@ -237,9 +238,14 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        # self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
-        self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
-        self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
+        if int(get_python_version()[0]) == 2: # python2 
+            # self.ToolBar.AddTool(101, wx.Bitmap(os.path.join(script_dir,"gui/pngs/settings_scaled.png")))
+            self.ToolBar.AddTool(102, wx.Bitmap(os.path.join(script_dir,"gui/pngs/run_scaled.png")))
+            self.ToolBar.AddTool(103, wx.Bitmap(os.path.join(script_dir,"gui/pngs/cancel_scaled.png")))
+        else: # python3
+            # self.ToolBar.AddTool(101, "Settings",  wx.Bitmap(os.path.join(script_dir, "gui/pngs/settings_scaled.png")))
+            self.ToolBar.AddTool(102, "Run", wx.Bitmap(os.path.join(script_dir, "gui/pngs/run_scaled.png")))
+            self.ToolBar.AddTool(103, "Stop", wx.Bitmap(os.path.join(script_dir, "gui/pngs/cancel_scaled.png")))
         self.ToolBar.Bind(wx.EVT_TOOL, self.OnToolBar)
         self.ToolBar.Realize()
 
@@ -575,23 +581,23 @@ class MainFrame(wx.Frame):
 
         # Fill listCtrl with input files
         if user_params.input.reference_mtz is not None:
-            index = tabIO.list.InsertStringItem(sys.maxint, user_params.input.reference_mtz)
+            index = tabIO.list.InsertStringItem(sys.maxsize, user_params.input.reference_mtz)
             tabIO.list.SetStringItem(index, 1, "Reference mtz")
             tabIO.files["Reference mtz"].append(user_params.input.reference_mtz)
             #tabIO.extract_dmin_dmax(user_params.input.reference_mtz)
         if user_params.input.triggered_mtz is not None:
-            index = tabIO.list.InsertStringItem(sys.maxint, user_params.input.triggered_mtz)
+            index = tabIO.list.InsertStringItem(sys.maxsize, user_params.input.triggered_mtz)
             tabIO.list.SetStringItem(index, 1, "Triggered mtz")
             tabIO.files["Triggered mtz"].append(user_params.input.triggered_mtz)
             #tabIO.extract_dmin_dmax(user_params.input.triggered_mtz)
         if user_params.input.reference_pdb is not None:
-            index = tabIO.list.InsertStringItem(sys.maxint, user_params.input.reference_pdb)
+            index = tabIO.list.InsertStringItem(sys.maxsize, user_params.input.reference_pdb)
             tabIO.list.SetStringItem(index, 1, "Reference model")
             tabIO.files["Reference model"].append(user_params.input.reference_pdb)
 
         if user_params.input.additional_files is not None:
             for cif in user_params.input.additional_files:
-                index = tabIO.list.InsertStringItem(sys.maxint, cif)
+                index = tabIO.list.InsertStringItem(sys.maxsize, cif)
                 tabIO.list.SetStringItem(index, 1, "Restraints")
                 tabIO.files["Restraints"].append(cif)
         # Resolution
