@@ -3,9 +3,13 @@
 MAJOR = 1
 MINOR = 2
 PATCH = 9
+TAG = "Dev"  # None or "Dev"
 
 __version_date__ = "28 Jun 2025"
-__version_info__ = (MAJOR, MINOR, PATCH)
+if TAG is None:
+    __version_info__ = (MAJOR, MINOR, PATCH)
+else:
+    __version_info__ = (MAJOR, MINOR, PATCH, TAG)
 __version__ = ".".join(map(str, __version_info__))
 
 __authors__ = [
