@@ -20,16 +20,18 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import print_function
-import re, sys
 import os
-import iotbx.pdb
-import iotbx.file_reader
-from mmtbx.scaling.matthews import p_vm_calculator
-from libtbx import adopt_init_args
-from Fextr_utils import get_name
+import re
+
 from iotbx.file_reader import any_file
-from cctbx import miller
+from libtbx import adopt_init_args
+from mmtbx.scaling.matthews import p_vm_calculator
+import iotbx.pdb
+
+from .Fextr_utils import get_name
+
 
 class Refmac_refinement(object):
     def __init__(self,

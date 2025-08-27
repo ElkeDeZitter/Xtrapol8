@@ -55,16 +55,20 @@ TODO: find elegant alternative for global variables
 """
 
 from __future__ import division, print_function
-import sys, re, os
-import string
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.signal
+import glob
+import os
+import re
+import sys
+
 from iotbx.pdb import hierarchy
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.signal
 import scipy.stats
-import glob
-from Fextr_utils import check_file_existance
+
+from .Fextr_utils import check_file_existance
+
 
 colorlib=['purple','indigo','rebeccapurple', 'midnightblue', 'darkblue', 'mediumblue', 'blue', 'royalblue', 'dodgerblue', 'cornflowerblue', 'deepskyblue', 'lightskyblue', 'cadetblue','darkcyan', 'darkturquoise', 'mediumturquoise', 'turquoise', 'aqua', 'mediumaquamarine', 'aquamarine', 'mediumspringgreen', 'springgreen', 'green', 'lime', 'lawngreen', 'chartreuse', 'greenyellow', 'yellow', 'gold', 'goldenrod', 'orange', 'darkorange', 'chocolate', 'darksalmon', 'orangered', 'red', 'firebrick', 'maroon', 'darkred', 'black']
 

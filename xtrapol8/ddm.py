@@ -32,22 +32,25 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import division, print_function
-import numpy as np
 import argparse
-import os, sys
 import math
+import os
+import pickle
+import sys
+
+from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from Fextr_utils import get_name
-from iotbx.pdb import hierarchy
-from cctbx.array_family import flex
-import pickle
+import numpy as np
 try:
     import pandas as pd
     from scipy.spatial.distance import pdist, squareform
     use_pandas = True
 except ImportError:
     use_pandas = False
+
+from .Fextr_utils import get_name
+
 
 class Difference_distance_analysis(object):
     """

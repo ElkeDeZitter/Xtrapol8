@@ -52,24 +52,26 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import print_function
-import sys
 import os
 import re
-import argparse
-from libtbx import adopt_init_args
-import mmtbx
-from mmtbx import utils
+import sys
+
 from cctbx import sgtbx, crystal
+from iotbx import ccp4_map
 from iotbx import pdb
 from iotbx.file_reader import any_file
-from iotbx import ccp4_map
-import iotbx.xplor.map
-from scipy.stats import pearsonr
-from map_explorer import map_explorer
-from map_explorer_analysis import Map_explorer_analysis
-from plotalpha import plotalpha
-from Fextr_utils import check_file_existance
+from libtbx import adopt_init_args
 from libtbx.utils import Usage
+from mmtbx import utils
+from scipy.stats import pearsonr
+import iotbx.xplor.map
+import mmtbx
+
+from .Fextr_utils import check_file_existance
+from .map_explorer import map_explorer
+from .map_explorer_analysis import Map_explorer_analysis
+from .plotalpha import plotalpha
+
 
 class Difference_analysis(object):
     def __init__(self,

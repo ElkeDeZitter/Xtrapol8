@@ -18,15 +18,16 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import division, print_function
-import re, sys
-import numpy as np
-import matplotlib
-#matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from cctbx import miller
-from Fextr_utils import check_common_indices, make_miller_array
-from cctbx.array_family import flex
 import pickle
+import re
+import sys
+
+from cctbx.array_family import flex
+import matplotlib.pyplot as plt
+import numpy as np
+
+from .Fextr_utils import check_common_indices, make_miller_array
+
 
 def calculate_k(f_obs_ref, f_obs_2, kweight_scale = 0.05, log=sys.stdout):
     """
