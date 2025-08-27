@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "Xtrapol8"
+dynamic = ["version"]
+description = "Xtrapol8"
+authors = [
+    { name = "Elke De Zitter", email = "elke.de-zitter@ibs.fr" },
+    { name = "Nicolas Coquelle", email = "help@ibs.fr" },
+    { name = "Paula Oeser", email = "help@ibs.fr" },
+    { name = "Thomas Barends", email = "help@ibs.fr" },
+    { name = "Jacques Philippe Colletier", email = "help@ibs.fr" },
+]
+readme = "README.md"
+license = { text = "MIT" }
+keywords = ["Xtrapol8"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "cctbx",
+    "chapi",
+    "iotbx",
+    "libtbx",
+    "matplotlib",
+    "mmtbx",
+    "numpy",
+    "pandas",
+    "scipy",
+    "wxPython",
+]
+
+[project.scripts]
+"xtrapol8-ddm" = "xtrapol8.ddm:ddm"
+"xtrapol8-difference-map-analysis" = "xtrapol8.differencemap_analysis:differencemap_analysis"
+"xtrapol8-distance-analysis" = "xtrapol8.distance_analysis:distance_analysis"
+"xtrapol8" = "xtrapol8.Fextr:Fextr"
+"xtrapol8-refiner" = "xtrapol8.refiner:refiner"
+"xtrapol8-version" = "xtrapol8.version:version"
+"xtrapol8-gui" = "xtrapol8.X8_gui:X8_gui"
+
+[project.urls]
+Source = "https://github.com/ElkeDeZitter/Xtrapol8"
+Issues = "https://github.com/ElkeDeZitter/Xtrapol8/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "xtrapol8.__version__" }
+
+[tool.setuptools.package-data]
+xtrapol8 = ["**/*"]
