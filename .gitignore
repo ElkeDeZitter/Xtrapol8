@@ -1,5 +1,7 @@
-*pyc
-Manual
 .DS_Store
-unused
 .vscode
+*.egg-info
+*.pyc
+/build/
+Manual
+unused
