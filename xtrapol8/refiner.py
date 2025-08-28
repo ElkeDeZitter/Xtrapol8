@@ -1416,6 +1416,6 @@ def run(args):
     print('-----------------------------------------', file=log)
 
 
-if __name__ == '__main__':
+def main():
     run(sys.argv[1:])
     print('Hoera')

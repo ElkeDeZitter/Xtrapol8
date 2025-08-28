@@ -339,9 +339,9 @@ class Filefinder(object):
             fextrfcalc_list.append(os.path.abspath(check_file_existance(f)))
             
         return fextrfcalc_list
-            
-if __name__ == "__main__":
-    
+
+
+def main():
     from master import master_phil
     Xtrapol8_master_phil = master_phil
 
@@ -508,6 +508,3 @@ if __name__ == "__main__":
             
     #Close the log file
     log.close()
-
-
-    

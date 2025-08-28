@@ -512,9 +512,9 @@ class Difference_distance_analysis(object):
         
         #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though
         return outname_png
-    
-if __name__=='__main__':
 
+
+def main():
     parser = argparse.ArgumentParser("Calculate the difference distance matrix between two pdb files.")
     parser.add_argument('-r', '--pdb_ref', type=str, default=None, help= 'Reference pdb file.')
     parser.add_argument('-o', '--pdb_other', type=str, default=None, help= 'Other pdb file to be compared with the reference pdb file.')
@@ -555,4 +555,3 @@ if __name__=='__main__':
     ddm_out = Difference_distance_analysis(pdb_ref, pdb_other, ligands = ligands, outdir=outdir, scale=scale).ddms()
     
     print("ddm calculated: {:s}".format(ddm_out))
-

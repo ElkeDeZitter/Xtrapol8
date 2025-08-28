@@ -939,12 +939,12 @@ class Filefinder(object):
             print("occ: {:.3f} pdb found: {:s}".format(occ, pdb_out))
 
         return pdb_list
-    
-if __name__ == '__main__':
 
+
+def main():
     import iotbx.phil
     from libtbx.utils import Usage
-    
+
     from master import master_phil
     Xtrapol8_master_phil = master_phil
 

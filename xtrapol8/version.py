@@ -35,7 +35,8 @@ VERSION = ".".join(map(lambda x: str(x) , [major, minor, micro]))
 if tag != None:
     VERSION += "-{:s}".format(tag)
 
-if __name__=="__main__":
+
+def main():
     import sys
     if len(sys.argv) < 2 :
         print(VERSION)

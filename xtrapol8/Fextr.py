@@ -3279,6 +3279,7 @@ def run(args):
         os.system("coot --script %s" %(script_coot))
 
     ################################################################
-if __name__ == "__main__":
+
+def main():
     run(sys.argv[1:])
     print('Hoera')

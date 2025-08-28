@@ -1127,8 +1127,8 @@ class MainFrame(wx.Frame):
             return value
         else: return "None"
 
-# ----------------------------------------------------------------------
-if __name__ == "__main__":
+
+def main():
     app = wx.App(False)
     frame = MainFrame(sys.argv)
     frame.Show(True)
