@@ -22,6 +22,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import print_function
+from difflib import get_close_matches
 import glob
 import os
 import re
@@ -358,8 +359,6 @@ class Phenix_real_space_refinement(object):
         Find the closest column labels in an mtz file.
         Additional constraints could be added to the string, e.g. should contain "2F" if searching for the 2FoFc type
         """
-        from difflib import get_close_matches
-        
         column_label_strings = []
         hkl = any_file(mtz_in,force_type="hkl", raise_sorry_if_errors=False)
         for array in hkl.file_object.as_miller_arrays():

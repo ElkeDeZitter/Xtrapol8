@@ -70,6 +70,7 @@ import mmtbx
 from .Fextr_utils import check_file_existance
 from .map_explorer import map_explorer
 from .map_explorer_analysis import Map_explorer_analysis
+from .master import master_phil
 from .plotalpha import plotalpha
 
 
@@ -342,7 +343,6 @@ class Filefinder(object):
 
 
 def main():
-    from master import master_phil
     Xtrapol8_master_phil = master_phil
 
     master_phil = iotbx.phil.parse("""

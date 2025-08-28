@@ -19,6 +19,9 @@
 #  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 #  THE SOFTWARE.
 
+import sys
+
+
 __authors__ = ["Elke De Zitter", "Nicolas Coquelle", "Paula Oeser", "Thomas Barends", "Jacques Philippe Colletier"]
 __license__ = "MIT"
 __copyright__ = "Institut de Biologie Structurale - group DYNAMOP - team SNaX"
@@ -37,7 +40,6 @@ if tag != None:
 
 
 def main():
-    import sys
     if len(sys.argv) < 2 :
         print(VERSION)
     elif sys.argv[1] == 'update':
