@@ -19,12 +19,15 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
+from functools import partial
 import os
 import sys
-import wx
-from functools import partial
-from .Sizers import DefaultHorizontalSizer
+
 from iotbx.file_reader import any_file
+import wx
+
+from .Sizers import DefaultHorizontalSizer
+
 
 class TabIO(wx.Panel):
     """

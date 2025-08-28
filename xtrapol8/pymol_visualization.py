@@ -17,8 +17,11 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-import os, re
+import os
+import re
+
 import numpy as np
+
 
 class Pymol_visualization(object):
     """

@@ -20,17 +20,20 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import print_function
-import re, sys
-import os
 import glob
-import iotbx.pdb
-from mmtbx.scaling.matthews import p_vm_calculator
-from libtbx import adopt_init_args
-from cctbx import miller
-from Fextr_utils import get_name, get_phenix_version
-import subprocess
+import os
+import re
+import sys
+
 from iotbx.file_reader import any_file
+from libtbx import adopt_init_args
+from mmtbx.scaling.matthews import p_vm_calculator
+import iotbx.pdb
+
+from .Fextr_utils import get_name, get_phenix_version
+
 
 class Phenix_reciprocal_space_refinement(object):
     def __init__(self,

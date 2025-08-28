@@ -15,8 +15,10 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-import wx
 import string
+
+import wx
+
 
 class CharValidator(wx.PyValidator):
     ''' Validates data as it is entered into the text controls. '''

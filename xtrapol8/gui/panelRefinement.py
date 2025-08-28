@@ -19,8 +19,9 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-import wx
 from wx.lib.scrolledpanel import ScrolledPanel
+import wx
+
 
 class TabRefinement(ScrolledPanel):
     """

@@ -64,23 +64,26 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 
 from __future__ import print_function
-import os, re, sys
-import glob
 from datetime import datetime
+import glob
+import os
+import re
 import shutil
-import iotbx.phil
-from libtbx.utils import Usage
+import sys
+
 from iotbx.file_reader import any_file
+from libtbx.utils import Usage
 from mmtbx.scaling.matthews import p_vm_calculator
-import uuid
+import iotbx.phil
 
-from Fextr_utils import *
-from distance_analysis import Distance_analysis
-from pymol_visualization import Pymol_movie
-from ddm import Difference_distance_analysis
-import version
+from . import version
+from .ddm import Difference_distance_analysis
+from .distance_analysis import Distance_analysis
+from .Fextr_utils import *
+from .master import master_phil
+from .pymol_visualization import Pymol_movie
 
-from master import master_phil
+
 Xtrapol8_master_phil = master_phil
 
 master_phil = iotbx.phil.parse("""

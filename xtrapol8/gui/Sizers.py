@@ -14,7 +14,9 @@ Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-
 see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
+
 import wx
+
 
 class DefaultHorizontalSizer(wx.BoxSizer):
 

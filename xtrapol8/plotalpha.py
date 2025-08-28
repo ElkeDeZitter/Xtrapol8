@@ -18,11 +18,12 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import print_function, division
-import sys, os, re
-import glob
-import numpy as np
-from matplotlib import pyplot as plt
 import pickle
+import sys
+
+from matplotlib import pyplot as plt
+import numpy as np
+
 
 class plotalpha(object):
     """

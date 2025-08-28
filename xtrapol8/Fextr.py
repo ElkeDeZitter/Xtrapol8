@@ -70,55 +70,50 @@ TODO:
 - plot the F and sig(F) after negative handling
 - ddm with linear scale / sum of differences instead of plotting for each atom
 """
-from __future__ import division, print_function
-import re
-import os
-import sys
-import random
-import subprocess
-import shutil
-import pickle
-from select import select
-from datetime import datetime
-import numpy as np
-import uuid
 
-from iotbx.file_reader import any_file
-from iotbx import symmetry
-from iotbx.pdb import hierarchy
+from __future__ import division, print_function
+from datetime import datetime
+import os
+import pickle
+import re
+import shutil
+import sys
+
+from cctbx import maptbx, miller, crystal
+from cctbx import sgtbx
 from cctbx.array_family import flex
-from cctbx import maptbx, miller, crystal, xray
-import iotbx.phil
-import iotbx.map_tools
+from iotbx import ccp4_map
+from iotbx import pdb
+from iotbx import symmetry
+from iotbx.file_reader import any_file
+from iotbx.pdb import hierarchy
 from libtbx.utils import Usage
+from mmtbx import utils
+from scipy.stats import pearsonr
+import iotbx.map_tools
+import iotbx.phil
 import mmtbx.f_model
 import mmtbx.map_tools
 import mmtbx.maps.utils
-from mmtbx import utils
-from cctbx import sgtbx
-from iotbx import pdb
-from mmtbx.scaling.matthews import p_vm_calculator
-from iotbx import ccp4_map
-from scipy.stats import pearsonr
-from wx.lib.pubsub import pub
+import numpy as np
 
-from calculate_q import calculate_q, outlier_rejection_only
-from calculate_k import calculate_k
-from map_explorer import map_explorer
-from map_explorer_analysis import Map_explorer_analysis
-from ccp4_scaleit import run_scaleit
-from plotalpha import plotalpha
-import map_tools_fomsource
-import map_tools_Millerset
-import ccp4_refmac
-import phenix_refinements
-from column_extraction import Column_extraction, Extrapolated_column_extraction
-from pymol_visualization import Pymol_visualization, Pymol_movie
-from ddm import Difference_distance_analysis
-from distance_analysis import *
-from Fextr_utils import *
-import version
-from master import master_phil
+from . import ccp4_refmac
+from . import map_tools_fomsource
+from . import map_tools_Millerset
+from . import phenix_refinements
+from . import version
+from .calculate_k import calculate_k
+from .calculate_q import calculate_q, outlier_rejection_only
+from .ccp4_scaleit import run_scaleit
+from .column_extraction import Column_extraction, Extrapolated_column_extraction
+from .ddm import Difference_distance_analysis
+from .distance_analysis import *
+from .Fextr_utils import *
+from .map_explorer import map_explorer
+from .map_explorer_analysis import Map_explorer_analysis
+from .master import master_phil
+from .plotalpha import plotalpha
+from .pymol_visualization import Pymol_movie
 
 
 class SymManager(symmetry.manager):

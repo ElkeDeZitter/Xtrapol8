@@ -19,26 +19,26 @@
 --------
 """
 
+import re
+import os
+import pickle
+import math
+
 from matplotlib.backends.backend_wxagg import (
     FigureCanvasWxAgg as FigureCanvas,
     NavigationToolbar2WxAgg as NavigationToolbar,
 )
 from matplotlib.figure import Figure
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-
-import numpy as np
-import wx
-import os, re
+from wx.lib.pubsub import pub
 from wx.lib.scrolledpanel import ScrolledPanel
 from wxtbx import metallicbutton
-from wx.lib.pubsub import pub
-import pickle
-import glob
-import math
-import sys
-sys.path.append("..")
-from Fextr_utils import get_name
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+import numpy as np
+import wx
+
+from ..Fextr_utils import get_name
+
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
