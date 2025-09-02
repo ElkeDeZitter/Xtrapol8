@@ -8,10 +8,10 @@ dynamic = ["version"]
 description = "Xtrapol8"
 authors = [
     { name = "Elke De Zitter", email = "elke.de-zitter@ibs.fr" },
-    { name = "Nicolas Coquelle", email = "help@ibs.fr" },
-    { name = "Paula Oeser", email = "help@ibs.fr" },
-    { name = "Thomas Barends", email = "help@ibs.fr" },
-    { name = "Jacques Philippe Colletier", email = "help@ibs.fr" },
+    { name = "Nicolas Coquelle" },
+    { name = "Paula Oeser" },
+    { name = "Thomas Barends" },
+    { name = "Jacques Philippe Colletier", email = "jacques-Philippe.colletier@ibs.fr" },
 ]
 readme = "README.md"
 license = { text = "MIT" }
