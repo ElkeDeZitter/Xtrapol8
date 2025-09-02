@@ -20,16 +20,19 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import print_function
-import re, sys
+from difflib import get_close_matches
 import os
-import iotbx.pdb
-import iotbx.file_reader
-from mmtbx.scaling.matthews import p_vm_calculator
-from libtbx import adopt_init_args
-from Fextr_utils import get_name
+import re
+
 from iotbx.file_reader import any_file
-from cctbx import miller
+from libtbx import adopt_init_args
+from mmtbx.scaling.matthews import p_vm_calculator
+import iotbx.pdb
+
+from .Fextr_utils import get_name
+
 
 class Refmac_refinement(object):
     def __init__(self,
@@ -324,8 +327,6 @@ class Coot_refinement(object):
         Find the closest column labels in an mtz file.
         Additional constraints could be added to the string, e.g. should contain "2F" if searching for the 2FoFc type
         """
-        from difflib import get_close_matches
-        
         column_label_strings = []
         hkl = any_file(mtz_in,force_type="hkl", raise_sorry_if_errors=False)
         for array in hkl.file_object.as_miller_arrays():

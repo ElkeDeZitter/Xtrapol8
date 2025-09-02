@@ -16,26 +16,26 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import division, print_function
-import re, sys
-import os
-import random
-import numpy as np
-import iotbx
 import math
+import numpy as np
+import os
 import pickle
+import random
+import re
+import sys
 import uuid
-import cctbx
-from cctbx import miller, crystal, xray
-from iotbx import mtz, symmetry
-from iotbx.pdb import hierarchy
-from iotbx.file_reader import any_file
+
+from cctbx import miller, crystal
 from cctbx.array_family import flex
-#import mmtbx.model
-#import matplotlib
-#matplotlib.use('Agg')
+from iotbx.file_reader import any_file
+from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
 from scipy.stats import linregress
+import cctbx
+import iotbx
+
 
 def get_python_version():
     """

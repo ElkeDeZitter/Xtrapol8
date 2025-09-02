@@ -14,33 +14,28 @@ Copyright (c) 2021 Elke De Zitter, Nicolas Coquelle, Thomas Barends and Jacques-
 see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
-import matplotlib
-matplotlib.use('WXAgg')
-from matplotlib.backends.backend_wxagg import (
-    FigureCanvasWxAgg as FigureCanvas,
-    NavigationToolbar2WxAgg as NavigationToolbar,
-)
-from matplotlib.figure import Figure
 
-import os.path
-import glob
-import threading
 from threading import Thread
-import sys
-import wx
+import glob
+import os.path
 import subprocess
-from wx.lib.pubsub import pub
-from gui import panelIO, panelExtrapolation, panelRefinement, panelLog
-from gui.panelLog import TabLog, TabMainImg, TabOccResults
+import sys
+import threading
 
 from libtbx.phil import parse
-
-from Fextr import master_phil
 from wx.aui import AuiNotebook
-import version
-#from wx.lib.agw.flatnotebook import FlatNotebook as AuiNotebook
+from wx.lib.pubsub import pub
+import matplotlib
+import wx
 
-from Fextr_utils import get_python_version
+from . import version
+from .Fextr import master_phil
+from .Fextr_utils import get_python_version
+from .gui import panelIO, panelExtrapolation, panelRefinement
+from .gui.panelLog import TabLog, TabMainImg, TabOccResults
+
+
+matplotlib.use('WXAgg')
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Notebook styles to have, or not, a widget to close the tab
@@ -1132,8 +1127,8 @@ class MainFrame(wx.Frame):
             return value
         else: return "None"
 
-# ----------------------------------------------------------------------
-if __name__ == "__main__":
+
+def main():
     app = wx.App(False)
     frame = MainFrame(sys.argv)
     frame.Show(True)

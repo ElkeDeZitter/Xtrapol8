@@ -20,9 +20,12 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import print_function
-import os,sys
-from cctbx import miller, xray
+import os
+import sys
+
+from cctbx import xray
 from iotbx.file_reader import any_file
 
 

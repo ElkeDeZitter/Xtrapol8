@@ -23,16 +23,17 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import division, print_function
-import re, sys
+import math
 import os
-import numpy as np
 import pickle
-from cctbx.array_family import flex
+
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from Fextr_utils import get_name
-import math
+import numpy as np
+
+from .Fextr_utils import get_name
 
 
 def plot_Riso_CCiso(pickle_file='Riso_CCiso.pickle'):

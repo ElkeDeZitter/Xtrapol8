@@ -55,16 +55,22 @@ TODO: find elegant alternative for global variables
 """
 
 from __future__ import division, print_function
-import sys, re, os
-import string
-import numpy as np
-import matplotlib.pyplot as plt
-import scipy.signal
-from iotbx.pdb import hierarchy
-from scipy.optimize import curve_fit
-import scipy.stats
 import glob
-from Fextr_utils import check_file_existance
+import os
+import re
+import sys
+
+from iotbx.pdb import hierarchy
+from libtbx.utils import Usage
+from scipy.optimize import curve_fit
+import iotbx.phil
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats
+
+from .Fextr_utils import check_file_existance
+from .master import master_phil
+
 
 colorlib=['purple','indigo','rebeccapurple', 'midnightblue', 'darkblue', 'mediumblue', 'blue', 'royalblue', 'dodgerblue', 'cornflowerblue', 'deepskyblue', 'lightskyblue', 'cadetblue','darkcyan', 'darkturquoise', 'mediumturquoise', 'turquoise', 'aqua', 'mediumaquamarine', 'aquamarine', 'mediumspringgreen', 'springgreen', 'green', 'lime', 'lawngreen', 'chartreuse', 'greenyellow', 'yellow', 'gold', 'goldenrod', 'orange', 'darkorange', 'chocolate', 'darksalmon', 'orangered', 'red', 'firebrick', 'maroon', 'darkred', 'black']
 
@@ -935,13 +941,9 @@ class Filefinder(object):
             print("occ: {:.3f} pdb found: {:s}".format(occ, pdb_out))
 
         return pdb_list
-    
-if __name__ == '__main__':
 
-    import iotbx.phil
-    from libtbx.utils import Usage
-    
-    from master import master_phil
+
+def main():
     Xtrapol8_master_phil = master_phil
 
     master_phil = iotbx.phil.parse("""

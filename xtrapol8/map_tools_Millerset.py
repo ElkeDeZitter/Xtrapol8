@@ -33,10 +33,12 @@ see https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt
 """
 
 from __future__ import absolute_import, division, print_function
-from cctbx.array_family import flex
+
+from cctbx import adptbx
 from cctbx import miller
-from cctbx import maptbx
+from cctbx.array_family import flex
 import mmtbx.map_tools
+
 
 class combine(object):
   def __init__(self,
@@ -112,7 +114,6 @@ class electron_density_map(object):
     r_free_flags = None
     if(sharp):
       ss = 1./flex.pow2(coeffs.d_spacings().data()) / 4.
-      from cctbx import adptbx
       b = flex.mean(self.fmodel_2.xray_structure.extract_u_iso_or_u_equiv() *
         adptbx.u_as_b(1))/2
       k_sharp = 1./flex.exp(-ss * b)

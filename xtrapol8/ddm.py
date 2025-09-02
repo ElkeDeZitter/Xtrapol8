@@ -32,22 +32,25 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import division, print_function
-import numpy as np
 import argparse
-import os, sys
 import math
+import os
+import pickle
+import sys
+
+from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
-from Fextr_utils import get_name
-from iotbx.pdb import hierarchy
-from cctbx.array_family import flex
-import pickle
+import numpy as np
 try:
     import pandas as pd
     from scipy.spatial.distance import pdist, squareform
     use_pandas = True
 except ImportError:
     use_pandas = False
+
+from .Fextr_utils import get_name
+
 
 class Difference_distance_analysis(object):
     """
@@ -509,9 +512,9 @@ class Difference_distance_analysis(object):
         
         #Need to return the png outname so that it can be easily found by the GUI. This can be much more elegant though
         return outname_png
-    
-if __name__=='__main__':
 
+
+def main():
     parser = argparse.ArgumentParser("Calculate the difference distance matrix between two pdb files.")
     parser.add_argument('-r', '--pdb_ref', type=str, default=None, help= 'Reference pdb file.')
     parser.add_argument('-o', '--pdb_other', type=str, default=None, help= 'Other pdb file to be compared with the reference pdb file.')
@@ -552,4 +555,3 @@ if __name__=='__main__':
     ddm_out = Difference_distance_analysis(pdb_ref, pdb_other, ligands = ligands, outdir=outdir, scale=scale).ddms()
     
     print("ddm calculated: {:s}".format(ddm_out))
-

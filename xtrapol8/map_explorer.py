@@ -18,14 +18,16 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import print_function
-import sys
 import os
-import numpy as np
-import iotbx.xplor.map
+import sys
+
 from iotbx import ccp4_map
-from scipy import ndimage
 from iotbx.pdb import hierarchy
+from scipy import ndimage
+import iotbx.xplor.map
+import numpy as np
 import scipy.stats
+
 
 # TODO: convert to usage of iotbx instead of reading pdb as text file
 def get_atom_info_all(pdb):

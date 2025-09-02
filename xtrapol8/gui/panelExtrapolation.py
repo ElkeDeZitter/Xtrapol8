@@ -21,13 +21,12 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-import wx
-from wx.lib.pubsub import pub
-
-from .utils import CharValidator
 from wx.lib.scrolledpanel import ScrolledPanel
+import wx
 
-from Fextr_utils import get_python_version
+from ..Fextr_utils import get_python_version
+from .utils import CharValidator
+
 
 class TabExtrapolation(ScrolledPanel):
     """

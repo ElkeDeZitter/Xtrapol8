@@ -20,10 +20,13 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 -------
 """
+
 from __future__ import print_function
-import os, sys
-from cctbx import miller
+import os
+import sys
+
 from iotbx.file_reader import any_file
+
 
 def make_mtz_for_scaleit(f_obs_ref, f_obs_2):
     mtz_out  = "forscaleit.mtz"

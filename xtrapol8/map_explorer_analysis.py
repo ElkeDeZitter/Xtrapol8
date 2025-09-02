@@ -18,14 +18,16 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 from __future__ import division, print_function
-import sys
-import numpy as np
 import math
-import scipy.stats
-from matplotlib import pyplot as plt
-from iotbx.pdb import hierarchy
+import sys
+
 from cctbx.array_family import flex
+from iotbx.pdb import hierarchy
+from matplotlib import pyplot as plt
 from mmtbx.secondary_structure.find_ss_from_ca import find_secondary_structure
+import numpy as np
+import scipy.stats
+
 
 class Map_explorer_analysis(object):
     """
