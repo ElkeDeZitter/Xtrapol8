@@ -16,6 +16,9 @@ from libtbx import adopt_init_args
 import pickle
 from iotbx import ccp4_map
 import iotbx.map_tools
+from iotbx.data_manager import DataManager
+from cctbx.array_family import flex
+import math
 
 import glob
 import sys
@@ -119,7 +122,7 @@ class CCP4_Maps(object):
         self.map_object = ccp4_map.map_reader(file_name=self.map_name)
         self.grid = self.map_object.unit_cell_grid
         self.origin = np.array(self.map_object.data.as_double().origin(), dtype=np.float32)
-        self.unit_cell = self.map_object.unit_cell_parameters
+        self.unit_cell = self.map_object.unit_cell()
         self.data = self.map_object.data.as_numpy_array()
 
 # def skew(a,b,c,alpha,beta,gamma):
@@ -257,7 +260,6 @@ class SVD_analysis(object):
         s: The singular values, sorted in non-increasing order
         vh: Unitary matrix having right singular vectors as rows
         """
-        print('Now performing Singular Value Decomposition...')
         #u,s,v=np.linalg.svd(dataset,full_matrices=False)
         err = 0
         try:
@@ -319,7 +321,7 @@ class SVD_analysis(object):
         #plt.legend()
         #splt.show()
 
-        colorlist=['xkcd:purple','xkcd:royal blue','xkcd:blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:red','xkcd:dark red',]
+        colorlist=['xkcd:purple','xkcd:royal blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:red','xkcd:dark red',]
 
         # leg="vector #"+str(v)
         #plt.rc('xtick', labelsize=8)
@@ -328,8 +330,10 @@ class SVD_analysis(object):
         matplotlib.rc('xtick', labelsize=8) 
         matplotlib.rc('ytick', labelsize=8) 
             
-        print(np.shape(self.occupancies))
-        print(self.occupancies[:])
+        # print(np.shape(self.occupancies))
+        # print(self.occupancies[:])
+        
+        width = round((self.occupancies[-1] - self.occupancies[0])/(len(self.occupancies)*2), 3)
     
         # initiate plot
         n_cols = 2
@@ -346,7 +350,7 @@ class SVD_analysis(object):
                 col = 0
                 row += 1
             # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
-            axs[(row,col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec]) #,label=leg,marker="o",linewidth=1, markersize=6)
+            axs[(row,col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
             axs[(row,col)].set(xlabel='dataset', ylabel='Amplitude')
             #ax.set_xlim([0.001,1000000])
             print((self.occupancies[:]))
@@ -355,6 +359,7 @@ class SVD_analysis(object):
             print("")
             axs[(row,col)].set_ylim([0,1])
             axs[(row,col)].axhline(y=0.4, color='gray' , linestyle='--')
+            axs[((row,col))].set_title("Vector {:d}".format(vec))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
             for tick in axs[(row,col)].xaxis.get_ticklabels():
                 tick.set_fontsize('medium')
@@ -364,50 +369,90 @@ class SVD_analysis(object):
                 tick.set_fontsize('medium')
             
         fig.tight_layout()
-        outname = "{s}_right_singular_values.png".format(self.prefix)
+        outname = "{:s}_right_singular_values.png".format(self.prefix)
         plt.savefig(outname, dpi=300)
     
-    def read_ccp4_map(self, mapinname):
-        map_object = CCP4_Maps(mapinname)
-        map_object.open_map()
-        print('Read map file {} with size {}'.format(mapinname, map_object.data.shape))
-        return map_object
+    # def read_ccp4_map(self, mapinname):
+    #     """
+    #     Works but since problem with writing ccp4 files, better to switch to iotbx.map_manager
+    #     """
+    #     map_object = CCP4_Maps(mapinname)
+    #     map_object.open_map()
+    #     print('Read map file {} with size {}'.format(mapinname, map_object.data.shape))
+    #     return map_object
     
-    def write_ccp4_map(self, maparrray, uc, grid):
+    # def write_ccp4_map(self, map_arrray, uc, grid):
+    #     """
+    #     Not working. Map_data cannot be np.array and the origin needs to be 0.
+    #     Better to work with iotbx.map_manager
+    #     """
         
-        if self.xray_structure != None:
-            sites_cart = self.xray_structure.sites_cart()
+    #     if self.xray_structure != None:
+    #         sites_cart = self.xray_structure.sites_cart()
             
-        outname = "{:s}".format(self.prefix)
+    #     outname = "{:s}.ccp4".format(self.prefix)
             
-        iotbx.map_tools.write_ccp4_map(
-        sites_cart=sites_cart,                     # Cartesian coordinates of atoms (usually from your model)
-        unit_cell=uc,                              # Unit cell parameters (a, b, c, alpha, beta, gamma)
-        map_data=maparrray,                        # 3D map as a flex array or numpy array
-        n_real=grid,                               # Grid dimensions (tuple of 3 ints)
-        buffer=5.0,                                # Buffer size (default 5.0)
-        file_name=outname)                         # Output file name
+    #     iotbx.map_tools.write_ccp4_map(
+    #         sites_cart=sites_cart,                     # Cartesian coordinates of atoms (usually from your model)
+    #         unit_cell=uc,                              # Unit cell parameters (a, b, c, alpha, beta, gamma)
+    #         map_data=map_arrray,                        # 3D map as a flex array or numpy array
+    #         n_real=grid,                               # Grid dimensions (tuple of 3 ints)
+    #         buffer=5.0,                                # Buffer size (default 5.0)
+    #         file_name=outname)                         # Output file name
         
-        return outname
+    #     return outname
+    
+    def read_ccp4_map(self, mapinname):
+        """
+        iotbx datamanager and map_manager
+        """
+        self.dm = DataManager()
+        mm = self.dm.get_real_map(mapinname)
+        mm.shift_origin() #origin shift is required for further usage
+        return mm
+    
+    def write_ccp4_map(self, map_manager, new_data, outname):
+        """
+        iotbx datamanager and map_manager
+        """
+        
+        mm = map_manager
+        #weird way to reset all data to 1, but works
+        map_data = mm.map_data()
+        sel = ( map_data >= mm.statistics().min() )
+        map_data.set_selected(sel, 1)
+        assert map_data.count(1)== mm.map_data().size()
+        #make a new mm with the new data
+        new_data = flex.double(np.ascontiguousarray(new_data))
+        outdata = map_data * new_data
+        new_mm = mm.customized_copy(map_data = outdata)
+        
+        self.dm.write_real_map_file(new_mm, outname)
+    
         
     def run_svd_analysis(self):
     
         for n in range(len(self.map_2mFextr_DFc_list)):
             # size, start, intervals, uc, order, skew, skew_trn, symops, _, totalmap = readccp4map(self.map_2mFextr_DFc_list[n])
-            maparray = self.read_ccp4_map(self.map_2mFextr_DFc_list[n])
-            totalmap=maparray.data/np.std(maparray.data) #Scale the maps to have the same standard deviation #Is this necessary ?
+            mm = self.read_ccp4_map(self.map_2mFextr_DFc_list[n])
+            map_data = mm.map_data()/mm.statistics().sigma() #Scale the maps to have the same standard deviation #Is this necessary ?
+            totalmap = map_data.as_1d().as_numpy_array()
             try:
-                dataset[:,n] = np.reshape(totalmap, (length))
+                # dataset[:,n] = np.reshape(totalmap, (length))
+                dataset[:,n] = totalmap
             except NameError:
                 length = totalmap.size
                 nmaps=len(self.map_2mFextr_DFc_list)
                 dataset = np.zeros((length, nmaps), dtype='float32')
-                dataset[:,n] = np.reshape(totalmap, (length))
+                # dataset[:,n] = np.reshape(totalmap, (length))
+                dataset[:,n] = totalmap
                 
         print('Done. Read', np.shape(dataset),'voxels into memory.')
         
         print('Now performing Singular Value Decomposition...')
         u, s, vh, success = self.run_svd(dataset)
+        
+        
         
         #reflect = float(str(float(scipy.linalg.det(u) * scipy.linalg.det(v))))
         #if reflect == -1.0:
@@ -445,9 +490,10 @@ class SVD_analysis(object):
             cleanedmap=np.reshape(cleanedmap,totalmap.shape)
             std=np.std(cleanedmap)
             cleanedmap=cleanedmap/std
-            mapoutname = self.write_ccp4_map(cleanedmap, maparray.unit_cell, maparray.grid)
+            outname = "{:s}_{:.2f}.ccp4".format(self.prefix, self.occupancies[d])
+            self.write_ccp4_map(mm, cleanedmap, outname)
 
-        self.plot_right_singular_values()
+        self.plot_right_singular_values(vh)
 
         print("Code still in development")
         sys.exit()
@@ -622,7 +668,7 @@ if __name__ == "__main__":
     pdb_ini = iotbx.pdb.input(model_pdb)
     xray_structure = pdb_ini.xray_structure_simple()
     
-    additional_files = Xtrapol8_params.input.additional_files
+    # additional_files = Xtrapol8_params.input.additional_files
 
     map_2fextrfcalc_list = Filefinder(X8_outdir = Xtrapol8_params.output.outdir,
                              X8_outname = Xtrapol8_params.output.outname,
