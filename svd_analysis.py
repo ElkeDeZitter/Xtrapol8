@@ -215,14 +215,14 @@ def writeccp4map_full(mapoutname, size, start, intervals, uc, order, skew, skew_
     for n in range(maplength):
         voxelout=struct.pack('f',maparray[n])
         mapoutfile.write(voxelout)
-    mapoutfile.close()
-
+    mapoutfile.close()  
+        
 
 class SVD_analysis(object):
     def __init__(self,
                     map_2mFextr_DFc_list = [],
                     occupancies=[],
-                    xray_structure = None,
+                    model_pdb = None,
                     numvec = 5, #Need to implement function that automatically detects the number of useful number of vectors
                     prefix = '',
                     log = sys.stdout):
@@ -230,6 +230,9 @@ class SVD_analysis(object):
         #Try this instead of  repetition of the arguments
         adopt_init_args(self, locals())
         assert len(map_2mFextr_DFc_list) == len(occupancies), 'the number of difference maps and occupancies is not equal, this will be nonsense and end with an error somewhere'
+        
+        pdb_ini = iotbx.pdb.input(model_pdb)
+        self.xray_structure = pdb_ini.xray_structure_simple()
         
         #Sort the map files and occupancies in order to have occupancies from small to large, probably just for cosmethics
         #This might not work in pyhton3
@@ -297,11 +300,11 @@ class SVD_analysis(object):
         """
         Plot the singular values from the diagonal of s
         """    
-        plt.bar(np.arange(len(self.map_2mFextr_DFc_list)),s)
+        plt.bar(np.arange(1, len(self.map_2mFextr_DFc_list)+1),s)
         plt.title('Singular values for w1.00')
         axes = plt.gca()
-        axes.set_xlim([-2,12])
-        axes.set_ylim([0,5000])
+        # axes.set_xlim([-2,12])
+        # axes.set_ylim([0,5000])
         #plt.show()
         #outfig1=outdir+'Singular_values.png'
         plt.savefig('singular_values_w1.00.png', dpi=300)
@@ -353,13 +356,13 @@ class SVD_analysis(object):
             axs[(row,col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
             axs[(row,col)].set(xlabel='dataset', ylabel='Amplitude')
             #ax.set_xlim([0.001,1000000])
-            print((self.occupancies[:]))
-            print(np.abs(vh[vec,:]))
-            print((vh[vec,:]))
-            print("")
+            # print((self.occupancies[:]))
+            # print(np.abs(vh[vec,:]))
+            # print((vh[vec,:]))
+            # print("")
             axs[(row,col)].set_ylim([0,1])
             axs[(row,col)].axhline(y=0.4, color='gray' , linestyle='--')
-            axs[((row,col))].set_title("Vector {:d}".format(vec))
+            axs[((row,col))].set_title("Vector {:d}".format(vec+1))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
             for tick in axs[(row,col)].xaxis.get_ticklabels():
                 tick.set_fontsize('medium')
@@ -371,6 +374,11 @@ class SVD_analysis(object):
         fig.tight_layout()
         outname = "{:s}_right_singular_values.png".format(self.prefix)
         plt.savefig(outname, dpi=300)
+        
+    def pymol_session(self):
+        
+        P = Pymol_session()
+
     
     # def read_ccp4_map(self, mapinname):
     #     """
@@ -429,10 +437,27 @@ class SVD_analysis(object):
         
         self.dm.write_real_map_file(new_mm, outname)
     
+    def estimate_alpha(self, vh):
+        """
+        Estimate alpha and occupancy based on the right singular values.
+        """
+        idx = np.where(np.abs(vh[1,:]) == np.min(np.abs(vh[1,:])))[0][0]
+        occ = self.occupancies[idx]
+        alp = 1/occ
+        
+        print("Occupancy estimate based on the second right singular vector:")
+        print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ))
+        
+        print("Occupancy estimate based on the second right singular vector:", file = log)
+        print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ), file=log)
+        
+        return alp, occ
         
     def run_svd_analysis(self):
     
         for n in range(len(self.map_2mFextr_DFc_list)):
+            print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]), file=log)
+            print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]))
             # size, start, intervals, uc, order, skew, skew_trn, symops, _, totalmap = readccp4map(self.map_2mFextr_DFc_list[n])
             mm = self.read_ccp4_map(self.map_2mFextr_DFc_list[n])
             map_data = mm.map_data()/mm.statistics().sigma() #Scale the maps to have the same standard deviation #Is this necessary ?
@@ -447,122 +472,108 @@ class SVD_analysis(object):
                 # dataset[:,n] = np.reshape(totalmap, (length))
                 dataset[:,n] = totalmap
                 
-        print('Done. Read', np.shape(dataset),'voxels into memory.')
+        # print('Done. Read', np.shape(dataset),'voxels into memory.')
         
-        print('Now performing Singular Value Decomposition...')
+        # print('Now performing Singular Value Decomposition...')
         u, s, vh, success = self.run_svd(dataset)
         
-        
-        
-        #reflect = float(str(float(scipy.linalg.det(u) * scipy.linalg.det(v))))
-        #if reflect == -1.0:
-        #    s[-1] = -s[-1]
-        #    u[:,-1] = -u[:,-1]
-
-        # implement ? Eo should be the inital residuals
-        #RMSD = E0 - (2.0 * sum(s))
-        #RMSD = numpy.sqrt(abs(RMSD / L))
-
-        #print('checking for reflections')
-        #print(u)
-        #print(s)
-        #print(v)
 
         self.plot_singular_values(s)
+        self.plot_right_singular_values(vh)
 
-        print('')
-        print('Now cleaning up the maps...')
-        print('There are',len(self.map_2mFextr_DFc_list),'vectors of which we are using the first',self.numvec,'.')
+        # print('')
+        # print('Now cleaning up the maps...')
+        # print('There are',len(self.map_2mFextr_DFc_list),'vectors of which we are using the first',self.numvec,'.')
         s_prime=np.zeros((len(self.map_2mFextr_DFc_list),len(self.map_2mFextr_DFc_list)))
         for vec in range(self.numvec):
             s_prime[vec,vec]=s[vec]
             
         #####s_prime[1,1]=0.0 ##################REMOVE WHEN DONE#########################
+        #
         dataset_cleaned=np.dot(u,np.dot(s_prime,vh))
         print('')
-        print('Writing out the cleaned maps...')
+        # print('Writing out cleaned maps')
         for d in range(len(self.map_2mFextr_DFc_list)):
             cleanedmap=dataset_cleaned[:,d]
             originalmap=dataset[:,d]
             C=np.corrcoef(originalmap,cleanedmap)
-            print('Correlations between original and cleaned for map',d,'at occupancy',self.occupancies[d],':')
-            print(C[0,1])
+            # print('Correlations between original and cleaned for map',d,'at occupancy',self.occupancies[d],':')
+            # print(C[0,1])
             cleanedmap=np.reshape(cleanedmap,totalmap.shape)
             std=np.std(cleanedmap)
             cleanedmap=cleanedmap/std
-            outname = "{:s}_{:.2f}.ccp4".format(self.prefix, self.occupancies[d])
+            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.occupancies[d])
             self.write_ccp4_map(mm, cleanedmap, outname)
-
-        self.plot_right_singular_values(vh)
-
-        print("Code still in development")
-        sys.exit()
-
-        pymolloadername=os.path.join(outdir,'vectormaps_w1.00.pml')
-        pymolloader=open(pymolloadername,"a")
-        print('Writing out the left singular vectors... ')
-        print('pymolcommands: ')
-        print('################')
-        pymolloader.write('reinitialize \n')
-        pymolloader.write('load %s/darkmodel.pdb \n' %outdir)
-        pymolloader.write('select PIA, resn PIA \n')
-
-        #vectorzero= -1 * np.reshape(u[:,0],(x,y,z))
-        #vectorzero=vectorzero/np.std(vectorzero)
-
-
-        #if (np.mean(vectorzero)) < 0 :
-        #    invertsvd0 = False
-        #else:
-        #    invertsvd0 = True
-
-
-        #if (np.max(vectorzero)) - (np.min(vectorzero)) < 0 :
-        #    invertsvd = True
-        #else:
-        #    invertsvd = False
-
-        for d in range(numvec):
-            vector=u[:,d]
-            m, bins, patches = plt.hist(vector, 100, density=1, facecolor='green', alpha=0.5)
-            print("%s ---- %.5f  %.5f  %.5f ----" %(d, np.max(vector), np.median(vector), np.min(vector)))
+        
+        #load the different maps and append to a Pymol session
+        P = Pymol_SVD_session(self.model_pdb)
+        for vec in range(self.numvec):
+            vector=u[:,vec]
+            vector=np.reshape(vector,totalmap.shape)
+            std=np.std(vector)
+            vector=vector/std
+            outname = "{:s}_vectormap-{:d}.ccp4".format(self.prefix, vec)
+            self.write_ccp4_map(mm, vector, outname)
+            P.add_map(vec, outname)
             
-            vector=np.reshape(vector,totalmap.shape) # * -1
-            print("%s ---- %.5f  %.5f  %.5f ----" %(d, np.max(vector), np.median(vector), np.min(vector)))
-            #vector=vector/np.std(vector)
+        P.open_SVD_vectormaps_in_pymol()
+        
+        return u, s, vh
+        
 
-            #what actually work for negative values
-            #testit= -1 * vector  + np.reshape(u[:,0],(x,y,z)) 
-
-            
-            #if invertsvd0: 
-                #testit = -1 * testit 
-                #vectorzero = -1 * vectorzero
-            #if (vectorzero+vector) > (vectorzero-vector) 
-                
-            #for positive values the subtraction addition should work
-            
-                
-            
-            outname=os.path.join(outdir,'SVD_w1.00_original'+str(d)+'.ccp4')
-            #outtestit=outdir+'testit_'+str(d)+'.ccp4'
-            vector=vector/np.std(vector)
-            #testit=testit/np.std(testit)
-
-            #print("%s ---- %.5f  %.5f  %.5f ---- %.5f  %.5f  %.5f" %(d, np.max(vector), np.mean(vector), np.min(vector), np.max(testit), np.mean(testit), np.min(testit)))
-
-            writeccp4map_full(outname,size,start,intervals,uc,order,skew,skew_trn,symops,vector)
-            #writeccp4map_full(outtestit,size,start,intervals,uc,order,skew,skew_trn,symops,testit)
-
-            pymolloader.write('load %s, vec_%s \n'%(outname,d))
-            pymolloader.write('isomesh pos_%s, vec_%s ,3.0 \n' %(d,d))
-            pymolloader.write('isomesh neg_%s, vec_%s ,3.0 \n' %(d,d))
-        pymolloader.write('color green, pos_* \n')
-        pymolloader.write('color red, pos_* \n')
-
-        pymolloader.close()
+class Pymol_SVD_session(object):
+    def __init__(self, pdb_in):
+        self.map_dict = {}
+        self.pdb_in = pdb_in
     
-
+    def open_SVD_vectormaps_in_pymol(self):
+        """
+        Open the results of SVD in Pymol
+        u: Unitary matrix having left singular vectors as columns. Result of u, s, vh =scipy.linalg.svd(dataset, full_matrices=False)
+        """
+        if len(self.map_dict) == 0:
+            print("use add_map or find_maps to add maps to the pymol session")
+        
+        # script_pymol = self.outdir+'/pymol_SVD_vectormaps.py'
+        script_pymol = 'pymol_SVD_vectormaps.py'
+        i = open(script_pymol, 'w')
+        i.write("from pymol import cmd\ncmd.set('group_auto_mode', 1)\n")
+        
+        #load dark model
+        name_dark = self.get_basename(self.pdb_in, 'pdb')
+        i.write("cmd.load('%s','%s')\n" %(self.pdb_in, name_dark))
+        
+        for d in self.map_dict.keys():
+            i.write("cmd.load('{:s}', 'vector_{:d}')\n".format(self.map_dict[d], d))
+            i.write("cmd.isomesh ('vector_{:d}_pos', 'vector_{:d}', 3.0)\n".format(d,d))
+            i.write("cmd.isomesh ('vector_{:d}_neg', 'vector_{:d}', 3.0)\n".format(d,d))
+            
+        i.write('cmd.set("mesh_width", 0.3)\n')
+        
+        i.close()
+        
+    def get_basename(self, fle, extention):
+        if "/" in fle:
+            name = re.search(r"\/(.+?)\.%s" %(extention), fle).group(1).split("/")[-1]
+        else:
+            name = re.sub("\.%s" %(extention),"",fle)
+        return name
+            
+    def add_map(self, num, vector):
+        """
+        Add maps to the list. This is alternative to finding maps.
+        """
+        if os.path.isfile:
+            vector = os.path.abspath(vector)
+            self.map_dict[num]=vector
+        else:
+            print("Map not found: {:s}".format(vector))
+        
+    def find_maps(self):
+        """
+        Function to search for the maps in the outdir. This is an alternative to searching for SVD maps. Not developed yet.
+        """
+        pass    
 
 class Filefinder(object):
     def __init__(self,
@@ -665,8 +676,6 @@ if __name__ == "__main__":
     Xtrapol8_params = Xtrapol8_input_objects.work.extract()
     
     model_pdb = Xtrapol8_params.input.reference_pdb
-    pdb_ini = iotbx.pdb.input(model_pdb)
-    xray_structure = pdb_ini.xray_structure_simple()
     
     # additional_files = Xtrapol8_params.input.additional_files
 
@@ -713,9 +722,10 @@ if __name__ == "__main__":
     else:
         log = open(params.output.log_file, 'w')
         
-    SVD_analysis(map_2mFextr_DFc_list = map_2fextrfcalc_list,
+    SVD = SVD_analysis(map_2mFextr_DFc_list = map_2fextrfcalc_list,
                  occupancies = occupancies,
-                 xray_structure=xray_structure,
+                 model_pdb=model_pdb,
                  prefix = suffix,
-                 log = log).run_svd_analysis()
-    
+                 log = log)
+    _, _, vh = SVD.run_svd_analysis()
+    _,_ = SVD.estimate_alpha(vh)
