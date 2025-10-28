@@ -502,8 +502,7 @@ class SVD_analysis(object):
             cleanedmap=np.reshape(cleanedmap,totalmap.shape)
             std=np.std(cleanedmap)
             cleanedmap=cleanedmap/std
-            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.occupancies[d])
-            self.write_ccp4_map(mm, cleanedmap, outname)
+            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.occupancies[d])            self.write_ccp4_map(mm, cleanedmap, outname)
         
         #load the different maps and append to a Pymol session
         P = Pymol_SVD_session(self.model_pdb)
