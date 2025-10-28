@@ -2514,62 +2514,6 @@ def run(args):
     print('-----------------------------------------', file=log)
     print("CALCULATE (Q/K-WEIGHTED) FEXTRAPOLATED MAPS", file=log)
     print('-----------------------------------------', file=log)
-
-    #For each map type, keep track of the map_explorer files. Therefore generate lists with output file names. Not elegant, but works.
-    # if qFextr_map:
-    #     qFextr_map_expl_lst  = [FoFo_ref]
-    #     qFextr_recref_mtz_lst = []
-    #     qFextr_recref_pdb_lst = [DH.pdb_in]
-    #     qFextr_realref_lst    = [DH.pdb_in]
-    #     qFextr_recrealref_lst = [DH.pdb_in]
-    # if kFextr_map:
-    #     kFextr_map_expl_lst  = [FoFo_ref]
-    #     kFextr_recref_mtz_lst = []
-    #     kFextr_recref_pdb_lst = [DH.pdb_in]
-    #     kFextr_realref_lst    = [DH.pdb_in]
-    #     kFextr_recrealref_lst = [DH.pdb_in]
-    # if Fextr_map:
-    #     Fextr_map_expl_lst  = [FoFo_ref]
-    #     Fextr_recref_mtz_lst = []
-    #     Fextr_recref_pdb_lst = [DH.pdb_in]
-    #     Fextr_recrealref_lst = [DH.pdb_in]
-    #     Fextr_realref_lst    = [DH.pdb_in]
-    # if qFgenick_map:
-    #     qFgenick_map_expl_lst  = [FoFo_ref]
-    #     qFgenick_recref_mtz_lst = []
-    #     qFgenick_recref_pdb_lst = [DH.pdb_in]
-    #     qFgenick_realref_lst    = [DH.pdb_in]
-    #     qFgenick_recrealref_lst = [DH.pdb_in]
-    # if kFgenick_map:
-    #     kFgenick_map_expl_lst  = [FoFo_ref]
-    #     kFgenick_recref_mtz_lst = []
-    #     kFgenick_recref_pdb_lst = [DH.pdb_in]
-    #     kFgenick_realref_lst    = [DH.pdb_in]
-    #     kFgenick_recrealref_lst = [DH.pdb_in]
-    # if Fgenick_map:
-    #     Fgenick_map_expl_lst  = [FoFo_ref]
-    #     Fgenick_recref_mtz_lst = []
-    #     Fgenick_recref_pdb_lst = [DH.pdb_in]
-    #     Fgenick_realref_lst    = [DH.pdb_in]
-    #     Fgenick_recrealref_lst = [DH.pdb_in]
-    # if qFextr_calc_map:
-    #     qFextr_calc_map_expl_lst  = [FoFo_ref]
-    #     qFextr_calc_recref_mtz_lst = []
-    #     qFextr_calc_recref_pdb_lst = [DH.pdb_in]
-    #     qFextr_calc_realref_lst    = [DH.pdb_in]
-    #     qFextr_calc_recrealref_lst = [DH.pdb_in]
-    # if kFextr_calc_map:
-    #     kFextr_calc_map_expl_lst  = [FoFo_ref]
-    #     kFextr_calc_recref_mtz_lst = []
-    #     kFextr_calc_recref_pdb_lst = [DH.pdb_in]
-    #     kFextr_calc_realref_lst    = [DH.pdb_in]
-    #     kFextr_calc_recrealref_lst = [DH.pdb_in]
-    # if Fextr_calc_map:
-    #     Fextr_calc_map_expl_lst  = [FoFo_ref]
-    #     Fextr_calc_recref_mtz_lst = []
-    #     Fextr_calc_recref_pdb_lst = [DH.pdb_in]
-    #     Fextr_calc_realref_lst    = [DH.pdb_in]
-    #     Fextr_calc_recrealref_lst = [DH.pdb_in]
         
     files_and_maps = {}
     for mp in final_maptypes:
@@ -2697,35 +2641,6 @@ def run(args):
                 print("Pearson correlation factor could not be calculated. The CC will be set to zero.")
                 CC = 0
             #pearsonCC.append(scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0])
-
-            # #depending on the map-type, append the output-file of mapexplorer to the correct list
-            # if mp == 'qFextr_map':
-            #     #append_if_file_exist(qFextr_map_expl_lst, os.path.abspath(map_expl_out))
-            #     qFextr_map_expl_lst.append([CC, pos, neg, pos+neg])
-            # elif mp == 'qFgenick_map':
-            #     #append_if_file_exist(qFgenick_map_expl_lst, os.path.abspath(map_expl_out))
-            #     qFgenick_map_expl_lst.append([CC, pos, neg, pos+neg])
-            # elif mp == 'qFextr_calc_map':
-            #     #append_if_file_exist(qFextr_calc_map_expl_lst, os.path.abspath(map_expl_out))
-            #     qFextr_calc_map_expl_lst.append([CC, pos, neg, pos+neg])
-            # elif mp == 'kFextr_map':
-            #     #append_if_file_exist(kFextr_map_expl_lst, os.path.abspath(map_expl_out))
-            #     kFextr_map_expl_lst.append([CC, pos, neg, pos + neg])
-            # elif mp == 'kFgenick_map':
-            #     #append_if_file_exist(kFgenick_map_expl_lst, os.path.abspath(map_expl_out))
-            #     kFgenick_map_expl_lst.append([CC, pos, neg, pos + neg])
-            # elif mp == 'kFextr_calc_map':
-            #     #append_if_file_exist(kFextr_calc_map_expl_lst, os.path.abspath(map_expl_out))
-            #     kFextr_calc_map_expl_lst.append([CC, pos, neg, pos + neg])
-            # elif mp == 'Fextr_map':
-            #     #append_if_file_exist(Fextr_map_expl_lst, os.path.abspath(map_expl_out))
-            #     Fextr_map_expl_lst.append([CC, pos, neg, pos + neg])
-            # elif mp == 'Fgenick_map':
-            #     #append_if_file_exist(Fgenick_map_expl_lst, os.path.abspath(map_expl_out))
-            #     Fgenick_map_expl_lst.append([CC, pos, neg, pos + neg])
-            # elif mp == 'Fextr_calc_map':
-            #     #append_if_file_exist(Fextr_calc_map_expl_lst, os.path.abspath(map_expl_out))
-            #     Fextr_calc_map_expl_lst.append([CC, pos, neg, pos + neg])
                 
             files_and_maps[mp]["map_expl_lst"].append([CC, pos, neg, pos + neg])
             print("m%s-DFcalc map explored" % Fextr.maptype,file=log)
@@ -2751,53 +2666,6 @@ def run(args):
                 
                 print("--------------", file=log)
                 # #depending on the map-type, append the refinement output to the correct list
-                # #this is ugly, TODO: make an object to store the results in a clean and transparant way
-                # if mp == 'qFextr_map':
-                #     append_if_file_exist(qFextr_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(qFextr_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(qFextr_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(qFextr_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'qFgenick_map':
-                #     append_if_file_exist(qFgenick_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(qFgenick_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(qFgenick_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(qFgenick_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'qFextr_calc_map':
-                #     append_if_file_exist(qFextr_calc_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(qFextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(qFextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(qFextr_calc_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'kFextr_map':
-                #     append_if_file_exist(kFextr_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(kFextr_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(kFextr_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(kFextr_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'kFgenick_map':
-                #     append_if_file_exist(kFgenick_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(kFgenick_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(kFgenick_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(kFgenick_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'kFextr_calc_map':
-                #     append_if_file_exist(kFextr_calc_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(kFextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(kFextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(kFextr_calc_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'Fextr_map':
-                #     append_if_file_exist(Fextr_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(Fextr_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(Fextr_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(Fextr_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'Fgenick_map':
-                #     append_if_file_exist(Fgenick_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(Fgenick_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(Fgenick_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(Fgenick_realref_lst, os.path.abspath(pdb_real))
-                # elif mp == 'Fextr_calc_map':
-                #     append_if_file_exist(Fextr_calc_recref_mtz_lst, os.path.abspath(mtz_out))
-                #     append_if_file_exist(Fextr_calc_recref_pdb_lst, os.path.abspath(pdb_rec))
-                #     append_if_file_exist(Fextr_calc_recrealref_lst, os.path.abspath(pdb_rec_real))
-                #     append_if_file_exist(Fextr_calc_realref_lst, os.path.abspath(pdb_real))
-                
                 append_if_file_exist(files_and_maps[mp]["recref_mtz_lst"], os.path.abspath(mtz_out))
                 append_if_file_exist(files_and_maps[mp]["recref_pdb_lst"], os.path.abspath(pdb_rec))
                 append_if_file_exist(files_and_maps[mp]["recrealref_lst"], os.path.abspath(pdb_rec_real))
@@ -2885,61 +2753,6 @@ def run(args):
             dir_prefix = 'kweight_occupancy'
         else:
             dir_prefix = 'occupancy' 
-            
-        # if mp == 'qFextr_map':
-        #     recref_mtz_lst = qFextr_recref_mtz_lst
-        #     recref_pdb_lst = qFextr_recref_pdb_lst
-        #     recrealref_lst = qFextr_recrealref_lst
-        #     realref_lst    = qFextr_realref_lst
-        #     map_expl_lst   = qFextr_map_expl_lst
-        # elif mp == 'qFgenick_map':
-        #     recref_mtz_lst = qFgenick_recref_mtz_lst
-        #     recref_pdb_lst = qFgenick_recref_pdb_lst
-        #     recrealref_lst = qFgenick_recrealref_lst
-        #     realref_lst    = qFgenick_realref_lst   
-        #     map_expl_lst   = qFgenick_map_expl_lst 
-        # elif mp == 'qFextr_calc_map':
-        #     recref_mtz_lst = qFextr_calc_recref_mtz_lst
-        #     recref_pdb_lst = qFextr_calc_recref_pdb_lst
-        #     recrealref_lst = qFextr_calc_recrealref_lst
-        #     realref_lst    = qFextr_calc_realref_lst   
-        #     map_expl_lst   = qFextr_calc_map_expl_lst
-        # elif mp == 'kFextr_map':
-        #     recref_mtz_lst = kFextr_recref_mtz_lst
-        #     recref_pdb_lst = kFextr_recref_pdb_lst
-        #     recrealref_lst = kFextr_recrealref_lst
-        #     realref_lst    = kFextr_realref_lst
-        #     map_expl_lst   = kFextr_map_expl_lst
-        # elif mp == 'kFgenick_map':
-        #     recref_mtz_lst = kFgenick_recref_mtz_lst
-        #     recref_pdb_lst = kFgenick_recref_pdb_lst
-        #     recrealref_lst = kFgenick_recrealref_lst
-        #     realref_lst    = kFgenick_realref_lst   
-        #     map_expl_lst   = kFgenick_map_expl_lst 
-        # elif mp == 'kFextr_calc_map':
-        #     recref_mtz_lst = kFextr_calc_recref_mtz_lst
-        #     recref_pdb_lst = kFextr_calc_recref_pdb_lst
-        #     recrealref_lst = kFextr_calc_recrealref_lst
-        #     realref_lst    = kFextr_calc_realref_lst   
-        #     map_expl_lst   = kFextr_calc_map_expl_lst 
-        # elif mp == 'Fextr_map':
-        #     recref_mtz_lst = Fextr_recref_mtz_lst
-        #     recref_pdb_lst = Fextr_recref_pdb_lst
-        #     recrealref_lst = Fextr_recrealref_lst
-        #     realref_lst    = Fextr_realref_lst   
-        #     map_expl_lst   = Fextr_map_expl_lst 
-        # elif mp == 'Fgenick_map':
-        #     recref_mtz_lst = Fgenick_recref_mtz_lst
-        #     recref_pdb_lst = Fgenick_recref_pdb_lst
-        #     recrealref_lst = Fgenick_recrealref_lst
-        #     realref_lst    = Fgenick_realref_lst   
-        #     map_expl_lst   = Fgenick_map_expl_lst 
-        # elif mp == 'Fextr_calc_map':
-        #     recref_mtz_lst = Fextr_calc_recref_mtz_lst
-        #     recref_pdb_lst = Fextr_calc_recref_pdb_lst
-        #     recrealref_lst = Fextr_calc_recrealref_lst
-        #     realref_lst    = Fextr_calc_realref_lst   
-        #     map_expl_lst   = Fextr_calc_map_expl_lst 
 
         if params.map_explorer.occupancy_estimation in ("difference_map_maximization", "distance_analysis"):
             #in case of distance_analysis alpha and occ will be overwritten if the requirements for distance_analysis are met (calm-and-curious, run_refinement)
@@ -3159,26 +2972,6 @@ def run(args):
                          phenix_keywords    = params.refinement.phenix_keywords,
                          refmac_keywords    = params.refinement.refmac_keywords)
                                                                
-                                                                     
-        # if params.refinement.use_refmac_instead_of_phenix:
-        #     mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(mtz_F = qFext_mtz_F,
-        #                                                mtz_map           = qFext_mtz_map,
-        #                                                pdb_in            = DH.pdb_in,
-        #                                                additional        = DH.additional,
-        #                                                ligands_list      = DH.extract_ligand_codes(),
-        #                                                F_column_labels   = Fextr.FM.labels['data'],
-        #                                                map_column_labels = '%s, PHI%s, %s, PHI%s'
-        #                                                        %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
-        #                                                          Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
-        #                                                keywords          = params.refinement.refmac_keywords)
-        # else:
-        #     mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(mtz_F = qFext_mtz_F,
-        #                                           mtz_map         = qFext_mtz_map,
-        #                                           pdb_in          = DH.pdb_in,
-        #                                           additional      = DH.additional,
-        #                                           F_column_labels = Fextr.FM.labels['data'],
-        #                                           column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
-        #                                           keywords        = params.refinement.phenix_keywords)
               
         print("---> Results in %s_%.3f"%(dir_prefix, occ), file=log)
         print("---> Results in %s_%.3f"%(dir_prefix, occ))
