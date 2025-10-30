@@ -121,6 +121,7 @@ from distance_analysis import *
 from Fextr_utils import *
 import version
 from master import master_phil
+from svd_analysis import SVD_analysis
 
 
 class SymManager(symmetry.manager):
@@ -2517,11 +2518,12 @@ def run(args):
         
     files_and_maps = {}
     for mp in final_maptypes:
-        files_and_maps[mp] = {"map_expl_lst"      : [FoFo_ref],
-                                   "recref_mtz_lst": [],
-                                   "recref_pdb_lst": [DH.pdb_in],
-                                   "realref_lst"   : [DH.pdb_in],
-                                   "recrealref_lst": [DH.pdb_in]}
+        files_and_maps[mp] = {"map_expl_lst"   : [FoFo_ref],
+                              "2FextrFc"       : [],
+                               "recref_mtz_lst": [],
+                               "recref_pdb_lst": [DH.pdb_in],
+                               "realref_lst"   : [DH.pdb_in],
+                               "recrealref_lst": [DH.pdb_in]}
     
     
     #fast_and_furious mode: no refinement, but need to keep track of structure factor files
@@ -2614,7 +2616,10 @@ def run(args):
                 compute_f_sigf(Fextr.fextr_calc_ms, '%s' %(Fextr.maptype), log=log)
             else:
                 print("%s not recognised as extrapolated map type" % mp)
-                        
+                
+            #append 2Fextr-Fc map type to dictionary:
+            files_and_maps[mp]["2FextrFc"].append(os.path.abspath(Fextr.ccp4_name_2FoFc))
+            
             #Use ccp4 map of type mFo-DFc to integrate the masked map
             print("\n************Map explorer************", file=log)
             print("\n************Map explorer************")
@@ -2756,9 +2761,24 @@ def run(args):
 
         if params.map_explorer.occupancy_estimation in ("difference_map_maximization", "distance_analysis"):
             #in case of distance_analysis alpha and occ will be overwritten if the requirements for distance_analysis are met (calm-and-curious, run_refinement)
-            alpha, occ, _, _ = plotalpha(params.occupancies.list_occ, files_and_maps[mp]["map_expl_lst"][1:], files_and_maps[mp]["map_expl_lst"][0], mp_type, log=log).estimate_alpha()
+            alpha, occ, _, _ = plotalpha(occupancies = params.occupancies.list_occ,
+                                         extrapolation_results = files_and_maps[mp]["map_expl_lst"][1:],
+                                         reference = files_and_maps[mp]["map_expl_lst"][0],
+                                         outsuffix = mp_type,
+                                         log=log).estimate_alpha()
         elif params.map_explorer.occupancy_estimation == "difference_map_PearsonCC":
-            _, _, alpha, occ = plotalpha(params.occupancies.list_occ, files_and_maps[mp]["map_expl_lst"][1:], files_and_maps[mp]["map_expl_lst"][0], mp_type, log=log).estimate_alpha()
+            _, _, alpha, occ = plotalpha(occupancies = params.occupancies.list_occ,
+                                         extrapolation_results = files_and_maps[mp]["map_expl_lst"][1:],
+                                         reference = files_and_maps[mp]["map_expl_lst"][0],
+                                         outsuffix = mp_type,
+                                         log=log).estimate_alpha()
+        elif params.map_explorer.occupancy_estimation == "svd_analysis":
+            SVD = SVD_analysis(map_2mFextr_DFc_list = files_and_maps[mp]["2FextrFc"],
+                                occupancies = params.occupancies.list_occ,
+                                prefix = mp_type,
+                                log = log)
+            _, _, vh = SVD.run_svd_analysis()
+            alpha, occ = SVD.estimate_alpha(vh)
         
         if (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement):
             # If water molecules are updated during refinement, waters will be added and removed and their numbers are not in relation to the original waters in the input model
@@ -2810,13 +2830,37 @@ def run(args):
                 #Pymol_movie(params.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list, resids_lst = residlst, model_label='%s_reciprocal_real_space'%(mp_type), ccp4_map_label='%s_reciprocal_space'%(mp)).write_pymol_script()
             else: 
                 if mp == 'qFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list)
+                    # ccp4_list = map(lambda fle: re.search('(.+?)2mqFgenick-DFc(?:_phenix|_refmac)?_reciprocal', fle).group(1)+"mqFgenick-DFc.ccp4", pymol_mtz_list)
+                    def _mqgenisck_to_ccp4(fle):
+                        m = re.search(r'(.+?)2mqFgenick-DFc(?:_phenix|_refmac)?_reciprocal', fle)
+                        if m:
+                            return m.group(1) + "mqFgenick-DFc.ccp4"
+                        # if failed: strip reciprocal suffix and change extension to .ccp4
+                        return re.sub(r'_reciprocal.*\.mtz$', '.ccp4', fle)
+                    ccp4_list = list(map(_mqgenisck_to_ccp4, pymol_mtz_list))
                 elif mp == 'kFgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list)
+                    # ccp4_list = map(lambda fle: re.search('(.+?)2mkFgenick-DFc(?:_phenix|_refmac)?_reciprocal', fle).group(1)+"mkFgenick-DFc.ccp4", pymol_mtz_list)
+                    def _mkgenisck_to_ccp4(fle):
+                        m = re.search(r'(.+?)2mkFgenick-DFc(?:_phenix|_refmac)?_reciprocal', fle)
+                        if m:
+                            return m.group(1) + "mkFgenick-DFc.ccp4"
+                        # if failed: strip reciprocal suffix and change extension to .ccp4
+                        return re.sub(r'_reciprocal.*\.mtz$', '.ccp4', fle)
+                    ccp4_list = list(map(_mkgenisck_to_ccp4, pymol_mtz_list))
                 elif mp == 'Fgenick_map':
-                    ccp4_list = map(lambda fle: re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list)
+                    # ccp4_list = map(lambda fle: re.search('(.+?)2mFgenick-DFc(?:_phenix|_refmac)?_reciprocal', fle).group(1)+"mFgenick-DFc.ccp4", pymol_mtz_list)
+                    def _mgenisck_to_ccp4(fle):
+                        m = re.search(r'(.+?)2mFgenick-DFc(?:_phenix|_refmac)?_reciprocal', fle)
+                        if m:
+                            return m.group(1) + "mFgenick-DFc.ccp4"
+                        # if failed: strip reciprocal suffix and change extension to .ccp4
+                        return re.sub(r'_reciprocal.*\.mtz$', '.ccp4', fle)
+                    ccp4_list = list(map(_mgenisck_to_ccp4, pymol_mtz_list))
                 else:
-                    ccp4_list = map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list)
+                    # ccp4_list = map(lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)+".ccp4", pymol_mtz_list)
+                    def _mtz_to_ccp4(fle):
+                        return re.sub(r'_reciprocal.*\.mtz$', '.ccp4', fle)
+                    ccp4_list = list(map(_mtz_to_ccp4, pymol_mtz_list))
                 model_label='%s_real_space'%(mp_type)
                 ccp4_map_label='%s'%(mp)
             if len(ccp4_list) == len(pymol_pdb_list) == len(params.occupancies.list_occ):

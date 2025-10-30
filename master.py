@@ -144,7 +144,7 @@ map_explorer{
         .type = bool
         .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis. This keyword will become obselete in future Xtrapol8 versions, use occupancy_estimation choice instead.
         .expert_level = 1
-    occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis
+    occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis svd_analysis
         .type = choice(multi=False)
         .help = Select a main method for the occupancy estimation in Xtrapol8. Take care that the distance_analysis method can only be used in calm_and_curious mode. This keyword replaces the use_occupancy_from_distance_analysis keyword which will become obsolete in future Xtrapol8 versions.
     }

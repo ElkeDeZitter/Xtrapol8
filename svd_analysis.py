@@ -602,7 +602,10 @@ class Filefinder(object):
             first_part = ''
             
         maptype = re.sub("f","F", self.f_extrapolated_and_maps)
-        last_part = "2m{:s}-DFc.ccp4".format(maptype)
+        if "genick" in maptype:
+            last_part = "m{:s}.ccp4".format(maptype)
+        else:
+            last_part = "2m{:s}-DFc.ccp4".format(maptype)
                 
         map_2fextrfcalc_list = []
         for occ in self.X8_list_occ:
