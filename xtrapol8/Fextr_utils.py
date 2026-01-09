@@ -109,23 +109,18 @@ def get_phenix_version():
         phenix_version = "Phenix path not found"
         
     return phenix_version
-    
+
+
 def get_ccp4_version():
-    """
-    Get the ccp4 version based on the full path of the scaleit executable
-    """
-    scaleit_path, program_exists = check_program_path("scaleit")
-    if program_exists:
-        try:
-            ccp4_version = re.search(r"ccp4-(.+?)\/", scaleit_path).group(1)
-        except AttributeError:
-            ccp4_version = "Version could not be extracted. Check CCP4 specific log files if applicable."
-    else:
-        print("scaleit (ccp4) could not be found")
-        ccp4_version = "CCP4 path not found"
-        
-    return ccp4_version
-    
+    "Get the ccp4 version."
+    if clib := os.environ.get("CLIB"):
+        path = Path(clib, "ccp4", "MAJOR_MINOR")
+        if path.is_file():
+            with path.open(encoding="utf-8") as f:
+                return f.read().strip()
+    return "CCP4 not found"
+
+
 def list_redundant_files(outdir):
     o = open('redundant_files.txt','w')
     for dirpath, dirnames, filenames in os.walk(os.getcwd()):
