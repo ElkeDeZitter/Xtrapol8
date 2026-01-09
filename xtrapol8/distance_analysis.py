@@ -54,7 +54,6 @@ TODO: find elegant alternative for global variables
 
 """
 
-from __future__ import division, print_function
 import glob
 import os
 import re

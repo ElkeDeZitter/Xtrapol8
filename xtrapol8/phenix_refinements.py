@@ -21,7 +21,6 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from __future__ import print_function
 from difflib import get_close_matches
 import glob
 import os

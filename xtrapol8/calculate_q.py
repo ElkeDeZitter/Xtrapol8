@@ -17,7 +17,6 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from __future__ import division, print_function
 import pickle
 import re
 import sys

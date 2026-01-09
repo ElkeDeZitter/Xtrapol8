@@ -51,7 +51,6 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from __future__ import print_function
 import os
 import re
 import sys

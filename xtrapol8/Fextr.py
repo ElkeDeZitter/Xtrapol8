@@ -71,7 +71,6 @@ TODO:
 - ddm with linear scale / sum of differences instead of plotting for each atom
 """
 
-from __future__ import division, print_function
 from datetime import datetime
 import os
 import pickle

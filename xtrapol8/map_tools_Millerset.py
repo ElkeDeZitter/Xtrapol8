@@ -32,8 +32,6 @@ see https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt
 -------
 """
 
-from __future__ import absolute_import, division, print_function
-
 from cctbx import adptbx
 from cctbx import miller
 from cctbx.array_family import flex
