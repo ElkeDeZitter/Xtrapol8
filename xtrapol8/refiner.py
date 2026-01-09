@@ -689,14 +689,7 @@ eof' % (mtz_out, ccp4_map_name))
 
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
-# def get_unique_id(id_length=20):
-#     """
-#     Function to get a unique id based on UUID with length id_length
-#     """
-#     if id_length > 36:
-#         id_length == 36
-#     return str(uuid.uuid4())[:id_length]
-# 
+
 def generate_log_name(time_stamp):
     """
     Generate a unique name for the Xtrapol8 logfile.
