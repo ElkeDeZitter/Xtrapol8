@@ -1759,19 +1759,9 @@ class Filesandmaps(object):
             n_real     = fft_map_2mfodfc.n_real(),
             buffer     = 5.0,
             file_name  = self.ccp4_name_2FoFc)
-        #generation of xplor map for 2mfodfc type outcommented as it is not necessary for analysis but takes a lot of space
-        #mmtbx.maps.utils.write_xplor_map(
-            #sites_cart = self.sites_cart,
-            #unit_cell  = fft_map_2mfodfc.unit_cell(),
-            #map_data   = fft_map_2mfodfc.real_map(),
-            #n_real     = fft_map_2mfodfc.n_real(),
-            #buffer     = 5.0,
-            #file_name  = self.xplor_name_2FoFc)
         
         fft_map_mfodfc = mc_diff.fft_map(
             crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc.as_ccp4_map(file_name = self.ccp4_name_FoFc)
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
             unit_cell  = fft_map_mfodfc.unit_cell(),
@@ -1846,15 +1836,6 @@ class Filesandmaps(object):
           buffer     = 5.0,
           file_name  = ccp4_name)
 
-        ##fft_map_mfofo.as_xplor_map(file_name = xplor_name) #works too but below is how xplor-files arewritten with mtz2map
-        #mmtbx.maps.utils.write_xplor_map(
-            #sites_cart = self.sites_cart,
-            #unit_cell  = fft_map_mfofo.unit_cell(),
-            #map_data   = fft_map_mfofo.real_map(),
-            #n_real     = fft_map_mfofo.n_real(),
-            #buffer     = 5.0,
-            #file_name  = xplor_name)
-        
         return mtz_name, ccp4_name #, xplor_name
         
     def write_Fextr_maps(self, fill_missing=True):
@@ -1951,32 +1932,6 @@ class Filesandmaps(object):
         
         return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
 
-#def get_unique_id(id_length=20):
-    #"""
-    #Function to get a unique id based on UUID with length id_length
-    #"""
-    #if id_length > 36:
-        #id_length == 36
-    #return str(uuid.uuid4())[:id_length]
-
-#def generate_log_name(time_stamp):
-    #"""
-    #Generate a unique name for the Xtrapol8 logfile.
-    #A short uuid of 20 characters is added to the logfile name.
-    #"""
-    #uuid = get_unique_id(36)
-    #logname = "%s_Xtrapol8_%s.log" %(time_stamp, uuid)
-    
-    #return logname
-
-#def remove_unique_id_from_log():
-    #"""
-    #Remove the unqiue sequence from the log file
-    #"""
-    #index = log.name.find("Xtrapol8")+len("Xtrapol8")
-    #new_name = log.name[:index]+".log"
-    #os.rename(log.name, new_name)
-            
 def run(args):
     
     version.VERSION
@@ -2621,7 +2576,6 @@ def run(args):
                 Fextr.fextr(qweight=True, kweight=False, outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fextr_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
                 compute_f_sigf(Fextr.fextr_ms, '%s' %(Fextr.maptype), log=log)
-                #cc_list.append(plot_F1_F2(DH.fobs_off_scaled,Fextr.fextr_ms, F1_name = "Freference",F2_name = "Fextr"))
             elif mp == 'qFgenick_map':
                 Fextr.fgenick(qweight=True, kweight=False,outdir_for_negstats = outdir)
                 get_Fextr_stats(occ, Fextr.fgenick_ms, Fextr.maptype, FoFo.fdif_q_ms, FoFo_type, outdir)
