@@ -102,7 +102,6 @@ from . import (
 )
 from .calculate_k import calculate_k
 from .calculate_q import calculate_q, outlier_rejection_only
-from .ccp4_scaleit import run_scaleit
 from .column_extraction import Column_extraction, Extrapolated_column_extraction
 from .ddm import Difference_distance_analysis
 from .distance_analysis import *
@@ -111,6 +110,7 @@ from .map_explorer import map_explorer
 from .map_explorer_analysis import Map_explorer_analysis
 from .master import master_phil
 from .plotalpha import plotalpha
+from .programs.scaleit import scaleit
 from .pymol_visualization import Pymol_movie
 
 
@@ -609,13 +609,13 @@ class DataHandler(object):
 
             print("Fobs,reference and Fobs,triggered scaled using scaleit", file=log)
             print("Fobs,reference and Fobs,triggered scaled using scaleit")
-            self.fobs_on_scaled = run_scaleit(
+            self.fobs_on_scaled = scaleit(
                 self.fobs_off_scaled,
                 self.fobs_on,
                 b_scaling,
                 low_res=self.scaling_dmax,
                 high_res=self.scaling_dmin,
-            )  # prepare mtz-file and run scaleit
+            )
 
 
 class FobsFobs(object):
