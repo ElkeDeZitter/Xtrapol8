@@ -1,7 +1,6 @@
 from cctbx import miller
 from iotbx.file_reader import any_file
 
-from ..log import LOG
 from .execute import execute
 
 
@@ -26,7 +25,7 @@ def _call_scaleit(mtz_in, b_scaling, low_res, high_res):
     # converge NCYC 4
     # converge ABS 0.001
     # converge TOLR -7
-    LOG.info("Running scaleit, see scaleit.log")
+    print("Running scaleit, see scaleit.log")
     execute("scaleit", args, stdin, "scaleit.log")
     return mtz_out
 

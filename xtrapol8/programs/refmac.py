@@ -1,6 +1,5 @@
 from pathlib import Path
 from .execute import execute
-from ..log import LOG
 
 
 def refmac_for_dm(xyzin: str, hklin: str, libins: list[str], f_label: str):
@@ -24,7 +23,7 @@ def refmac_for_dm(xyzin: str, hklin: str, libins: list[str], f_label: str):
         "END",
     ]
 
-    LOG.info(
+    print(
         "Running refmac with zero cycles "
         "to prepare files suitable for running dm afterwards. "
         "Please wait..."

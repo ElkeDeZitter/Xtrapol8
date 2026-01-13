@@ -1,7 +1,6 @@
 from cctbx import miller
 
 from .execute import execute, make_obs_mtz
-from ..log import LOG
 
 
 def pointless(reflections: miller.array, reflections_ref: miller.array, prefix: str):
@@ -24,7 +23,7 @@ def pointless(reflections: miller.array, reflections_ref: miller.array, prefix: 
         "labin ".join(inlabels),
         "labref ".join(inlabels_ref),
     ]
-    LOG.info("Running pointless to avoid indexing issues")
+    print("Running pointless to avoid indexing issues")
     return_code = execute("pointless", args, stdin, log_out)
     success = bool(return_code == 0)
     return mtz_out, success
