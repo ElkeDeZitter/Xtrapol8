@@ -33,6 +33,8 @@ import iotbx.pdb
 from .Fextr_utils import get_name
 from .programs.dm import dm
 from .programs.fft import fft
+from .programs.refmac import refmac
+from .programs.uniqueify import uniqueify
 
 
 class Refmac_refinement(object):
@@ -65,118 +67,58 @@ class Refmac_refinement(object):
                 
         self.mtz_name = get_name(self.mtz_in)
 
-    def add_missing_reflections(self):
-        #add missing reflections with ccp4 and add R-free
-        new_mtz = '%s_rfree.mtz' %(self.mtz_name)
-        extra_line = 'uniqueify %s %s' %(self.mtz_in, new_mtz)
-        self.rfree_col = 'FreeR_flag'
-        self.mtz_in = new_mtz
-        return extra_line
-
-    def write_refmac_input_reciprocal_space_refinement(self, mtz_out, pdb_out, log_file):
+    def do_refmac_reciprocal_space_refinement(self, mtz_out, pdb_out, log_file):
         """
-        Prepare bash file to run refmac.
+        Run refmac.
         BFAC SET <value> default 30
         """
-        if self.fill_missing == True:
-            extra_line = self.add_missing_reflections()
+        if self.fill_missing:
+            self.mtz_in = uniqueify(self.mtz_in)
+
+        if self.refinement_weight == "AUTO":
+            refinement_weight = "AUTO"
         else:
-            extra_line = ''
-            
-        additional_lines = ''
-        for cif in self.additional.split():
-            additional_lines+='LIB_IN %s '%(cif)
-            
-        if self.refinement_weight == 'AUTO':
-            refinement_weight = '%s' %(self.refinement_weight)
-        else:
-            refinement_weight = '%s %s %f' %(self.refinement_weight_sigmas, self.refinement_weight, self.refinement_weighting_term)
-            
-        if self.TLS:
-            TLS_line ='REFI TLSC %d\nBFAC SET %f' %(self.TLS_cycles, self.bfac_set)
-        else:
-            TLS_line = ''
-            
-        if self.twinning:
-            twin_line = 'TWIN'
-        else:
-            twin_line = ''
-            
-        ext_restraints_line = ''
-        for restraint in self.external_restraints:
-            ext_restraints_line+= 'external %s\n' %(restraint)
-        
-        if self.jelly_body_refinement:
-            if self.cycles < 25:
-                self.cycles = self.cycles*5
-            jelly_body_line = 'RIDG DIST %f\n' %(self.jelly_body_sigma)
-            for restraint in self.jelly_body_additional_restraints:
-                jelly_body_line+='RIDG %s\n' %(restraint)
-        else:
-            jelly_body_line = ''
-            
-        if self.map_sharpening:
-            map_sharp_line = 'MAPC SHAR'
-        else:
-            map_sharp_line = ''
-            
-        additional_keywords_line = ''
-        if len(self.additional_reciprocal_keywords) > 0:
-            for keyword in self.additional_reciprocal_keywords:
-                additional_keywords_line+= "%s " %(keyword)
-        
-        script_out = 'launch_refmac.sh'
-        i = open(script_out,'w')
-        i.write('#!/bin/sh \n\
-%s\n\
-#refmac:\n\
-refmac5 HKLIN %s HKLOUT %s XYZIN %s XYZOUT %s %s << eor > %s\n\
-MAKE HYDR No\n\
-MAKE CHEC NONE\n\
-MAKE SS Yes\n\
-MAKE SYMM Yes\n\
-MAKE SUGA Yes\n\
-MAKE CONN No\n\
-LABIN FP=%s SIGFP=SIG%s FREE=%s\n\
-LABO FC=FC PHIC=PHIC FWT=2FOFCWT PHWT=PH2FOFCWT DELFWT=FOFCWT PHDELWT=PHFOFCWT\n\
-WEIGHT %s\n\
-%s\n\
-REFI TYPE %s\n\
-REFI RESI MLKF\n\
-REFI BREF %s\n\
-%s\
-SCALe TYPE BULK\n\
-NCYC %d\n\
-MONI FEW\n\
-NOHARVEST\n\
-%s\
-%s\
-%s\n\
-%s\n\
-end\n\
-eor\n' %(extra_line, self.mtz_in, mtz_out, self.pdb_in, pdb_out, additional_lines, log_file, self.F_column_labels, self.F_column_labels, self.rfree_col, refinement_weight, TLS_line, self.refinement_type, self.Brefinement, twin_line, self.cycles, ext_restraints_line, jelly_body_line, map_sharp_line, additional_keywords_line))
-        
+            refinement_weight = "%s %s %f" % (
+                self.refinement_weight_sigmas,
+                self.refinement_weight,
+                self.refinement_weighting_term,
+            )
+
+        if self.jelly_body_refinement and self.cycles < 25:
+            self.cycles *= 5
+
+        return_code = refmac(
+            hklin=self.mtz_in,
+            xyzin=self.pdb_in,
+            hklout=mtz_out,
+            xyzout=pdb_out,
+            libins=self.additional.split(),
+            log_file=log_file,
+            f_label=self.F_column_labels,
+            cycles=self.cycles,
+            weight=refinement_weight,
+            refi_type=self.refinement_type,
+            refi_bref=self.Brefinement,
+            twinning=self.twinning,
+            use_tls=self.TLS,
+            tls_cycles=self.TLS_cycles,
+            bfac_set=self.bfac_set,
+            use_jelly_body=self.jelly_body_refinement,
+            jelly_body_sigma=self.jelly_body_sigma,
+            additional_jelly_body_restraints=self.jelly_body_additional_restraints,
+            external_restraints=self.external_restraints,
+            map_sharpening=self.map_sharpening,
+            additional_keywords=self.additional_reciprocal_keywords,
+        )
+
         ccp4_map_name = re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", mtz_out)
-        
-        i.write('#generate 2mFo-DFc in ccp4 format\n\
-fft HKLIN %s MAPOUT %s << eof > fft.log\n\
-LABIN F1=2FOFCWT PHI=PH2FOFCWT\n\
-FILLIN\n\
-end\n\
-eof\n'%(mtz_out, ccp4_map_name))
-        
+        fft(mtz_out, ccp4_map_name, "2FOFCWT", "PH2FOFCWT")
+
         ccp4_diff_map_name = re.sub(r".mtz$", "_mFo-DFc.ccp4", mtz_out)
-        
-        i.write('#generate mFo-DFc in ccp4 format\n\
-fft HKLIN %s MAPOUT %s << eof > fft.log\n\
-LABIN F1=FOFCWT PHI=PHFOFCWT\n\
-end\n\
-eof\n'%(mtz_out, ccp4_diff_map_name))
-        
-        i.close()
-        os.system("chmod +x %s" %(script_out))
-        return script_out
-    
+        fft(mtz_out, ccp4_diff_map_name, "FOFCWT", "PHFOFCWT")
+
+        return return_code
+
     def get_solvent_content(self):
         """
         Extract solvent content
@@ -205,38 +147,43 @@ eof\n'%(mtz_out, ccp4_diff_map_name))
 
     def reciprocal_space_refinement(self):
         try:
-            if self.F_column_labels.lower().startswith('q'):
-                maptype = "q"+self.F_column_labels.lower()[1:].capitalize()
+            if self.F_column_labels.lower().startswith("q"):
+                maptype = "q" + self.F_column_labels.lower()[1:].capitalize()
             else:
                 maptype = self.F_column_labels.lower().capitalize()
-            mtz_out = re.sub(r"%s"%(maptype), "2m%s-DFc_refmac_reciprocal_space_001.mtz"%(maptype), self.mtz_name)
-            pdb_out = re.sub(r"%s"%(maptype), "2m%s-DFc_refmac_reciprocal_space_001.pdb"%(maptype), self.mtz_name)
-            log_file = re.sub(r"%s"%(maptype), "2m%s-DFc_refmac_reciprocal_space_001.log"%(maptype), self.mtz_name)
+            mtz_out = re.sub(
+                r"%s" % (maptype),
+                "2m%s-DFc_refmac_reciprocal_space_001.mtz" % (maptype),
+                self.mtz_name,
+            )
+            pdb_out = re.sub(
+                r"%s" % (maptype),
+                "2m%s-DFc_refmac_reciprocal_space_001.pdb" % (maptype),
+                self.mtz_name,
+            )
+            log_file = re.sub(
+                r"%s" % (maptype),
+                "2m%s-DFc_refmac_reciprocal_space_001.log" % (maptype),
+                self.mtz_name,
+            )
             if mtz_out == self.mtz_name:
                 raise AttributeError
         except AttributeError:
-            mtz_out = '%s_refmac_reciprocal_space_001.mtz' %(self.mtz_name)
-            pdb_out = '%s_refmac_reciprocal_space_001.pdb' %(self.mtz_name)
-            log_file = '%s_refmac_reciprocal_space_001.log' %(self.mtz_name)
-            
-        script_refmac = self.write_refmac_input_reciprocal_space_refinement(mtz_out, pdb_out, log_file)
-        print('Running Refmac, output written to %s. Please wait...'%(log_file))
-        reciprocal = os.system("./%s" %(script_refmac))
-        
+            mtz_out = "%s_refmac_reciprocal_space_001.mtz" % (self.mtz_name)
+            pdb_out = "%s_refmac_reciprocal_space_001.pdb" % (self.mtz_name)
+            log_file = "%s_refmac_reciprocal_space_001.log" % (self.mtz_name)
+
+        print("Running Refmac. Please wait...")
+        reciprocal = self.do_refmac_reciprocal_space_refinement(
+            mtz_out, pdb_out, log_file
+        )
+
         if reciprocal != 0:
             mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
-        
-        # if os.path.isfile(pdb_out) == False:
-        #     print("pdb file from refinement not found. Refinement probably failed")
-        #     pdb_out = self.pdb_in
-        # if os.path.isfile(mtz_out) == False:
-        #     print("mtz file from refinement not found. Refinement probably failed")
-        #     mtz_out = self.mtz_in
-            
         return mtz_out, pdb_out
-    
+
     def ccp4_dm(self, pdb_in, combine, cycles):
         """
         Use dm to perform density modification
