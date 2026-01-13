@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
 """
 Automatically run in Xtrapol8 routine but can be run on a standalone basis.
-To support phenix version 1.19, there are function alternatives without pandas. These are less robust to non-standard PDB architectures
 
 What do you need?
 - a reference pdb file
@@ -39,21 +37,15 @@ import sys
 
 import matplotlib.colors as mcolors
 import numpy as np
+import pandas as pd
 from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
-
-try:
-    import pandas as pd
-    from scipy.spatial.distance import pdist, squareform
-
-    use_pandas = True
-except ImportError:
-    use_pandas = False
+from scipy.spatial.distance import pdist, squareform
 
 from .Fextr_utils import get_name
 
 
-class Difference_distance_analysis(object):
+class Difference_distance_analysis:
     """
     Class to calculate the ddm between two structures.
     Ligands are not (yet) taken into account
@@ -74,15 +66,12 @@ class Difference_distance_analysis(object):
         pdb1_hier = hierarchy.input(file_name=pdb1)
         self.hier1 = pdb1_hier.hierarchy
         print("number of atoms at start: %s" % (self.hier1.atoms_size()), file=self.log)
-        self.ligand_coords1, self.ligand_info1 = self.remove_ligands_and_get_coord(
-            self.hier1
-        )
+        self.remove_ligands_and_get_coord(self.hier1)
         print(
             "number of atoms after ligand and water removal: %d"
             % (self.hier1.atoms_size()),
             file=self.log,
         )
-        # self.remove_altlocs(self.hier1)
         self.hier1.remove_alt_confs(True)
         print(
             "number of atoms after altloc removal: %d" % (self.hier1.atoms_size()),
@@ -99,15 +88,12 @@ class Difference_distance_analysis(object):
         pdb2_hier = hierarchy.input(file_name=pdb2)
         self.hier2 = pdb2_hier.hierarchy
         print("number of atoms at start: %d" % (self.hier2.atoms_size()), file=self.log)
-        self.ligand_coords2, ligand_info2 = self.remove_ligands_and_get_coord(
-            self.hier2
-        )
+        self.remove_ligands_and_get_coord(self.hier2)
         print(
             "number of atoms after ligand and water removal: %d"
             % (self.hier2.atoms_size()),
             file=self.log,
         )
-        # self.remove_altlocs(self.hier2)
         self.hier2.remove_alt_confs(True)
         print(
             "number of atoms after altloc removal: %d" % (self.hier2.atoms_size()),
@@ -147,7 +133,6 @@ class Difference_distance_analysis(object):
                         atom_group.resname in self.ligands
                         and atom_group.resname != "HOH"
                     ):
-                        # print(chain.id, atom_group.resname)
                         for a in res_group.atoms():
                             ligand_coords.append(list(a.xyz))
                             i = a.fetch_labels()
@@ -166,21 +151,6 @@ class Difference_distance_analysis(object):
                         res_group.remove_atom_group(atom_group)
                     if res_group.atoms_size() == 0:
                         chain.remove_residue_group(res_group)
-        return ligand_coords, ligand_info
-
-    # def remove_altlocs(self, pdb_hierarchy):
-    # """
-    # Function to remove laternative conformations
-    # """
-    # for chain in pdb_hierarchy.chains():
-    # if chain.is_protein():
-    # for res_group in chain.residue_groups():
-    # if len(res_group.conformers())>1:
-    # first_altloc = res_group.conformers()[0].altloc
-    # for atom_group in res_group.atom_groups():
-    # if (atom_group.altloc != "" and atom_group.altloc != first_altloc):
-    ##print("remove:",atom_group.id_str())
-    # res_group.remove_atom_group(atom_group)
 
     def get_offset(self, pdb_hierarchy, ID):
         """
@@ -211,57 +181,6 @@ class Difference_distance_analysis(object):
                 last = max(last, last_test)
 
         return last
-
-    def get_coord_nopandas(self, pdb_hierarchy, ID):
-        """
-        Get the coordinates of the atoms in the pdb file.
-        Because of badly placed TER cards, a chain may be read as multiple chains, hence need to loop over all chains again instead of working with the input chain. Need to find a proper way to merge chains with same ID or get rid of TER cards.
-
-        Need to add the coords and info of missing residues as well (coords can be 0,0,0) so as to add them to the ddm.
-        """
-        # get first residue so as to know that the first residue so that it is clear that this is not a residue after a gap
-        n_ini = self.get_offset(pdb_hierarchy, ID)
-
-        # get last residue number as to know where to stop
-        n_fin = self.get_last_residue_number(pdb_hierarchy, ID)
-
-        # to start set n to n1-1
-        n = n_ini - 1
-
-        coord = []
-        info = []
-        missing = []
-        for c in pdb_hierarchy.chains():
-            if c.id == ID:
-                for res_group in c.residue_groups():
-                    # check if residue is the subsequent residue in line
-                    while n + 1 < res_group.resseq_as_int():
-                        # gap is present, coordinated will be replaced by (0,0,0). This will be the same for the two chains
-                        # ending up with a distance difference of 0, hence a white line in the ddm
-                        n += 1
-                        coord.append([0, 0, 0])
-                        info.append(str(n))
-                        # print("add missing residue: %s" %(str(n)))
-                        missing.append(n)
-                    if (
-                        res_group.resseq_as_int() == n + 1
-                    ):  # if should be not required but might make the case more clear
-                        # no residue gap present, coordinates can be extracted
-                        for a in res_group.atoms():
-                            # print a.name
-                            coord.append(list(a.xyz))
-                            i = a.fetch_labels()
-                            info.append(i.resseq)
-                            n = i.resseq_as_int()
-                    # else:
-                    ##gap is present, coordinated will be replaced by (0,0,0). This will be the same for the two chains
-                    ##ending up with a distance difference of 0, hence a white line in the ddm
-                    # n = n+1
-                    # coord.append([0,0,0])
-                    # info.append(str(n))
-
-        coord = np.asarray(coord)
-        return coord, info, missing
 
     def get_coord(self, pdb_hierarchy, ID):
         """
@@ -307,15 +226,6 @@ class Difference_distance_analysis(object):
 
         return np.sqrt(np.sum((p1 - p2) ** 2, axis=axis))
 
-    def get_diff_matrix_nopandas(self, arr):
-        N = arr.shape[0]
-        # print(arr.shape)
-        diff = np.zeros((N, N))
-        for i in range(N):
-            CA = arr[i]
-            diff[:, i] = self.get_d(arr, CA, axis=1)
-        return diff
-
     def get_diff_matrix(self, df):
         """
         Get difference matrix from a Pandas data frame with columns "x", "y", "z"
@@ -348,54 +258,6 @@ class Difference_distance_analysis(object):
 
         return df1, diff
 
-    def calculate_ddm_nopandas(self, chain1, chain2):
-        """
-        Calculate the distance difference matrix between two chains
-        """
-        coords1, seq_info, missing = self.get_coord_nopandas(self.hier1, chain1.id)
-        diff_m1 = self.get_diff_matrix_nopandas(coords1)
-
-        coords2, _, _ = self.get_coord_nopandas(self.hier2, chain2.id)
-        diff_m2 = self.get_diff_matrix_nopandas(coords2)
-
-        try:
-            diff = diff_m2 - diff_m1
-        except ValueError:
-            print(
-                "Different number of Calpha between pdb1 (%s, %i) and pdb2 (%s, %i)\n"
-                "Please check your pdb files."
-                % (self.pdb1_name, diff_m1.shape[0], self.pdb2_name, diff_m2.shape[0]),
-                file=self.log,
-            )
-            diff = np.array([0, 0])
-
-        return diff, seq_info, missing
-
-    def ddm_residue_nopandas(self, ddm, seq_info, missing):
-        """
-        From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
-        """
-        f = np.vectorize(lambda x: int(x))
-        seq_info_unique, indices = np.unique(f(seq_info), return_inverse=True)
-        # seq_info_unique, indices = np.unique(np.array(list(map(lambda x: int(x), seq_info))), return_inverse=True)
-
-        n_residues = seq_info_unique.shape[0]
-        ddm_residue = np.zeros((n_residues, n_residues))
-        for i in range(n_residues):
-            for j in range(n_residues):
-                ddm_residue[i, j] = np.average(
-                    ddm[np.where(indices == i)[0], :][:, np.where(indices == j)[0]]
-                )
-
-        # set all values from the missing residues to 0
-        to_zero = [i for i, val in enumerate(seq_info_unique) if val in missing]
-        if len(to_zero) >= 1:
-            for i in to_zero:
-                ddm_residue[i, :] = 0
-                ddm_residue[:, i] = 0
-
-        return ddm_residue, seq_info_unique
-
     def ddm_residue(self, ddm, df):
         """
         From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
@@ -404,7 +266,6 @@ class Difference_distance_analysis(object):
         seq_info_unique, indices = np.unique(
             f(df.loc[:, "resseq"]), return_inverse=True
         )
-        # seq_info_unique, indices = np.unique(np.array(list(map(lambda x: int(x), df.loc[:,"resseq"]))), return_inverse=True)
 
         n_residues = seq_info_unique.shape[0]
         ddm_residue = np.zeros((n_residues, n_residues))
@@ -465,8 +326,7 @@ class Difference_distance_analysis(object):
 
         fig, axs = plt.subplots(
             n_rows, n_cols, figsize=(10 * n_rows, 10 * n_cols), squeeze=False
-        )  # , constrained_layout=True)
-        # fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
+        )
         c = mcolors.ColorConverter().to_rgb
         rvb = self.make_colormap(
             [c("blue"), c("white"), 0.40, c("white"), 0.60, c("white"), c("red")]
@@ -492,12 +352,7 @@ class Difference_distance_analysis(object):
                             if c.id == ID and self.get_offset(self.hier2, ID) == offset:
                                 chain2 = c.detached_copy()
                     try:
-                        if use_pandas:
-                            df1, ddm = self.calculate_ddm(chain1, chain2)
-                        else:
-                            ddm, seq_info, missing = self.calculate_ddm_nopandas(
-                                chain1, chain2
-                            )
+                        df1, ddm = self.calculate_ddm(chain1, chain2)
                     except NameError:
                         print(
                             "There exist an inconsistency between the two models: %s and %s.\nMake sure that they have the samen chain ID and start with the same residue number"
@@ -517,12 +372,7 @@ class Difference_distance_analysis(object):
                     assert n == m, "Difference matrix for chain %s is incorrect"
 
                     # For per residue ddm
-                    if use_pandas:
-                        ddm_residue, seq_info_unique = self.ddm_residue(ddm, df1)
-                    else:
-                        ddm_residue, seq_info_unique = self.ddm_residue_nopandas(
-                            ddm, seq_info, missing
-                        )
+                    ddm_residue, seq_info_unique = self.ddm_residue(ddm, df1)
 
                     # write info to pickle file
                     stats = [chain.id, ddm_residue, seq_info_unique]
@@ -532,9 +382,8 @@ class Difference_distance_analysis(object):
                     mask[np.triu_indices_from(mask)] = True
                     FINAL2 = np.ma.array(ddm_residue, mask=mask)
 
-                    tick_jump = int(
-                        np.round(len(seq_info_unique) / 15, 0)
-                    )  # we want to add 15 seq_ticks
+                    # we want to add 15 seq_ticks
+                    tick_jump = int(np.round(len(seq_info_unique) / 15, 0))
                     seq_ticks = seq_info_unique[
                         0::tick_jump
                     ]  # residues for which we will show tick positions
@@ -630,8 +479,6 @@ def main():
         sys.exit(1)
 
     args = parser.parse_args()
-
-    # print(args)
 
     pdb_ref = args.pdb_ref
     pdb_other = args.pdb_other
