@@ -26,6 +26,10 @@ import sys
 from cctbx import xray
 from iotbx.file_reader import any_file
 
+from .programs.execute import make_obs_mtz
+from .programs.pointless import pointless
+from .programs.truncate import truncate
+
 
 class Column_extraction:
     def __init__(
@@ -172,145 +176,23 @@ class Column_extraction:
 
         return f_obs, i_obs, run_truncate, labels
 
-    def run_pointless(self, reflections, reflections_ref, prefix):
-        """
-        Run pointless with a reference data set. This is to make sure that the reflections have been processed with
-        the same indexing possibility. This should normally be done for the triggered data set.
-        Afterwards run truncate as usual to convert the intensities to structure factors
-        """
-        mtz_out, script_pointless = self.write_pointless_input(
-            reflections, reflections_ref, prefix
-        )
-        os.system("chmod +x %s" % (script_pointless))
-        print("Running pointless to avoid indexing issues", file=self.log)
-        print("Running pointless to avoid indexing issues, see %s" % (script_pointless))
-        pointless_success = os.system("./%s" % (script_pointless))
-        if pointless_success == 0:
-            pointless_success = True
-        else:
-            pointless_success = False
-        return mtz_out, pointless_success
-
-        # reflections_pointless = any_file(mtz_out, force_type="hkl", raise_sorry_if_errors=True)
-        # return reflections_pointless
-
-    def write_pointless_input(self, reflections, reflections_ref, prefix):
-        """
-        Prepaare mtz files and script for pointless
-        """
-        mtz_for_pointless = "%s_forpointless.mtz" % (prefix)
-        if type(reflections.observation_type()) == xray.observation_types.intensity:
-            # Use the make_mtz_for_truncate function, because it does exactly what we need for pointless
-            mtz_for_pointless, inlabels = self.make_mtz_for_truncate(
-                reflections, mtz_for_pointless, "I"
-            )
-        else:
-            mtz_for_pointless, inlabels = self.make_mtz_for_truncate(
-                reflections, mtz_for_pointless, "F"
-            )
-
-        mtz_reference_for_pointless = "%s_reference_forpointless.mtz" % (prefix)
-        if type(reflections_ref.observation_type()) == xray.observation_types.intensity:
-            # Use the make_mtz_for_truncate function, because it does exactly what we need for pointless
-            # The reference data set should already be Fs by now
-            mtz_reference_for_pointless, inlabels_ref = self.make_mtz_for_truncate(
-                reflections_ref, mtz_reference_for_pointless, "I"
-            )
-        else:
-            mtz_reference_for_pointless, inlabels_ref = self.make_mtz_for_truncate(
-                reflections_ref, mtz_reference_for_pointless, "F"
-            )
-
-        if "I(+)" in inlabels:
-            labin_line = " "
-            for label in inlabels:
-                labin_line += "labin %s " % (label)
-        elif "I" in inlabels:
-            labin_line = "labin I"
-        elif "F(+)" in inlabels:
-            labin_line = " "
-            for label in inlabels:
-                labin_line += "labin %s " % (label)
-        elif "F" in inlabels:
-            labin_line = "labin F"
-        else:
-            labin_line = " "
-
-        if "I(+)" in inlabels_ref:
-            labref_line = " "
-            for label in inlabels_ref:
-                labref_line += "labref %s " % (label)
-        elif "I" in inlabels_ref:
-            labref_line = "labref I"
-        elif "F(+)" in inlabels_ref:
-            labref_line = " "
-            for label in inlabels_ref:
-                labref_line += "labref %s " % (label)
-        elif "F" in inlabels_ref:
-            labref_line = "labref F"
-        else:
-            labref_line = " "
-
-        mtz_from_pointless = "%s_frompointless.mtz" % (prefix)
-
-        script_out = "launch_pointless_%s.sh" % (prefix)
-        i = open(script_out, "w")
-        i.write(
-            "#!/bin/bash\n\
-pointless HKLIN %s HKLOUT %s HKLREF %s <<eof_pointless > pointless_%s.log\n\
-%s\n\
-%s\n\
-eof_pointless"
-            % (
-                mtz_for_pointless,
-                mtz_from_pointless,
-                mtz_reference_for_pointless,
-                prefix,
-                labin_line,
-                labref_line,
-            )
-        )
-
-        i.close()
-        return mtz_from_pointless, script_out
-
     def run_truncate(self, reflections, prefix, high_res, low_res):
         """
         Run truncate to convert Is to Fs
         Take anomalous signal into account if present in the two datasets considered
         Afterwards, extract the reflections
         """
-        mtz_out, script_truncate = self.write_truncate_input(
-            reflections, prefix, high_res, low_res
-        )
-        os.system("chmod +x %s" % (script_truncate))
-        print("Running truncate, see %s" % (script_truncate))
-        os.system("./%s" % (script_truncate))
+        print("Running truncate")
+        mtz_out = self.call_truncate(reflections, prefix, high_res, low_res)
         reflections_off = any_file(
             mtz_out, force_type="hkl", raise_sorry_if_errors=True
         )
         return reflections_off
 
-    def make_mtz_for_truncate(self, reflections, outname, column_root_label="I"):
-        """
-        Write the reflections to an mtz-file. In principle this should be equal for the reference/triggered data set, although with default column labels.
-        """
-        reflections_ms = reflections.as_mtz_dataset(
-            column_root_label="%s" % (column_root_label)
-        )
-        reflections_ms.mtz_object().write(file_name=outname)
-        labels = reflections_ms.column_labels()[3:]
-        return outname, labels
-
-    def write_truncate_input(self, reflections, prefix, high_res, low_res):
-        """
-        Prepare everything mtz and script for truncate
-        """
-        mtz_for_truncate = "%s_fortruncate.mtz" % (prefix)
-        assert type(reflections.observation_type()) == xray.observation_types.intensity
-        mtz_for_truncate, inlabels = self.make_mtz_for_truncate(
-            reflections, mtz_for_truncate, "I"
-        )
+    def call_truncate(self, reflections, prefix, high_res, low_res):
+        mtz_for_truncate = f"{prefix}_fortruncate.mtz"
+        assert reflections.is_xray_intensity_array()
+        inlabels = make_obs_mtz(reflections, mtz_for_truncate)
 
         # Normally, the labels labels should be of the form I(+), SIGI(+), I(-), SIGI(-)
 
@@ -318,7 +200,7 @@ eof_pointless"
             # This is not going to work because truncate needs in addition also IMEAN and SIGIMEAN columns
             labin_line = " "
             for label in inlabels:
-                labin_line += "%s=%s " % (label, label)
+                labin_line += f"{label}={label} "
             labout_line = " F(+)=F(+) SIGF(+)=SIGF(+) F(-)=F(-) SIGF(-)=SIGF(-)"
         elif "I" in inlabels:
             labin_line = " IMEAN=I SIGIMEAN=SIGI"
@@ -327,40 +209,21 @@ eof_pointless"
             labin_line = " "
             labout_line = " "
 
-        if self.ano:
-            ano = "YES"
-        else:
-            ano = "NO"
+        mtz_from_truncate = f"{prefix}_fromtruncate.mtz"
+        log_file = f"truncate_{prefix}.log"
 
-        mtz_from_truncate = "%s_fromtruncate.mtz" % (prefix)
-
-        script_out = "launch_truncate_%s.sh" % (prefix)
-        i = open(script_out, "w")
-        i.write(
-            "#!/bin/bash\n\
-truncate HKLIN %s HKLOUT %s <<eof_truncate > truncate_%s.log\n\
-truncate YES\n\
-anomalous %s\n\
-resolution %.2f %.2f\n\
-plot OFF\n\
-header BRIEF BATCH\n\
-labin %s\n\
-labout %s \n\
-eof_truncate"
-            % (
-                mtz_for_truncate,
-                mtz_from_truncate,
-                prefix,
-                ano,
-                high_res,
-                low_res,
-                labin_line,
-                labout_line,
-            )
+        truncate(
+            mtz_for_truncate,
+            mtz_from_truncate,
+            log_file,
+            labin_line,
+            labout_line,
+            self.ano,
+            high_res,
+            low_res,
         )
 
-        i.close()
-        return mtz_from_truncate, script_out
+        return mtz_from_truncate
 
     def resolution_cutoff(self, obs):
         """
@@ -445,7 +308,7 @@ eof_truncate"
         if run_truncate:  # Data is I
             dmax, dmin = self.resolution_cutoff(i_obs_2)
             # Run pointless to avoid indexing issues
-            mtz_pointless, pointless_success = self.run_pointless(
+            mtz_pointless, pointless_success = pointless(
                 i_obs_2, f_obs_ref, "triggered"
             )
             if (
@@ -461,11 +324,10 @@ eof_truncate"
             # Run truncate to convert I to F
             self.reflections_trig = self.run_truncate(i_obs_2, "triggered", dmax, dmin)
             f_obs_2, _, _, _ = self.get_F(self.reflections_trig, ano_flag=False)
-            # f_obs_2,_,_,_= self.get_F(self.reflections_trig, ano_flag=ano_trig) #when we can handle anomalous data properly
         else:  # Data is F
             # Run pointless to avoid indexing issues
             dmax, dmin = self.resolution_cutoff(f_obs_2)
-            mtz_pointless, pointless_success = self.run_pointless(
+            mtz_pointless, pointless_success = pointless(
                 f_obs_2, f_obs_ref, "triggered"
             )
             if (
@@ -475,7 +337,6 @@ eof_truncate"
                     mtz_pointless, force_type="hkl", raise_sorry_if_errors=True
                 )
                 f_obs_2, _, _, _ = self.get_F(reflections_pointless, ano_flag=False)
-                # f_obs_2, _, _, _ = self.get_F(reflections_pointless,ano_flag=ano_trig) #when we can handle anomalous data properly
             else:  # Pointless run incorrectly
                 print("Pointless failed, data not reindexed.")
                 print("Pointless failed, data not reindexed.", file=self.log)
@@ -487,48 +348,28 @@ eof_truncate"
         return f_obs_ref, f_obs_2
 
 
-class Extrapolated_column_extraction(object):
+class Extrapolated_column_extraction:
     def __init__(self, mtz_in, column_labels="I", log=sys.stdout):
         self.mtz_in = mtz_in
         self.column_labels = column_labels
         self.log = log
 
-    def write_truncate_input(self):
-        """
-        Prepare script for truncate
-        """
-
-        labin_line = " IMEAN=%s SIGIMEAN=SIG%s" % (
-            self.column_labels,
-            self.column_labels,
-        )
+    def call_truncate(self):
+        labin_line = f" IMEAN={self.column_labels} SIGIMEAN=SIG{self.column_labels}"
         labout_line = " F=F SIGF=SIGF"
 
-        mtz_from_truncate = "%s_fromtruncate.mtz" % (self.column_labels.lower())
+        mtz_from_truncate = f"{self.column_labels.lower()}_fromtruncate.mtz"
+        log_file = f"truncate_{self.column_labels.lower()}.log"
 
-        script_out = "launch_truncate_%s.sh" % (self.column_labels)
-        i = open(script_out, "w")
-        i.write(
-            "#!/bin/bash\n\
-truncate HKLIN %s HKLOUT %s <<eof_truncate > truncate_%s.log \n\
-truncate YES\n\
-anomalous NO\n\
-plot OFF\n\
-header BRIEF BATCH\n\
-labin %s\n\
-labout %s \n\
-eof_truncate"
-            % (
-                self.mtz_in,
-                mtz_from_truncate,
-                self.column_labels.lower(),
-                labin_line,
-                labout_line,
-            )
+        truncate(
+            self.mtz_in,
+            mtz_from_truncate,
+            log_file,
+            labin_line,
+            labout_line,
         )
 
-        i.close()
-        return mtz_from_truncate, script_out
+        return mtz_from_truncate
 
     def find_column_with_Flabels(self, hkl):
         """
@@ -543,14 +384,9 @@ eof_truncate"
         Run truncate to convert Is to Fs
         Afterwards, extract the reflections
         """
-        mtz_out, script_truncate = self.write_truncate_input()
-        os.system("chmod +x %s" % (script_truncate))
-        print("Running truncate, see %s, to convert Is to Fs" % (script_truncate))
-        print(
-            "Running truncate, see %s, to convert Is to Fs" % (script_truncate),
-            file=self.log,
-        )
-        os.system("./%s" % (script_truncate))
+        print("Running truncate to convert Is to Fs")
+        print("Running truncate to convert Is to Fs", file=self.log)
+        mtz_out = self.call_truncate()
         reflections_extrapolate = any_file(
             mtz_out, force_type="hkl", raise_sorry_if_errors=False
         )
