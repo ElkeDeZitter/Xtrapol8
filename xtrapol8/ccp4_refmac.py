@@ -31,6 +31,8 @@ from mmtbx.scaling.matthews import p_vm_calculator
 import iotbx.pdb
 
 from .Fextr_utils import get_name
+from .programs.dm import dm
+from .programs.fft import fft
 
 
 class Refmac_refinement(object):
@@ -204,37 +206,13 @@ eof\n'%(mtz_out, ccp4_diff_map_name))
             #can be estended with n_bases=.overall_countsresname_classes.get("common_rna_dna", 0)
         return vm_calc.solc(vm=vm_calc.vm(copies=1))
         
-    def write_density_modification_script(self, mtz_in, mtz_out, combine, cycles, log_file):
-        """
-        Write script to perform density modification with dm
-        """
+    def do_density_modification(self, mtz_in, mtz_out, combine, cycles, log_file):
+        "Perform density modification with dm"
         solc = self.get_solvent_content()
-        
-        script_out = 'launch_dm.sh'
-        i = open(script_out,'w')
-        i.write('#!/bin/sh \n\
-\n\
-#dm:\n\
-dm hklin %s hklout %s <<eor > %s \n\
-SOLC %.3f\n\
-MODE SOLV HIST MULTI SAYR\n\
-COMBINE %s\n\
-NCYC %d\n\
-LABI FP=%s SIGFP=SIG%s PHIO=PHIC_ALL FOMO=FOM\n\
-LABO FDM=FDM PHIDM=PHIDM\n\
-eor\n' %(mtz_in, mtz_out, log_file, solc, combine, cycles, self.F_column_labels, self.F_column_labels))
-      
+        dm(mtz_in, mtz_out, solc, combine, cycles, self.F_column_labels, log_file)
         ccp4_map_name = re.sub(r".mtz$", ".ccp4", mtz_out)
-      
-        i.write('#generate map in ccp4 format\n\
-fft hklin %s mapout %s <<eof > fft.log\n\
-LABI F1=FDM PHI=PHIDM\n\
-eof' %(mtz_out, ccp4_map_name))
+        fft(mtz_out, ccp4_map_name, "FDM", "PHIDM")
 
-        i.close()
-        os.system("chmod +x %s" %(script_out))
-        return script_out        
-        
     def reciprocal_space_refinement(self):
         try:
             if self.F_column_labels.lower().startswith('q'):
@@ -277,10 +255,8 @@ eof' %(mtz_out, ccp4_map_name))
         mtz_out_dm = re.sub(r".pdb$", "_dm.mtz", pdb_in)
         if os.path.isfile(mtz_for_dm):
             log_file = re.sub(r".mtz$", ".log", mtz_out_dm)
-            script_dm = self.write_density_modification_script(mtz_for_dm, mtz_out_dm, combine, cycles, log_file)
-            print('Running density modification, output written to %s. Please wait...'%(log_file))
-            os.system("./%s" %(script_dm))
-        
+            print(f"Running density modification, see {log_file}. Please wait...")
+            self.do_density_modification(mtz_for_dm, mtz_out_dm, combine, cycles, log_file)
         return mtz_out_dm
 
 
