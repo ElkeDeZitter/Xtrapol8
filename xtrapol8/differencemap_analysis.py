@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Script to calculate the occupancy based on the Fourier difference map (FoFo) and extrapolated difference maps (mFextr-DFcalc).
 This is automatically run in Xtrapol8 routine but can be run on a standalone basis using this script.
@@ -72,7 +71,7 @@ from .master import master_phil
 from .plotalpha import plotalpha
 
 
-class Difference_analysis(object):
+class Difference_analysis:
     def __init__(
         self,
         pdb_in,
@@ -171,16 +170,6 @@ class Difference_analysis(object):
                     cif_list.append(ligand)
         return cif_list
 
-    def check_and_make_dir(self, outdir):
-        """
-        Create directory if it doesn't exist yet
-        """
-
-        if os.path.exists(outdir) == False:
-            os.mkdir(outdir)
-            print("Output directory: %s" % (outdir))
-            print("Output directory: %s" % (outdir), file=self.log)
-
     def do_map_explorer_and_get_data_FoFo(self):
         """
         Run map_explorer on the FoFo map and append the peakintegration results to a list
@@ -233,8 +222,6 @@ class Difference_analysis(object):
         Run map_eplorer on each mFextr-DFcalc map and append results to the list with peakintegration files
         """
 
-        start_dir = os.getcwd()
-
         for i, fextrfcalc in enumerate(self.fextrfcalc_list):
             print(
                 "\n************Map explorer: %s ************" % (fextrfcalc),
@@ -244,22 +231,6 @@ class Difference_analysis(object):
             print("\n************Map explorer: %s ************" % (fextrfcalc))
             print("occupancy: %.3f" % (self.occupancies[i]))
 
-            # fextrfcalc = os.path.abspath(fextrfcalc)
-
-            # Need to work in different directories because
-            # 1) map_explorer writes always the same filename
-            # 2) plotalpha used the occupancy determined from the directory
-            # occ = self.occupancies[i]
-            # out_dir = "%s_occupancy_%.3f" %(self.prefix, occ)
-            # self.check_and_make_dir(out_dir)
-            # os.chdir(out_dir)
-
-            ##Run map_explorer
-            # map_expl_out = self.run_map_explorer(fextrfcalc, map_type = self.prefix)
-            # map_expl_out = os.path.abspath(check_file_existance(map_expl_out))
-            # print("FoFo map explored. Results in %s" %(map_expl_out), file=self.log)
-            # print("FoFo map explored. Results in %s" %(map_expl_out))
-
             if fextrfcalc.endswith("ccp4"):
                 data = ccp4_map.map_reader(file_name=fextrfcalc).data.as_numpy_array()
             else:
@@ -268,7 +239,6 @@ class Difference_analysis(object):
                 ).data.as_numpy_array()
             pos = 0
             neg = 0
-            # print(mask[0,0])
 
             try:
                 for i in range(self.mask.shape[1]):
@@ -295,8 +265,6 @@ class Difference_analysis(object):
                 CC = 0
 
             self.map_exp_files.append([CC, pos, neg, pos + neg])
-
-            # os.chdir(start_dir)
 
     def run_difference_map_analysis(self):
         """
@@ -333,7 +301,7 @@ class Difference_analysis(object):
         print("---------------------------------------------", file=self.log)
 
 
-class Filefinder(object):
+class Filefinder:
     def __init__(
         self,
         X8_outdir="Xtrapol8",
@@ -449,13 +417,11 @@ def main():
         raise Usage(
             "phenix.python differencemap_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last"
         )
-        sys.exit(1)
     if "--help" in sys.argv or "-h" in sys.argv:
         master_phil.show(attributes_level=1)
         raise Usage(
             "phenix.python differencemap_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last"
         )
-        sys.exit(1)
 
     # Extract input from inputfile and command line
     input_objects = iotbx.phil.process_command_line_with_files(
