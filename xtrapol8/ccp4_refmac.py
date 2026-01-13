@@ -43,7 +43,6 @@ class Refmac_refinement(object):
                  F_column_labels = 'QFEXTR',
                  rfree_col       = 'FreeR_flag',
                  fill_missing    = False,
-                 add_rfree       = False,
                  refinement_weight         = 'AUTO',
                  refinement_weight_sigmas  = 'NOEX',
                  refinement_weighting_term = 0.2,
@@ -74,13 +73,6 @@ class Refmac_refinement(object):
         self.mtz_in = new_mtz
         return extra_line
 
-    def add_rfree_col(self):
-        new_mtz = '%s_rfree.mtz' %(self.mtz_name)
-        extra_line = 'freerflag hklin %s hklout %s << eof\nEND\neof' %(self.mtz_in, new_mtz)
-        self.rfree_col = 'FreeR_flag'
-        self.mtz_in = new_mtz
-        return extra_line
-
     def write_refmac_input_reciprocal_space_refinement(self, mtz_out, pdb_out, log_file):
         """
         Prepare bash file to run refmac.
@@ -88,8 +80,6 @@ class Refmac_refinement(object):
         """
         if self.fill_missing == True:
             extra_line = self.add_missing_reflections()
-        elif self.add_rfree == True:
-            extra_line = self.add_rfree_col()
         else:
             extra_line = ''
             
