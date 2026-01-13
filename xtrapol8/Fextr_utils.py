@@ -77,8 +77,6 @@ def remove_unique_id_from_log(log_name):
 
     return new_name
 
-def is_exe(fpath):
-    return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
 def get_phenix_version():
     """
