@@ -28,9 +28,9 @@ import math
 import os
 import pickle
 
-from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
+from matplotlib import pyplot as plt
 
 from .Fextr_utils import get_name
 
@@ -707,14 +707,10 @@ def plot_FoFosigmas(pickle_file="Fextr_binstats.pickle"):
 
     mn = 0
     mx = 0
-    if min(fdif_data_lst[1:]) < mn:
-        mn = min(fdif_data_lst[1:])
-    if max(fdif_data_lst[1:]) > mx:
-        mx = max(fdif_data_lst[1:])
-    if min(fdif_sigmas_lst[1:]) < mn:
-        mn = min(fdif_sigmas_lst[1:])
-    if max(fdif_sigmas_lst[1:]) > mx:
-        mx = max(fdif_sigmas_lst[1:])
+    mn = min(mn, min(fdif_data_lst[1:]))
+    mx = max(mx, max(fdif_data_lst[1:]))
+    mn = min(mn, min(fdif_sigmas_lst[1:]))
+    mx = max(mx, max(fdif_sigmas_lst[1:]))
 
     fig, ax0 = plt.subplots(1, 1, figsize=(10, 5))
     ax1 = ax0.twinx()
@@ -813,14 +809,10 @@ def plot_Fextrsigmas(prefix, pickle_file="Fextr_binstats.pickle"):
             label="sig(%s), occ = %.3f" % (maptype, occ),
         )
         # Specify the minimum and maximum value
-        if min(fextr_data_lst[1:]) < mn:
-            mn = min(fextr_data_lst[1:])
-        if max(fextr_data_lst[1:]) > mx:
-            mx = max(fextr_data_lst[1:])
-        if min(fextr_sigmas_lst[1:]) < mn:
-            mn = min(fextr_sigmas_lst[1:])
-        if max(fextr_sigmas_lst[1:]) > mx:
-            mx = max(fextr_sigmas_lst[1:])
+        mn = min(mn, min(fextr_data_lst[1:]))
+        mx = max(mx, max(fextr_data_lst[1:]))
+        mn = min(mn, min(fextr_sigmas_lst[1:]))
+        mx = max(mx, max(fextr_sigmas_lst[1:]))
 
     ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax0.set_xlabel("Resolution (A)")  # , fontsize = 'small')
@@ -912,10 +904,8 @@ def plot_ddm(pickle_file="ddm.pickle", scale=1.5):
         for ddm_residue in alldata[:, 1]:
             mx_temp = np.max(ddm_residue)
             mn_temp = np.min(ddm_residue)
-            if mx_temp > scale:
-                scale = mx_temp
-            if np.abs(mn_temp) > scale:
-                scale = np.abs(mn_temp)
+            scale = max(scale, mx_temp)
+            scale = max(scale, np.abs(mn_temp))
     else:
         scale = scale
 

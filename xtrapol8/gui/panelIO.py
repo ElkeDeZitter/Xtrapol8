@@ -19,12 +19,12 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from functools import partial
 import os
 import sys
+from functools import partial
 
-from iotbx.file_reader import any_file
 import wx
+from iotbx.file_reader import any_file
 
 from .Sizers import DefaultHorizontalSizer
 
@@ -301,16 +301,14 @@ class TabIO(wx.Panel):
 
         if self.dmax is None:
             self.dmax = self._dmax
-        else:
-            if self._dmax < self.dmax:
-                self.dmax = self._dmax
+        elif self._dmax < self.dmax:
+            self.dmax = self._dmax
         self.lowRes.SetValue("%4.2f" % self._dmax)
 
         if self.dmin is None:
             self.dmin = self._dmin
-        else:
-            if self._dmin > self.dmin:
-                self.dmin = self._dmin
+        elif self._dmin > self.dmin:
+            self.dmin = self._dmin
         self.highRes.SetValue("%4.2f" % self._dmin)
 
     def onDelFile(self, evt):

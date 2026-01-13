@@ -19,26 +19,27 @@
 --------
 """
 
-import re
+import math
 import os
 import pickle
-import math
+import re
 
+import matplotlib.colors as mcolors
+import numpy as np
+import wx
+from matplotlib import cm
 from matplotlib.backends.backend_wxagg import (
     FigureCanvasWxAgg as FigureCanvas,
+)
+from matplotlib.backends.backend_wxagg import (
     NavigationToolbar2WxAgg as NavigationToolbar,
 )
 from matplotlib.figure import Figure
 from wx.lib.pubsub import pub
 from wx.lib.scrolledpanel import ScrolledPanel
 from wxtbx import metallicbutton
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
-import numpy as np
-import wx
 
 from ..Fextr_utils import get_name
-
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -945,14 +946,10 @@ class TabMainImg(ScrolledPanel):
                 label="sig(%s), occ = %.3f" % (maptype, occ),
             )
             # Specify the minimum and maximum value
-            if min(fextr_data_lst[1:]) < mn:
-                mn = min(fextr_data_lst[1:])
-            if max(fextr_data_lst[1:]) > mx:
-                mx = max(fextr_data_lst[1:])
-            if min(fextr_sigmas_lst[1:]) < mn:
-                mn = min(fextr_sigmas_lst[1:])
-            if max(fextr_sigmas_lst[1:]) > mx:
-                mx = max(fextr_sigmas_lst[1:])
+            mn = min(mn, min(fextr_data_lst[1:]))
+            mx = max(mx, max(fextr_data_lst[1:]))
+            mn = min(mn, min(fextr_sigmas_lst[1:]))
+            mx = max(mx, max(fextr_sigmas_lst[1:]))
 
         ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
         ax0.set_xlabel("Resolution (A)")  # , fontsize = 'small')
@@ -1006,14 +1003,10 @@ class TabMainImg(ScrolledPanel):
 
         mn = 0
         mx = 0
-        if min(fdif_data_lst[1:]) < mn:
-            mn = min(fdif_data_lst[1:])
-        if max(fdif_data_lst[1:]) > mx:
-            mx = max(fdif_data_lst[1:])
-        if min(fdif_sigmas_lst[1:]) < mn:
-            mn = min(fdif_sigmas_lst[1:])
-        if max(fdif_sigmas_lst[1:]) > mx:
-            mx = max(fdif_sigmas_lst[1:])
+        mn = min(mn, min(fdif_data_lst[1:]))
+        mx = max(mx, max(fdif_data_lst[1:]))
+        mn = min(mn, min(fdif_sigmas_lst[1:]))
+        mx = max(mx, max(fdif_sigmas_lst[1:]))
 
         self.figure = Figure(figsize=(10, 5))
         ax0 = self.figure.add_subplot(111)
@@ -1250,9 +1243,8 @@ class TabOccResults(ScrolledPanel):
 
                 if not self.coot_button.IsShown():
                     self.occNfextrSizer.Show(self.coot_button)
-            else:
-                if self.coot_button.IsShown():
-                    self.occNfextrSizer.Hide(self.coot_button)
+            elif self.coot_button.IsShown():
+                self.occNfextrSizer.Hide(self.coot_button)
         self.mainSizer.Layout()
         evt.Skip()
 
@@ -1512,10 +1504,8 @@ class TabOccResults(ScrolledPanel):
             for ddm_residue in alldata[:, 1]:
                 mx_temp = np.max(ddm_residue)
                 mn_temp = np.min(ddm_residue)
-                if mx_temp > scale:
-                    scale = mx_temp
-                if np.abs(mn_temp) > scale:
-                    scale = np.abs(mn_temp)
+                scale = max(scale, mx_temp)
+                scale = max(scale, np.abs(mn_temp))
         else:
             scale = scale
 
@@ -1642,7 +1632,6 @@ class TabOccResults(ScrolledPanel):
         self.mainSizer.Layout()
         self.FitInside()
 
-        return
 
     def addImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)

@@ -62,17 +62,17 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from datetime import datetime
 import glob
 import os
 import re
 import shutil
 import sys
+from datetime import datetime
 
+import iotbx.phil
 from iotbx.file_reader import any_file
 from libtbx.utils import Usage
 from mmtbx.scaling.matthews import p_vm_calculator
-import iotbx.phil
 
 from . import __version__
 from .ddm import Difference_distance_analysis
@@ -80,7 +80,6 @@ from .distance_analysis import Distance_analysis
 from .Fextr_utils import *
 from .master import master_phil
 from .pymol_visualization import Pymol_movie
-
 
 Xtrapol8_master_phil = master_phil
 
@@ -152,12 +151,11 @@ class DataHandler(object):
         if self.refine_pdb_in == None:
             err = 1
             err_m += "\nPdb file should be supplied"
+        elif self.check_single_file(self.refine_pdb_in):
+            self.refine_pdb_in = os.path.abspath(self.refine_pdb_in)
         else:
-            if self.check_single_file(self.refine_pdb_in):
-                self.refine_pdb_in = os.path.abspath(self.refine_pdb_in)
-            else:
-                err = 1
-                err_m += "\nFile not found: %s" % (self.refine_pdb_in)
+            err = 1
+            err_m += "\nFile not found: %s" % (self.refine_pdb_in)
 
         # Check the pdb file for distance analysis
         if self.check_single_file(self.X8_pdb_in):
@@ -1439,7 +1437,7 @@ def run(args):
                 else:
                     ccp4_list = list(
                         map(
-                            lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)
+                            lambda fle: re.search(r"(.+?)\_reciprocal", fle).group(1)
                             + ".ccp4",
                             pymol_mtz_list,
                         )
@@ -1705,7 +1703,7 @@ def run(args):
                 else:
                     ccp4_list = list(
                         map(
-                            lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)
+                            lambda fle: re.search(r"(.+?)\_reciprocal", fle).group(1)
                             + ".ccp4",
                             pymol_mtz_list,
                         )

@@ -20,8 +20,8 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import pickle
 import sys
 
-from matplotlib import pyplot as plt
 import numpy as np
+from matplotlib import pyplot as plt
 
 
 class plotalpha(object):

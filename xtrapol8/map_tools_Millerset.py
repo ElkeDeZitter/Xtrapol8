@@ -32,10 +32,9 @@ see https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt
 -------
 """
 
-from cctbx import adptbx
-from cctbx import miller
-from cctbx.array_family import flex
 import mmtbx.map_tools
+from cctbx import adptbx, miller
+from cctbx.array_family import flex
 
 
 class combine(object):
@@ -58,9 +57,8 @@ class combine(object):
         self.f_model = None
         if not self.mnm.ml_map:
             self.f_obs = self.fobs_in.data() * fo_scale  # calculation of fo_scale*Fo
-        else:
-            if self.mch_2 is None:
-                self.mch_2 = self.fmodel_2.map_calculation_helper()
+        elif self.mch_2 is None:
+            self.mch_2 = self.fmodel_2.map_calculation_helper()
         self.f_obs = (
             self.fobs_in.data() * fo_scale * self.mch_2.fom
         )  # calculation of fo_scale*m*Fo

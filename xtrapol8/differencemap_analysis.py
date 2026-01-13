@@ -55,16 +55,15 @@ import os
 import re
 import sys
 
-from cctbx import sgtbx, crystal
-from iotbx import ccp4_map
-from iotbx import pdb
+import iotbx.xplor.map
+import mmtbx
+from cctbx import crystal, sgtbx
+from iotbx import ccp4_map, pdb
 from iotbx.file_reader import any_file
 from libtbx import adopt_init_args
 from libtbx.utils import Usage
 from mmtbx import utils
 from scipy.stats import pearsonr
-import iotbx.xplor.map
-import mmtbx
 
 from .Fextr_utils import check_file_existance
 from .map_explorer import map_explorer

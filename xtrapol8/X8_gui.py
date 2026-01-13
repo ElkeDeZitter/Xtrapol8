@@ -15,24 +15,23 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from threading import Thread
 import glob
 import os.path
 import subprocess
 import sys
 import threading
+from threading import Thread
 
+import matplotlib
+import wx
 from libtbx.phil import parse
 from wx.aui import AuiNotebook
 from wx.lib.pubsub import pub
-import matplotlib
-import wx
 
 from . import __version__
 from .Fextr import master_phil
-from .gui import panelIO, panelExtrapolation, panelRefinement
+from .gui import panelExtrapolation, panelIO, panelRefinement
 from .gui.panelLog import TabLog, TabMainImg, TabOccResults
-
 
 matplotlib.use("WXAgg")
 
@@ -523,7 +522,6 @@ class MainFrame(wx.Frame):
             else:
                 self.notebook.ResultsBooks[run].tabOcc.onFinished()
 
-        return
 
     def check_user_input(self):
         tabIO = self.notebook.Configure.tabIO

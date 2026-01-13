@@ -37,7 +37,7 @@ class Pymol_visualization(object):
         if "/" in fle:
             name = re.search(r"\/(.+?)\.%s" % (extention), fle).group(1).split("/")[-1]
         else:
-            name = re.sub("\.%s" % (extention), "", fle)
+            name = re.sub(r"\.%s" % (extention), "", fle)
         return name
 
     def find_fofo(self):

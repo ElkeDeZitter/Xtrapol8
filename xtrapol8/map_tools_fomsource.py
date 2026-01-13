@@ -32,10 +32,9 @@ see https://github.com/cctbx/cctbx_project/blob/master/LICENSE.txt
 -------
 """
 
-from cctbx import adptbx
-from cctbx import miller
-from cctbx.array_family import flex
 import mmtbx.map_tools
+from cctbx import adptbx, miller
+from cctbx.array_family import flex
 
 
 class combine(object):

@@ -37,10 +37,10 @@ import os
 import pickle
 import sys
 
-from iotbx.pdb import hierarchy
-from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
+from iotbx.pdb import hierarchy
+from matplotlib import pyplot as plt
 
 try:
     import pandas as pd
@@ -193,8 +193,7 @@ class Difference_distance_analysis(object):
                     offset_test = chain.residues()[0].resseq_as_int()
                 except AssertionError:
                     offset_test = chain.conformers()[0].residues()[0].resseq_as_int()
-                if offset_test < offset:
-                    offset = offset_test
+                offset = min(offset, offset_test)
 
         return offset
 
@@ -209,8 +208,7 @@ class Difference_distance_analysis(object):
                     last_test = c.residues()[-1].resseq_as_int()
                 except AssertionError:
                     last_test = c.conformers()[0].residues()[-1].resseq_as_int()
-                if last_test > last:
-                    last = last_test
+                last = max(last, last_test)
 
         return last
 

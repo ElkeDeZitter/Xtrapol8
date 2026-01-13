@@ -20,12 +20,12 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import math
 import sys
 
+import numpy as np
+import scipy.stats
 from cctbx.array_family import flex
 from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
 from mmtbx.secondary_structure.find_ss_from_ca import find_secondary_structure
-import numpy as np
-import scipy.stats
 
 
 class Map_explorer_analysis(object):
@@ -246,8 +246,7 @@ class Map_explorer_analysis(object):
         for lst in lists:
             try:
                 m = max([abs(x[-1]) for x in lst])
-                if m > mx:
-                    mx = m
+                mx = max(mx, m)
             except ValueError:
                 pass
         return -mx, mx

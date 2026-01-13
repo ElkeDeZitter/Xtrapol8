@@ -20,12 +20,12 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import os
 import sys
 
-from iotbx import ccp4_map
-from iotbx.pdb import hierarchy
-from scipy import ndimage
 import iotbx.xplor.map
 import numpy as np
 import scipy.stats
+from iotbx import ccp4_map
+from iotbx.pdb import hierarchy
+from scipy import ndimage
 
 
 # TODO: convert to usage of iotbx instead of reading pdb as text file
@@ -275,25 +275,24 @@ def check_inputs(
         print("Sorry, no such map file:%s" % map_name, file=log)
         print("Sorry, no such map file:%s" % map_name)
         sys.exit(1)
+    elif map_name.endswith("ccp4"):
+        map_object = CCP4_Maps(map_name)
+        # xplor = iotbx.xplor.map.reader(file_name=map)
     else:
-        if map_name.endswith("ccp4"):
-            map_object = CCP4_Maps(map_name)
-            # xplor = iotbx.xplor.map.reader(file_name=map)
-        else:
-            try:
-                map_object = XPLOR_Maps(map_name)
-                #    = ccp4_map.map_reader(file_name=map)
-            except:
-                print(
-                    "Sorry, %s map is not a valid XPLOR or CCP4 map. Aborting map explorer."
-                    % map,
-                    file=log,
-                )
-                print(
-                    "Sorry, %s map is not a valid XPLOR or CCP4 map. Aborting map explorer."
-                    % map
-                )
-                sys.exit(1)
+        try:
+            map_object = XPLOR_Maps(map_name)
+            #    = ccp4_map.map_reader(file_name=map)
+        except:
+            print(
+                "Sorry, %s map is not a valid XPLOR or CCP4 map. Aborting map explorer."
+                % map,
+                file=log,
+            )
+            print(
+                "Sorry, %s map is not a valid XPLOR or CCP4 map. Aborting map explorer."
+                % map
+            )
+            sys.exit(1)
 
     if radius is not None and coord is None:
         print("You cannot provide a radius without a valid pdb file", file=log)

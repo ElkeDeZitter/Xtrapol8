@@ -59,17 +59,16 @@ import os
 import re
 import sys
 
-from iotbx.pdb import hierarchy
-from libtbx.utils import Usage
-from scipy.optimize import curve_fit
 import iotbx.phil
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.stats
+from iotbx.pdb import hierarchy
+from libtbx.utils import Usage
+from scipy.optimize import curve_fit
 
 from .Fextr_utils import check_file_existance
 from .master import master_phil
-
 
 colorlib = [
     "purple",
@@ -588,9 +587,9 @@ class Distance_analysis(object):
         Just remove all brackets from string
         """
         while "(" in string:
-            string = re.sub("\(", "", string)
+            string = re.sub(r"\(", "", string)
         while ")" in string:
-            string = re.sub("\)", "", string)
+            string = re.sub(r"\)", "", string)
         return string
 
     def get_all_distances(self):  # , mindiff = 0.05):

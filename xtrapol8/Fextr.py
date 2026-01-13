@@ -71,36 +71,35 @@ TODO:
 - ddm with linear scale / sum of differences instead of plotting for each atom
 """
 
-from datetime import datetime
 import os
 import pickle
 import re
 import shutil
 import sys
+from datetime import datetime
 
-from cctbx import maptbx, miller, crystal
-from cctbx import sgtbx
-from cctbx.array_family import flex
-from iotbx import ccp4_map
-from iotbx import pdb
-from iotbx import symmetry
-from iotbx.file_reader import any_file
-from iotbx.pdb import hierarchy
-from libtbx.utils import Usage
-from mmtbx import utils
-from scipy.stats import pearsonr
 import iotbx.map_tools
 import iotbx.phil
 import mmtbx.f_model
 import mmtbx.map_tools
 import mmtbx.maps.utils
 import numpy as np
+from cctbx import crystal, maptbx, miller, sgtbx
+from cctbx.array_family import flex
+from iotbx import ccp4_map, pdb, symmetry
+from iotbx.file_reader import any_file
+from iotbx.pdb import hierarchy
+from libtbx.utils import Usage
+from mmtbx import utils
+from scipy.stats import pearsonr
 
-from . import ccp4_refmac
-from . import map_tools_fomsource
-from . import map_tools_Millerset
-from . import phenix_refinements
-from . import __version__
+from . import (
+    __version__,
+    ccp4_refmac,
+    map_tools_fomsource,
+    map_tools_Millerset,
+    phenix_refinements,
+)
 from .calculate_k import calculate_k
 from .calculate_q import calculate_q, outlier_rejection_only
 from .ccp4_scaleit import run_scaleit
@@ -3730,7 +3729,7 @@ def run(args):
                 else:
                     ccp4_list = list(
                         map(
-                            lambda fle: re.search("(.+?)\_reciprocal", fle).group(1)
+                            lambda fle: re.search(r"(.+?)\_reciprocal", fle).group(1)
                             + ".ccp4",
                             pymol_mtz_list,
                         )

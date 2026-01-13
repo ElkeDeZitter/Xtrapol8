@@ -21,16 +21,16 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-from difflib import get_close_matches
 import glob
 import os
 import re
 import sys
+from difflib import get_close_matches
 
+import iotbx.pdb
 from iotbx.file_reader import any_file
 from libtbx import adopt_init_args
 from mmtbx.scaling.matthews import p_vm_calculator
-import iotbx.pdb
 
 from .Fextr_utils import get_name, get_phenix_subversion
 

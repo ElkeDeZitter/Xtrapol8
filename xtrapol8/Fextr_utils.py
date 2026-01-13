@@ -17,7 +17,6 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-import numpy as np
 import os
 import pickle
 import random
@@ -27,13 +26,14 @@ import sys
 import uuid
 from pathlib import Path
 
-from cctbx import miller, crystal
+import cctbx
+import iotbx
+import numpy as np
+from cctbx import crystal, miller
 from cctbx.array_family import flex
 from iotbx.file_reader import any_file
 from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
-import cctbx
-import iotbx
 
 
 def get_python_version():
@@ -185,7 +185,7 @@ def get_name(fle):
         # find name independent of the lengt of the file_format
         name = re.search(r"\/(.+?)\%s$" % (file_format), fle).group(1).split("/")[-1]
     else:
-        name = re.sub("\%s$" % (file_format), "", fle)
+        name = re.sub(r"\%s$" % (file_format), "", fle)
 
     # if len(name)>80:
 
@@ -203,7 +203,7 @@ def get_pdb_name(pdb_file):
     if "/" in pdb_file:
         name = re.search(r"\/(.+?)\.pdb$", pdb_file).group(1).split("/")[-1]
     else:
-        name = re.sub("\.pdb$", "", pdb_file)
+        name = re.sub(r"\.pdb$", "", pdb_file)
     # if len(name)>80:
     # print("%s is a long name, let's call it %s" %(name, name[:30]+name[-30:]))
     # name = name[:30]+name[-30:]
@@ -243,7 +243,6 @@ def check_file_existance(fle):
 def append_if_file_exist(lst, fle):
     if os.path.isfile(fle):
         lst.append(fle)
-    return
 
 
 def check_and_delete_hydrogen(pdb_file):
@@ -340,26 +339,25 @@ def open_all_in_coot(
                     default_mtz_lines += (
                         'auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
                     )
-                else:
-                    if mtz_content.column_types() == [
-                        "H",
-                        "H",
-                        "H",
-                        "F",
-                        "P",
-                        "F",
-                        "P",
-                    ]:
-                        special_mtz_lines += (
-                            'set_auto_read_column_labels("%s","%s",0)\nset_auto_read_column_labels("%s","%s",1)\nauto_read_make_and_draw_maps_from_mtz("%s")\n'
-                            % (
-                                mtz_content.column_labels()[3],
-                                mtz_content.column_labels()[4],
-                                mtz_content.column_labels()[5],
-                                mtz_content.column_labels()[6],
-                                mtz,
-                            )
+                elif mtz_content.column_types() == [
+                    "H",
+                    "H",
+                    "H",
+                    "F",
+                    "P",
+                    "F",
+                    "P",
+                ]:
+                    special_mtz_lines += (
+                        'set_auto_read_column_labels("%s","%s",0)\nset_auto_read_column_labels("%s","%s",1)\nauto_read_make_and_draw_maps_from_mtz("%s")\n'
+                        % (
+                            mtz_content.column_labels()[3],
+                            mtz_content.column_labels()[4],
+                            mtz_content.column_labels()[5],
+                            mtz_content.column_labels()[6],
+                            mtz,
                         )
+                    )
 
     FoFo_labels = (
         any_file(FoFo, force_type="hkl").file_object.file_content().column_labels()
@@ -872,7 +870,7 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     occ_lst = flex.double()
     for log_file in refine_log_lst:
         if os.path.isfile(log_file):
-            occ = float(re.search("occupancy\_(.+?)\/", log_file).group(1))
+            occ = float(re.search(r"occupancy\_(.+?)\/", log_file).group(1))
             occ_lst.append(occ)
             with open(log_file) as fle:
                 log = fle.readlines()
@@ -1107,14 +1105,10 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
                 label="sig(%s), occ = %.3f" % (maptype, occ),
             )
             # Specify the minimum and maximum value
-            if min(fextr_data_lst[1:]) < mn:
-                mn = min(fextr_data_lst[1:])
-            if max(fextr_data_lst[1:]) > mx:
-                mx = max(fextr_data_lst[1:])
-            if min(fextr_sigmas_lst[1:]) < mn:
-                mn = min(fextr_sigmas_lst[1:])
-            if max(fextr_sigmas_lst[1:]) > mx:
-                mx = max(fextr_sigmas_lst[1:])
+            mn = min(mn, min(fextr_data_lst[1:]))
+            mx = max(mx, max(fextr_data_lst[1:]))
+            mn = min(mn, min(fextr_sigmas_lst[1:]))
+            mx = max(mx, max(fextr_sigmas_lst[1:]))
 
         ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
         ax0.set_xlabel("Resolution (A)")  # , fontsize = 'small')
@@ -1177,14 +1171,10 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
         color="tab:blue",
         label="sig(%s)" % (FoFo_type),
     )
-    if min(fdif_data_lst[1:]) < mn:
-        mn = min(fdif_data_lst[1:])
-    if max(fdif_data_lst[1:]) > mx:
-        mx = max(fdif_data_lst[1:])
-    if min(fdif_sigmas_lst[1:]) < mn:
-        mn = min(fdif_sigmas_lst[1:])
-    if max(fdif_sigmas_lst[1:]) > mx:
-        mx = max(fdif_sigmas_lst[1:])
+    mn = min(mn, min(fdif_data_lst[1:]))
+    mx = max(mx, max(fdif_data_lst[1:]))
+    mn = min(mn, min(fdif_sigmas_lst[1:]))
+    mx = max(mx, max(fdif_sigmas_lst[1:]))
 
     ax0.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax0.set_xlabel("Resolution (A)")  # , fontsize = 'small')
@@ -1312,7 +1302,7 @@ def calculate_Riso(f_obs1, f_obs2):
 
 
 def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
-    """
+    r"""
     R-factorcan can be calculated using miller-build in function .r1_factor (with or without emulate_sftools=True
     Using .r1_factor, R is calculated as R1 = frac(sum(||F| - k|F'||))(\sum(|F|)) where F is self.data() and F' is other.data() and k is the factor to put F' on the same scale as F.
     For calculation of Riso values:

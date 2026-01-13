@@ -1,15 +1,14 @@
+import gzip
 from contextlib import contextmanager
 from os.path import basename
 from pathlib import Path
 from shutil import copyfileobj
 from subprocess import call
 from tempfile import NamedTemporaryFile
-from urllib.parse import urlparse, unquote
+from urllib.parse import unquote, urlparse
 from urllib.request import urlopen
-import gzip
 
 from iotbx.file_reader import any_file
-
 
 WWPDB_URL = "https://files.wwpdb.org/pub/pdb/data/structures/divided"
 

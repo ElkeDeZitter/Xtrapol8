@@ -21,9 +21,9 @@ import pickle
 import re
 import sys
 
-from cctbx.array_family import flex
 import matplotlib.pyplot as plt
 import numpy as np
+from cctbx.array_family import flex
 
 from .Fextr_utils import check_common_indices, make_miller_array
 
