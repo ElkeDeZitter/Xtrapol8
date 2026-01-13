@@ -32,7 +32,7 @@ from libtbx import adopt_init_args
 from mmtbx.scaling.matthews import p_vm_calculator
 import iotbx.pdb
 
-from .Fextr_utils import get_name, get_phenix_version
+from .Fextr_utils import get_name, get_phenix_subversion
 
 
 class Phenix_reciprocal_space_refinement(object):
@@ -66,11 +66,7 @@ class Phenix_reciprocal_space_refinement(object):
         self.mtz_name = get_name(self.mtz_in)
         
         #get phenix subversion, important since syntax can differ between versions
-        phenix_version = get_phenix_version()
-        try:
-            self.phenix_subversion = int(phenix_version[2:4])
-        except ValueError: #nightly versions can have no number (phenix-dev versions). Assume latest version so put number high
-            self.phenix_subversion = 100
+        self.phenix_subversion = get_phenix_subversion()[1]
 
     def reciprocal_space_refinement(self):
         """
@@ -334,11 +330,7 @@ class Phenix_real_space_refinement(object):
         adopt_init_args(self, locals())
         
         #get phenix subversion, important since syntax can differ between versions
-        phenix_version = get_phenix_version()
-        try:
-            self.phenix_subversion = int(phenix_version[2:4])
-        except ValueError: #nightly versions can have no number (phenix-dev versions). Assume latest version so put number high
-            self.phenix_subversion = 100
+        self.phenix_subversion = get_phenix_subversion()[1]
 
 
     def check_mtz_column(self, mtz_in, column_labels):

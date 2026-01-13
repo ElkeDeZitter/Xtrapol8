@@ -80,20 +80,27 @@ def remove_unique_id_from_log(log_name):
 
 
 def get_phenix_version():
+    "Get the phenix version based on the full path of the phenix executable."
+    if phenix := shutil.which("phenix"):
+        if match := re.search(r"phenix-(.+?)\/", phenix):
+            return match.group(1)
+    return "Phenix not found"
+
+
+def get_phenix_subversion():
     """
-    Get the phenix version based on the full path of the phenix executable
+    Weird construction to get the phenix version.
+    This is required since some parameter names change between versions.
     """
-    phenix_path = shutil.which("phenix")
-    if phenix_path:
-        try:
-            phenix_version = re.search(r"phenix-(.+?)\/", phenix_path).group(1)
-        except AttributeError:
-            phenix_version = "Version could not be extracted. Check phenix specific log files if applicable."
-    else:
-        print("phenix could not be found")
-        phenix_version = "Phenix path not found"
-        
-    return phenix_version
+    # Get phenix subversion, important since syntax can differ between versions
+    version = get_phenix_version()
+    try:
+        subversion = int(version[2:4])
+    except ValueError:
+        # Nightly versions can have no number (phenix-dev versions).
+        # Assume latest version so put number high.
+        subversion = 100
+    return version, subversion
 
 
 def get_ccp4_version():

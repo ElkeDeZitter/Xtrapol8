@@ -290,7 +290,7 @@ class Refiner(object):
             outprefix = "%s_independent_reciprocal_space"%(mtz_name)
             
         #Specify phenix version dependent parameters
-        phenix_version, phenix_subversion = self.get_phenix_version()
+        phenix_version, phenix_subversion = get_phenix_subversion()
         print("Phenix version: %s" %(phenix_version))
 
         if phenix_subversion <= 20:
@@ -462,28 +462,7 @@ eof' % (mtz_out, ccp4_map_name))
             os.system("./%s" % (script_dm))
 
         return mtz_out_dm
-    
-    def get_phenix_version(self):
-        """
-        Weird construction to get the phenix version. This is required since some parameter names change between versions
-        """
-        # try:
-        #     phenix_version = int(re.search(r"phenix-1\.(.+?)\.", miller.__file__).group(1)) #This is not so robust. relies on the format being 'phenix.1.18.something' or 'phenix.1.18-something'
-        # except ValueError:
-        #         phenix_version = int(re.search(r"phenix-1\.(.+?)\-", miller.__file__).group(1))
-        # except AttributeError:
-        #     print('Update phenix! Verify that you are using at least Phenix.1.19.')
-        #     phenix_version = 20 #let's assume then that the latest phenix is installed in case this fails for other reasons than a very old phenix version
-        
-        #get phenix subversion, important since syntax can differ between versions
-        phenix_version = get_phenix_version()
-        try:
-            phenix_subversion = int(phenix_version[2:4])
-        except ValueError: #nightly versions can have no number (phenix-dev versions). Assume latest version so put number high
-            phenix_subversion = 100
 
-        return phenix_version, phenix_subversion
-    
     def get_mtz_resolution(self, mtz_in):
         """
         Easy extraction of the resolution boundaries of an mtz file
@@ -504,7 +483,7 @@ eof' % (mtz_out, ccp4_map_name))
         mtz_name = get_name(mtz_in)
             
         #Specify phenix version dependent parameters
-        phenix_version, phenix_subversion = self.get_phenix_version()
+        phenix_version, phenix_subversion = get_phenix_subversion()
         print("Phenix version: %s" %(phenix_version))
 
         if phenix_subversion >= 19:
@@ -557,7 +536,7 @@ eof' % (mtz_out, ccp4_map_name))
         ccp4_name = get_name(ccp4_in)
             
         #Specify phenix version dependent parameters
-        phenix_version, phenix_subversion = self.get_phenix_version()
+        phenix_version, phenix_subversion = get_phenix_subversion()
         print("Phenix version: %s" %(phenix_version))
 
         if phenix_subversion >= 19:
