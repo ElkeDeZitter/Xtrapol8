@@ -1981,10 +1981,10 @@ def run(args):
     
     remarks = []
     #Check if non-phenix programs can be found:
-    if check_program_path('coot')[1] == False:
+    if shutil.which("coot") is None:
         remark = "COOT not found."
         remarks.append(remark)
-    if check_program_path('scaleit')[1] == False:
+    if shutil.which("scaleit") is None:
         remark = "scaleit not found. Data will not be scaled."
         remarks.append(remark)
         params.scaling.b_scaling = 'no'
@@ -1995,12 +1995,12 @@ def run(args):
         params.refinement.real_space = "coot"
         params.refinement.use_refmac_instead_of_phenix = False
     if params.refinement.reciprocal_space == "refmac5":
-        if check_program_path('refmac5')[1] == False:
+        if shutil.which("refmac5") is None:
             remark = "Refmac5 not found. Setting refinement.reciprocal_space=phenix"
             remarks.append(remark)
             params.refinement.reciprocal_space = "phenix"
     if params.refinement.real_space == "coot":
-        if check_program_path('coot')[1] == False:
+        if shutil.which("coot") is None:
             remark = "COOT not found. Setting refine.real_space=phenix"
             remarks.append(remark)
             params.refinement.real_space = "phenix"
@@ -2452,7 +2452,7 @@ def run(args):
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
         
         log.close()
-        if (params.output.open_coot and check_program_path('coot')[1]):
+        if params.output.open_coot and shutil.which("coot"):
             os.system("coot --script %s" %(script_coot))
             
         sys.exit()
@@ -3228,7 +3228,7 @@ def run(args):
 
     log.close()
     
-    if (params.output.open_coot and check_program_path('coot')[1]):
+    if params.output.open_coot and shutil.which("coot"):
         os.system("coot --script %s" %(script_coot))
 
     ################################################################

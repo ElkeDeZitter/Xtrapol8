@@ -22,6 +22,7 @@ import os
 import pickle
 import random
 import re
+import shutil
 import sys
 import uuid
 
@@ -79,27 +80,12 @@ def remove_unique_id_from_log(log_name):
 def is_exe(fpath):
     return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-def check_program_path(program):
-    program_exist = False
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            program_exist = True
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                program_exist = True
-                break
-                
-    return exe_file, program_exist    
-
 def get_phenix_version():
     """
     Get the phenix version based on the full path of the phenix executable
     """
-    phenix_path, program_exists = check_program_path("phenix")
-    if program_exists:
+    phenix_path = shutil.which("phenix")
+    if phenix_path:
         try:
             phenix_version = re.search(r"phenix-(.+?)\/", phenix_path).group(1)
         except AttributeError:
