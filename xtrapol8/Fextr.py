@@ -166,29 +166,14 @@ class DataHandler(object):
          This way creates a maximum of 1000 Xtrapol8 output directories
         """
         if self.outdir == None:
-            #self.outdir = os.getcwd()
             self.outdir = "Xtrapol8"
-            
-        #else:
-            #if os.path.exists(self.outdir) == False:
-                #try:
-                    #os.mkdir(self.outdir)
-                    #print('Output directory not present thus being created: %s'%(self.outdir))
-                #except OSError:
-                    #os.makedirs(self.outdir)
-            #self.outdir = os.path.abspath(self.outdir)
-            
+
         outdir = self.outdir
         i = 1
         while os.path.exists(outdir):
             if os.path.isdir(outdir):
                 if len(os.listdir(outdir)) ==0:
-                    #outdir = self.outdir
                     break
-            ##Keep outdir given by user if it only contains Xtrapol8 log-files:
-            #if len([fle for fle in os.listdir(self.outdir) if fle.endswith("Xtrapol8.log")]) == len(os.listdir(self.outdir)):
-                #outdir = self.outdir
-                #break
             outdir = "%s_%d" %(self.outdir, i)
             i += 1
             if i == 1000: #to avoid endless loop, but this leads to a max of 1000 Xtrapol8 runs
@@ -314,23 +299,12 @@ class DataHandler(object):
             self.fobs_on  = self.fobs_on.average_bijvoet_mates()
         
         self.fobs_off = self.fobs_off.map_to_asu()
-        #self.fobs_off = self.resolution_cutoff(self.fobs_off, low_res, high_res)
         self.fobs_on  = self.fobs_on.map_to_asu()
-        #self.fobs_on  = self.resolution_cutoff(self.fobs_on, low_res, high_res)
 
-        #self.fobs_off = self.extract_colums(self.reflections_off, low_res, high_res)
-        #self.fobs_on  = self.extract_colums(self.reflections_on, low_res, high_res)
-        #self.fobs_on = []
-        #for on in self.reflections_on:
-            #f_on = self.extract_colums(on, res)
-            #self.fobs_on.append(f_on)
-            
     def get_UC_and_SG(self):
         """
         Extract unit cell and space group from the model.
         """
-        #self.SG = re.search(r"(.+?)\(No",self.fobs_off.space_group_info().symbol_and_number()).group(1)
-        #self.UC = self.fobs_off.unit_cell()
         self.SG = str(self.model_in.crystal_symmetry().space_group_info())
         self.UC = self.model_in.crystal_symmetry().unit_cell()
                     
@@ -374,8 +348,6 @@ class DataHandler(object):
             cif_objects               = self.cif_objects)
             #log                       = log)
         processed_pdb_files_srv.process_pdb_files(pdb_file_names = [self.pdb_in])
-        #processed_pdb_file, pdb_inp = processed_pdb_files_srv.process_pdb_files(pdb_file_names = [self.pdb_in])
-        #processed_pdb_file and pdb_inp can also be used to get x_ray_structure etc
         self.additional = additional
         
     def extract_ligand_codes(self):
@@ -411,15 +383,6 @@ class DataHandler(object):
         Generate random Rfree reflections.
         Not so clever because only created at random without taking symmetry into account.
         """
-        #tot = self.fobs_off.data().size()
-        #num_free = int(tot * fraction)
-        #free_ind = random.sample(range(tot), num_free)
-        #free_col = np.zeros(tot, dtype=np.int32)
-        #for i in range(tot):
-            #if i in free_ind:
-                #free_col[i] = 1
-        #self.rfree = miller.array(miller_set=self.fobs_off, data=flex.int(free_col))
-        
         self.rfree = array.generate_r_free_flags(fraction=fraction)
 
     def generate_f_model(self, fobs, scattering_table = "n_gaussian"):
@@ -429,19 +392,11 @@ class DataHandler(object):
         #Not sure if neg reflections are already removed from start. Next might always be 0 neg regflections instead of real number
         #print("Generate fmodel from off-state dataset. %d negative reflections will be converted to positive reflections. This is %.2f %% of the total amount of reflections and might impact calculation of Fo-Fo and extrapolated structure factors and maps." %(fobs.select(~(fobs.data() >=0)).data().size(), fobs.select(~(fobs.data() >=0)).data().size()/fobs.data().size() *100))
         #print("Generate fmodel from off-state dataset. %d negative reflections. This is %.2f %% of the total amount of reflections and might impact calculation of Fo-Fo and extrapolated structure factors and maps." %(fobs.select(~(fobs.data() >=0)).data().size(), fobs.select(~(fobs.data() >=0)).data().size()/fobs.data().size() *100), file=log)
-        
-        #r_free_flags = miller.array(miller_set=self.rfree, data=self.rfree.data().as_bool())
-        
+
         pdb_ini = iotbx.pdb.input(self.pdb_in)
         xray_structure = pdb_ini.xray_structure_simple()
         
         xray_structure.scattering_type_registry(table=scattering_table)
-        
-        #to change of basis to reference settings is a bad idea because it will mess up things
-        #phil_xs = crystal.symmetry(unit_cell=fobs.unit_cell(),
-                                    #space_group_info=fobs.space_group_info())
-        #to_reference = phil_xs.change_of_basis_op_to_reference_setting()
-        #xray_structure = xray_structure.change_basis(to_reference)
 
         self.fmodel = mmtbx.f_model.manager(
             f_obs          = fobs,
@@ -454,14 +409,6 @@ class DataHandler(object):
         if the number of Rfree-flagged reflections is too low (consequennce of outlier rejection during scaling), re-assign
         """
         if self.fmodel.f_obs().data().size() > fobs.data().size():
-            #print('updating fmodel, this can take a while...')
-            #selection = flex.bool()
-            #for ind in DH.fmodel.f_obs().indices():
-                #if ind in fobs.indices():
-                    #selection.append(True)
-                #else:
-                    #selection.append(False)
-            #self.fmodel.select(selection)
             dt = np.dtype([('h', np.int) ,('k',np.int),('l',np.int)])
             f1 = np.array(self.fmodel.f_obs().indices(), dtype=dt)
             f2 = np.array(fobs.indices(), dtype=dt)
@@ -475,8 +422,7 @@ class DataHandler(object):
             self.fmodel = self.fmodel.select(selection_flags)
             
             self.fmodel.update(f_obs=fobs)
-            
-            
+
             tot  = self.fmodel.r_free_flags().size()
             free = self.fmodel.r_free_flags().select(self.fmodel.r_free_flags().data()==True).size()
             frac = free/tot
@@ -549,7 +495,6 @@ class DataHandler(object):
         Scale sigmas. As performed in phenix.FoFo
         """
         sc = flex.sum(self.fobs_off_scaled.data()*self.f_model_scaled.amplitudes().data())/flex.sum(self.f_model_scaled.amplitudes().data()*self.f_model_scaled.amplitudes().data())
-        #self.fobs_off_scaled = make_miller_array(self.fobs_off_scaled.data(),self.fobs_off.sigmas()/sc, self.SG, self.UC, self.indices)
         self.fobs_off_scaled = miller.array(miller_set=self.fobs_off,
                                             data=self.fobs_off_scaled.data(),
                                             sigmas=self.fobs_off.sigmas()/sc)
@@ -583,7 +528,6 @@ class DataHandler(object):
                 
             print("Fobs,reference and Fobs,triggered scaled using scaleit", file=log)
             print("Fobs,reference and Fobs,triggered scaled using scaleit")
-            #self.fobs_on_scaled = scalef_cnslike(self.fobs_off_scaled, self.fobs_on, self.SG, self.rfree, bscale=b_scaling) #run CNS-like scaling
             self.fobs_on_scaled = run_scaleit(self.fobs_off_scaled, self.fobs_on, b_scaling, low_res=self.scaling_dmax, high_res=self.scaling_dmin) #prepare mtz-file and run scaleit
 
 class FobsFobs(object):
@@ -619,8 +563,6 @@ class FobsFobs(object):
         """
         Calculate q-weight
         """
-        #q = calculate_q(self.fobs_off, self.fobs_on)
-        #q_ms   = make_miller_array(self.fobs_off.data(), q, self.SG, self.UC, self.indices)
         q_ms, self.q_av = calculate_q(self.fobs_off, self.fobs_on, log=log)
         self.q = q_ms.sigmas()
         
@@ -674,25 +616,19 @@ class FobsFobs(object):
         if qweighting:
             maptype = 'qFoFo'
             F = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel)
-            #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_q_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
         elif kweighting:
             maptype = 'kFoFo'
             F = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel)
-            #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_k_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
         else:
             maptype = 'FoFo'
             F = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel)
-            #self.mtz_name, self.ccp4_name, self.xplor_name = Filesandmaps(self.fdif_c_ms, rfree, maptype, outname, fmodel).write_FoFo_output()
-        #self.mtz_name, self.ccp4_name, self.xplor_name = F.write_FoFo_output()
         self.mtz_name, self.ccp4_name = F.write_FoFo_output()
         print("{:s} maps:".format(maptype))
         print("  mtz-format: {:s}".format(self.mtz_name))
         print("  ccp4-format: {:s}".format(self.ccp4_name))
-        #print("  xplor-format: {:s}".format(self.xplor_name))
         print("{:s} maps:".format(maptype), file=log)
         print("  mtz-format: {:s}".format(self.mtz_name), file=log)
         print("  ccp4-format: {:s}".format(self.ccp4_name), file=log)
-        #print("  xplor-format: {:s}".format(self.xplor_name), file=log)
 
 
         self.crystal_gridding = F.crystal_gridding
@@ -879,16 +815,6 @@ class Fextrapolate(object):
                             data       = flex.abs(data),
                             sigmas     = ms.sigmas())
 
-    #def add_minimum_to_all(self, ms):
-        """
-        Add the minimum value to all refletcions. This makes no sense
-        """
-        #print("Add constant to all relfections to avoid negative reflections")
-        #print("Add constant to all relfections to avoid negative reflections",file=log)        
-        #return miller.array(miller_set = ms,
-                            #data       = ms.data()-flex.min(ms.data()),
-                            #sigmas     = ms.sigmas())
-
     def negatives_fcalc(self, ms):
         """
         Replace the negative reflections by fcalc. Should be called in case of "fcalc_and_fill" or "fcalc_no_fill"
@@ -950,10 +876,8 @@ class Fextrapolate(object):
         if (Corrected_Fs==None or Corrected_Fs.size()==0):
             if "no_fill" in self.neg_refl_handle:
                 new_neg_refl_handle = "reject_no_fill"
-                #new_neg_refl_handle = "keep_no_fill"
             else:
                 new_neg_refl_handle = "reject_and_fill"
-                #new_neg_refl_handle = "keep_and_fill"
             print("   Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle))
             print("   Cannot successfully run truncate/phenix.reflection_file_converter. The reason might be the high number of negative ESFAs and their very high absolute value. The negative ESFAs will be removed and we try again. This means that %s will be used for this dataset instead of %s. This might impact further analysis and comparison of the electron density maps." %(new_neg_refl_handle, self.neg_refl_handle), file=log)
             Corrected_Fs = self.negatives_reject(ms)
@@ -1023,10 +947,6 @@ class Fextrapolate(object):
             elif self.neg_refl_handle in ['zero_and_fill', 'zero_no_fill']:
                 fextr_ms = self.negatives_zero(ms)
                 self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            #elif self.neg_refl_handle in ['addconstant_and_fill', 'addconstant_no_fill']:
-                #fextr_ms = self.add_minimum_to_all(ms)
-                ##No need to update fmodel because for fextr and fextr_calc maps we only use the xray-model from it
-                #self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             elif self.neg_refl_handle in ['fcalc_and_fill', 'fcalc_no_fill']:
                 fextr_ms = self.negatives_fcalc(ms)
                 self.FM = Filesandmaps(fextr_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
@@ -1040,11 +960,6 @@ class Fextrapolate(object):
                 fextr_ms = self.convert_to_I_then_to_F(ms, self.maptype, algorithm='truncate')
                 rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
                 self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
-            # elif self.neg_refl_handle in ['massage_and_fill', 'massage_no_fill']:
-            #     fextr_ms = self.convert_to_I_then_to_F(ms, self.maptype, algorithm='reflection_file_converter')
-            #     rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
-            #     self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off)
-            #The following else should be not required if self.initial_maps() has been run before
             else: #in case of keep_no_fill (old "no_fill") and keep_and_fill (old "fill_missing") 
                 self.FM = Filesandmaps(ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
         #he following else should be not required if self.initial_maps() has been run before
@@ -1067,7 +982,6 @@ class Fextrapolate(object):
             self.FM = Filesandmaps(fextr_ms, rfree, self.maptype, self.name_out, fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
             fm = self.FM.write_Fextr_Fextr_calc_output(self.fill_missing)
                   
-        #self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc = fm
         print("\nESFAs and extraplated electron density maps:")
         print("\nESFAs and extraplated electron density maps:", file=log)
@@ -1077,8 +991,6 @@ class Fextrapolate(object):
         print("  electron density in mtz-format: {:s}".format(self.mtz_name), file=log)
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc))
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc), file=log)
-        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc))
-        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc), file=log)
         
     #Next come several functions to calculate the three types of extrapolated structure factors 
     def fextr(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
@@ -1154,7 +1066,6 @@ class Fextrapolate(object):
             self.FM = Filesandmaps(self.fgenick_ms, self.rfree, self.maptype, self.name_out, self.fmodel_fobs_off, crystal_gridding=self.crystal_gridding)
                 
         fm = self.FM.write_Fgenick_output()
-        #self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc, self.xplor_name_2FoFc, self.xplor_name_FoFc = fm
         self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc = fm
 
         print("\nESFAs and extraplated electron density maps:")
@@ -1165,8 +1076,6 @@ class Fextrapolate(object):
         print("  electron density in mtz-format: {:s}".format(self.mtz_name), file=log)
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc))
         print("  electron density in ccp4-format: {:s} and {:s}".format(self.ccp4_name_2FoFc, self.ccp4_name_FoFc), file=log)
-        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc))
-        #print("  electron density in xplor-format: {:s} and {:s}".format(self.xplor_name_2FoFc, self.xplor_name_FoFc), file=log)
 
         
     def fextr_calc(self, qweight=False, kweight=False, outdir_for_negstats = os.getcwd()):
@@ -1445,10 +1354,7 @@ class Fextrapolate(object):
                                                     additional_reciprocal_keywords = keywords.additional_reciprocal_space_keywords,
                                                     additional_real_keywords       = keywords.additional_real_space_keywords,
                                                     log                = log)
-        
-        #print("Refinements:", file=log)
-        #print("Refinements:")
-        
+
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
         mtz_out_rec, pdb_out_rec = ref.phenix_reciprocal_space_refinement()
         print("Output reciprocal space refinement:", file=log)
@@ -1471,7 +1377,6 @@ class Fextrapolate(object):
         
         if keywords.density_modification.density_modification:
             print("DENSITY MODIFICATION WITH %s AND %s" %(mtz_F, pdb_out_rec))
-            # mtz_dm = ref.phenix_density_modification(mtz_out_rec, pdb_out_rec)
             mtz_dm = ref.ccp4_dm(pdb_out_rec, keywords.density_modification.combine, keywords.density_modification.cycles)
             print("Output density modification:", file=log)
             print("Output density modification:")
@@ -1581,7 +1486,6 @@ class Fextrapolate(object):
                  additional_reciprocal_keywords = keywords.additional_refmac_keywords)
 
         print("Refinements:", file=log)
-        #print("Refinements:")
             
         print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" %(mtz_F, pdb_in))
         if keywords.density_modification.density_modification:
@@ -1678,8 +1582,6 @@ class Filesandmaps(object):
         self.maptype    = maptype
         self.prefix     = prefix
         self.fmodel_ref = fmodel_ref
-                 
-        #self.r_free_flags = miller.array(miller_set=self.rfree, data=self.rfree.data().as_bool())
 
         self.fmodel = mmtbx.f_model.manager(
             f_obs          = miller_array,
@@ -1695,9 +1597,7 @@ class Filesandmaps(object):
                 resolution_factor = 0.25)
         else:
             self.crystal_gridding = crystal_gridding
-            
-        #print("Crystal_gridding gridpoints:", self.crystal_gridding.n_grid_points())
-        
+
         if self.maptype.lower() == 'qfofo':
             self.labels = {'data':"QFDIFF", 'map_coefs_diff': "QFOFOWT"}
         elif self.maptype.lower() == 'kfofo':
@@ -1801,8 +1701,6 @@ class Filesandmaps(object):
         #Calculate mFo-DFc type of map
         fft_map_mfodfc = mc_diff.fft_map(
             crystal_gridding = self.crystal_gridding, resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc = mc_diff.fft_map(resolution_factor=0.25).apply_sigma_scaling()
-        #fft_map_mfodfc.as_ccp4_map(file_name = self.ccp4_name_FoFc)
         iotbx.map_tools.write_ccp4_map(
             sites_cart = self.sites_cart,
             unit_cell  = fft_map_mfodfc.unit_cell(),
@@ -1894,10 +1792,9 @@ class Filesandmaps(object):
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing = False) #mfodfc mapcoefs defined
         mc_2mfodfc = edm.map_coefficients(map_type='2mfo-dfc', isotropize=True, fill_missing = fill_missing) #2mfodfc mapcoefs defined
         self.mtz_mapcoefs(mc_2mfodfc, mc_mfodfc)
-        #self.ccp4_xplor_mapcoefs(mc_2mfodfc, mc_mfodfc)
         self.ccp4_mapcoefs(mc_2mfodfc, mc_mfodfc)
         
-        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
+        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc
         
     def write_Fgenick_output(self):
         """
@@ -1908,9 +1805,7 @@ class Filesandmaps(object):
         self.mtz_name         = '%s_m%s_m%s-DFc.mtz' %(self.prefix, self.maptype, self.maptype)
         self.ccp4_name_2FoFc  = '%s_m%s.ccp4' %(self.prefix, self.maptype)
         self.ccp4_name_FoFc   = '%s_m%s-DFc.ccp4' %(self.prefix, self.maptype)
-        #self.xplor_name_2FoFc = '%s_m%s.map' %(self.prefix, self.maptype)
-        #self.xplor_name_FoFc  = '%s_m%s-DFc.map' %(self.prefix, self.maptype)
-        
+
         self.mtz_file_Fs()
         
         fmodel_update = self.fmodel.deep_copy()
@@ -1927,10 +1822,9 @@ class Filesandmaps(object):
         mc_mfodfc  = edm.map_coefficients(map_type='mfo-dfc', isotropize=True, fill_missing= False)
         mc_mfo = edm.map_coefficients(map_type='mfo', isotropize=True, fill_missing= False)
         self.mtz_mapcoefs(mc_mfo, mc_mfodfc)
-        #self.ccp4_xplor_mapcoefs(mc_mfo, mc_mfodfc)
         self.ccp4_mapcoefs(mc_mfo, mc_mfodfc)
         
-        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc #, self.xplor_name_2FoFc, self.xplor_name_FoFc
+        return self.F_name, self.mtz_name, self.ccp4_name_2FoFc, self.ccp4_name_FoFc
 
 def run(args):
     
@@ -2371,7 +2265,6 @@ def run(args):
     print(DH.fobs_on_scaled.show_comprehensive_summary())
     print("----Summary triggered scaled and sorted common reflections with reference data:----", file=log)
     print(DH.fobs_on_scaled.show_comprehensive_summary(f=log), file=log)
-    #time.sleep(3)
 
     print('-----------------------------------------')
     print('DATA PREPARATION DONE')
@@ -2389,10 +2282,6 @@ def run(args):
     FoFo = FobsFobs(DH.fobs_on_scaled, DH.fobs_off_scaled)
     FoFo.calculate_fdiff(kweight_scale = params.f_and_maps.kweight_scale)
     FoFo.write_maps(DH.fmodel, DH.rfree, outname, qweighting=qFoFo_weight, kweighting=kFoFo_weight)
-    #print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type), file=log)
-    ##print("------------------------------------", file=log)
-    #print("%s maps generated in mtz,ccp4 and xplor format"%(params.f_and_maps.fofo_type))
-    ##print("------------------------------------")
     
     ################################################################
 
@@ -2613,20 +2502,15 @@ def run(args):
             #Use ccp4 map of type mFo-DFc to integrate the masked map
             print("\n************Map explorer************", file=log)
             print("\n************Map explorer************")
-            #map_expl_out = map_explorer(Fextr.ccp4_name_FoFc, DH.pdb_in, params.map_explorer.radius, params.map_explorer.peak_integration_floor, params.map_explorer.peak_detection_threshold, maptype=Fextr.maptype)
             data = ccp4_map.map_reader(file_name=Fextr.ccp4_name_FoFc).data.as_numpy_array()
             pos = 0
             neg = 0
-            #print(mask[0,0])
             
             for i in range(mask.shape[1]):
                 tmp = data[mask[0, i]].sum()
                 if tmp > 0: pos+= tmp
                 else: neg -= tmp
-                
-            #print("data",data)
-            #print("data.shape", data.shape)
-            #integrated_values.append([pos, neg, pos+neg])
+
             try:
                 CC = pearsonr(fofo_data.flatten(), data.flatten())[0]
             except ValueError:
@@ -2635,35 +2519,25 @@ def run(args):
                 #in this case, also the output from plotalpha is wrong since the mask will be incorrectly projected!!!
                 print("Pearson correlation factor could not be calculated. The CC will be set to zero.")
                 CC = 0
-            #pearsonCC.append(scipy.stats.pearsonr(fofo_data.flatten(), data.flatten())[0])
 
             #depending on the map-type, append the output-file of mapexplorer to the correct list
             if mp == 'qFextr_map':
-                #append_if_file_exist(qFextr_map_expl_fles, os.path.abspath(map_expl_out))
                 qFextr_map_expl_fles.append([CC, pos, neg, pos+neg])
             elif mp == 'qFgenick_map':
-                #append_if_file_exist(qFgenick_map_expl_fles, os.path.abspath(map_expl_out))
                 qFgenick_map_expl_fles.append([CC, pos, neg, pos+neg])
             elif mp == 'qFextr_calc_map':
-                #append_if_file_exist(qFextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
                 qFextr_calc_map_expl_fles.append([CC, pos, neg, pos+neg])
             elif mp == 'kFextr_map':
-                #append_if_file_exist(kFextr_map_expl_fles, os.path.abspath(map_expl_out))
                 kFextr_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'kFgenick_map':
-                #append_if_file_exist(kFgenick_map_expl_fles, os.path.abspath(map_expl_out))
                 kFgenick_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'kFextr_calc_map':
-                #append_if_file_exist(kFextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
                 kFextr_calc_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'Fextr_map':
-                #append_if_file_exist(Fextr_map_expl_fles, os.path.abspath(map_expl_out))
                 Fextr_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'Fgenick_map':
-                #append_if_file_exist(Fgenick_map_expl_fles, os.path.abspath(map_expl_out))
                 Fgenick_map_expl_fles.append([CC, pos, neg, pos + neg])
             elif mp == 'Fextr_calc_map':
-                #append_if_file_exist(Fextr_calc_map_expl_fles, os.path.abspath(map_expl_out))
                 Fextr_calc_map_expl_fles.append([CC, pos, neg, pos + neg])
             print("m%s-DFcalc map explored" % Fextr.maptype,file=log)
             print("m%s-DFcalc map explored" % Fextr.maptype)
@@ -2966,13 +2840,9 @@ def run(args):
                 mtz_rec = recref_mtz_lst[params.occupancies.list_occ.index(occ)]
             append_if_file_exist(mtzs_for_coot, mtz_rec)
             if ( params.refinement.phenix_keywords.density_modification.density_modification or params.refinement.refmac_keywords.density_modification.density_modification):
-                #mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
                 mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
-            #if params.refinement.refmac_keywords.density_modification.density_modification:
-                #mtz_dm = re.sub(".mtz$","_dm.mtz", mtz_rec)
-                #append_if_file_exist(mtzs_for_coot, mtz_dm)
             mtz_extr = ["%s/%s"%(occ_dir,fle) for fle in os.listdir(occ_dir) if outname in fle and fle.endswith('m%s-DFc.mtz'%(mp_type))][0]
             append_if_file_exist(mtzs_for_coot,os.path.abspath(mtz_extr))
 
@@ -2980,9 +2850,6 @@ def run(args):
                     recref_pdb_lst[params.occupancies.list_occ.index(occ)+1],
                     realref_lst[params.occupancies.list_occ.index(occ)+1],
                     recrealref_lst[params.occupancies.list_occ.index(occ)+1]]
-            #if outname == 'triggered': #if dummy name applied, the files still contain the dummy name
-                #mtzs_for_coot = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), mtzs_for_coot)
-                #pdbs_for_coot = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pdbs_for_coot)
             script_coot = open_all_in_coot(outdir+"/"+FoFo.mtz_name, pdbs_for_coot, mtzs_for_coot, DH.additional, occ_dir, mp_type)
         
         elif (params.f_and_maps.fast_and_furious == False and params.refinement.run_refinement == False):
@@ -3014,15 +2881,11 @@ def run(args):
         Pymol_movie(params.occupancies.list_occ, resids_lst = residlst).write_pymol_appearance('%s/pymol_movie.py' %(outdir))
         
     #Send the dictonary to the GUI in order to recuperate the occupancies found for each maptype -> write as pickle file to be opened by the GUI
-    #if params.output.GUI:
-        #pub.sendMessage("Best occ", occ_overview=occ_overview)
-        #print("Message sent to GUI")
     #Write the pickle file always as this will also be used when the GUI is launched as resultsloader
     occ_pickle = open("occupancy_recap.pickle", "wb")
     pickle.dump(occ_overview, occ_pickle)
     occ_pickle.close()
-        
-      
+
     print("Summary of occupancy estimation:", file=log)
     print("Method:  {:s}".format(params.map_explorer.occupancy_estimation),file=log)
     print("Map type       Occupancy", file=log)
@@ -3089,32 +2952,10 @@ def run(args):
                          scattering_table   = params.scattering_table,
                          phenix_keywords    = params.refinement.phenix_keywords,
                          refmac_keywords    = params.refinement.refmac_keywords)
-                                                               
-                                                                     
-        # if params.refinement.use_refmac_instead_of_phenix:
-        #     mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.refmac_coot_refinements(mtz_F = qFext_mtz_F,
-        #                                                mtz_map           = qFext_mtz_map,
-        #                                                pdb_in            = DH.pdb_in,
-        #                                                additional        = DH.additional,
-        #                                                ligands_list      = DH.extract_ligand_codes(),
-        #                                                F_column_labels   = Fextr.FM.labels['data'],
-        #                                                map_column_labels = '%s, PHI%s, %s, PHI%s'
-        #                                                        %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map'],
-        #                                                          Fextr.FM.labels['map_coefs_diff'], Fextr.FM.labels['map_coefs_diff']),
-        #                                                keywords          = params.refinement.refmac_keywords)
-        # else:
-        #     mtz_out, pdb_rec, pdb_real, pdb_rec_real = Fextr.phenix_phenix_refinements(mtz_F = qFext_mtz_F,
-        #                                           mtz_map         = qFext_mtz_map,
-        #                                           pdb_in          = DH.pdb_in,
-        #                                           additional      = DH.additional,
-        #                                           F_column_labels = Fextr.FM.labels['data'],
-        #                                           column_labels   = '%s,PHI%s' %(Fextr.FM.labels['map_coefs_map'],Fextr.FM.labels['map_coefs_map']),
-        #                                           keywords        = params.refinement.phenix_keywords)
-              
+
         print("---> Results in %s_%.3f"%(dir_prefix, occ), file=log)
         print("---> Results in %s_%.3f"%(dir_prefix, occ))
-        
-        
+
         #Coot script
         mtzs_for_coot = [os.path.abspath(qFext_mtz_map), os.path.abspath(mtz_out)]
         if params.refinement.phenix_keywords.density_modification.density_modification:
@@ -3127,9 +2968,6 @@ def run(args):
                 mtzs_for_coot.append(os.path.abspath(mtz_dm))
         append_if_file_exist(mtzs_for_coot, os.path.abspath(qFext_mtz_F))
         pdbs_for_coot = [DH.pdb_in, os.path.abspath(check_file_existance(pdb_rec)), os.path.abspath(check_file_existance(pdb_real)), os.path.abspath(check_file_existance(pdb_rec_real))]
-        #if outname == 'triggered': #if dummy name applied, the files still contain the dummy name
-            #mtzs_for_coot = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), mtzs_for_coot)
-            #pdbs_for_coot = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pdbs_for_coot)
         script_coot = open_all_in_coot(outdir+"/"+FoFo.mtz_name, pdbs_for_coot, mtzs_for_coot, DH.additional, occ_dir, "qFextr")
 
         print('-----------------------------------------')
@@ -3142,8 +2980,6 @@ def run(args):
         #Rewrite the pickle file as to include the ddm_out path
         os.chdir(outdir)
         occ_overview[mp_type] = [float("%.3f"%(occ)), script_coot, ddm_out]
-        #if os.path.isfile("occupancy_recap.pickle"):
-            #os.remove("occupancy_recap.pickle")
         occ_pickle = open("occupancy_recap.pickle", "wb")
         pickle.dump(occ_overview, occ_pickle)
         occ_pickle.close()
@@ -3157,7 +2993,6 @@ def run(args):
     #change names to real output name in case the dummy name was used
     if outname == 'triggered':
         print('---------------------------', file=log)
-        #print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname), file=log)
         print("Replacing the dummpy outname ('%s') with true outname('%s')" %(outname, params.output.outname))
         tr = [os.path.join(root, fle) for root, dirs, files in os.walk(outdir) for fle in files if outname in fle]
         _ = [os.rename(fle, fle.replace(outname, params.output.outname)) for fle in tr]
