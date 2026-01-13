@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Use truncate from CCP4 for converting intensities to structure factors
 
@@ -28,7 +27,7 @@ from cctbx import xray
 from iotbx.file_reader import any_file
 
 
-class Column_extraction(object):
+class Column_extraction:
     def __init__(
         self,
         reflections_ref,
@@ -47,18 +46,9 @@ class Column_extraction(object):
         """
         Loop over columns in dataset. The data set is considered anomalous if at least one column with anomalous flag is found.
         """
-        # ano = False
-        # for array in hkl.file_object.as_miller_arrays():
-        # if 1 in ["I(+)" in label for label in array.info().labels]:
-        # ano = True
-        # break
-
         amplitude_types = [
             xray.observation_types.amplitude,
             xray.observation_types.reconstructed_amplitude,
-        ]
-        intensity_types = [
-            xray.observation_types.intensity,
         ]
 
         ano = False
@@ -103,14 +93,12 @@ class Column_extraction(object):
             if array != None:
                 if type(array.observation_type()) in amplitude_types:
                     run_truncate = False
-                    # f_obs = array.map_to_asu()
                     f_obs = array
                     labels = f_obs.info().labels
                     print("Found F's: %s" % (labels), file=self.log)
                     print("Found F's: %s" % (labels))
                 if type(array.observation_type()) in intensity_types:
                     run_truncate = True
-                    # i_obs = array.map_to_asu()
                     i_obs = array
                     labels = i_obs.info().labels
                     print(
@@ -146,12 +134,9 @@ class Column_extraction(object):
                 return f_obs, i_obs, run_truncate, labels
 
         for array in hkl.file_object.as_miller_arrays():
-            # print(array)
             if array.anomalous_flag() == ano_flag:
-                # print("ano flag", array.anomalous_flag())
                 if type(array.observation_type()) in amplitude_types:
                     run_truncate = False
-                    # f_obs = array.map_to_asu()
                     f_obs = array
                     labels = f_obs.info().labels
                     print("Found F's: %s" % (labels), file=self.log)
@@ -159,11 +144,8 @@ class Column_extraction(object):
                     break
                 if type(array.observation_type()) in intensity_types:
                     run_truncate = True
-                    # i_obs = array.map_to_asu()
                     i_obs = array
                     labels = i_obs.info().labels
-                    # print("Found I's: %s" %(labels), file = self.log)
-                    # print("Found I's: %s" %(labels))
 
         if f_obs == None and i_obs != None:  # I's found, need to convert to F's
             print(
@@ -411,9 +393,8 @@ eof_truncate"
             print(
                 "Found anomalous data in both datasets. Xtrapol8 is not yet ready to handle anomalous data.\nData will be converted to non-anomalous structure factors"
             )
-            self.ano = (
-                False  # This should become True if we can deal with anomalous data
-            )
+            # This should become True if we can deal with anomalous data
+            self.ano = False
             ano_ref = ano_trig = True
         elif self.check_if_ano(self.reflections_ref):
             print(
@@ -450,15 +431,8 @@ eof_truncate"
             # Run truncate to convert I to F
             self.reflections_ref = self.run_truncate(i_obs_ref, "reference", dmax, dmin)
             f_obs_ref, _, _, _ = self.get_F(self.reflections_ref, ano_flag=False)
-            # f_obs_ref,_,_,_ = self.get_F(self.reflections_ref, ano_flag=ano_ref) #when we can handle anomalous data properly
         else:  # Data is F
             dmax, dmin = self.resolution_cutoff(f_obs_ref)
-        # This should not be done anymore because bijvoet mates already merged in get_F
-        # if (self.check_if_ano(self.reflections_ref) == True and self.ano == False):
-        ##merge Friedel pairs in case reflections_ref is ano but reflections_trig is not.
-        # print("Merge Friedel pairs for reference data set",file=self.log)
-        # print("Merge Friedel pairs for reference data set")
-        # f_obs_ref = f_obs_ref.average_bijvoet_mates()
         f_obs_ref = f_obs_ref.resolution_filter(dmax, dmin)
 
         print("------")
@@ -481,7 +455,6 @@ eof_truncate"
                     mtz_pointless, force_type="hkl", raise_sorry_if_errors=True
                 )
                 _, i_obs_2, _, _ = self.get_F(reflections_pointless, ano_flag=False)
-                # _, i_obs_2, _, _ = self.get_F(reflections_pointless,ano_flag=ano_trig) #when we can handle anomalous data properly
             else:  # Pointless run incorrectly
                 print("Pointless failed, data not reindexed.")
                 print("Pointless failed, data not reindexed.", file=self.log)
@@ -506,18 +479,11 @@ eof_truncate"
             else:  # Pointless run incorrectly
                 print("Pointless failed, data not reindexed.")
                 print("Pointless failed, data not reindexed.", file=self.log)
-        ##This should not be done anymore because bijvoet mates already merged in get_F
-        # if (self.check_if_ano(self.reflections_trig) == True and self.ano == False):
-        ##merge Friedel pairs in case reflections_trig is ano but reflections_ref is not
-        # print("Merge Friedel pairs for other data sets", file=self.log)
-        # print("Merge Friedel pairs for other data sets")
-        # f_obs_2 = f_obs_2.average_bijvoet_mates()
         f_obs_2 = f_obs_2.resolution_filter(dmax, dmin)
 
         print("------")
         print("------", file=self.log)
 
-        # print("f_obs_ref.indices().size()",f_obs_ref.indices().size())
         return f_obs_ref, f_obs_2
 
 
