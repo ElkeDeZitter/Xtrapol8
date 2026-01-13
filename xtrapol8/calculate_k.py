@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 authors and contact information
 -------
@@ -44,9 +43,6 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale=0.05, log=sys.stdout):
                 "Input files for k-weighthing don't have identical miller indices and I can't fix it",
                 file=log,
             )
-            sys.exit(
-                "Input files for k-weighthing don't have identical miller indices and I can't fix it"
-            )
 
     sigmadsq_all = f_obs_ref.sigmas() ** 2 + f_obs_2.sigmas() ** 2
     sigmasmeansq = flex.mean(sigmadsq_all)
@@ -87,12 +83,6 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale=0.05, log=sys.stdout):
 
         k_bin = 1 / (1 + sigmaterm + dataterm)
 
-        # outlier rejection:
-        # diffabs    = flex.abs(datad)
-        # sel = k_bin * diffabs > 3* np.sqrt(flex.mean(datadsq))
-        # n_outliers = sel.count(True)
-        # k_bin.set_selected(sel, 0)
-
         # Calculate statistics of this bin
         k_bin_av = np.average(k_bin)
         k_av_lst.append(k_bin_av)
@@ -103,7 +93,6 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale=0.05, log=sys.stdout):
         bin_res_cent = np.average(f_obs_ref.binner().bin_d_range(i_bin))
         bin_res_cent_lst.append(bin_res_cent)
         legend = f_obs_ref.binner().bin_legend(i_bin, show_counts=False)
-        # print("{:s} {:^10d} {:> 12.4f} {:> 6.4f} {:> 6.4f} {:^6d}".format(legend, f_obs_ref_bin.size(), k_bin_av, k_bin_max, k_bin_min, n_outliers), file=log)
         print(
             "{:s} {:^10d} {:> 12.4f} {:> 6.4f} {:> 6.4f}".format(
                 legend, f_obs_ref_bin.size(), k_bin_av, k_bin_max, k_bin_min
@@ -118,8 +107,6 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale=0.05, log=sys.stdout):
 
         k = k.concatenate(k_bin)
         indices = indices.concatenate(indices_bin)
-
-    # print('outliers have k set to 0')
 
     assert k.size() == f_obs_ref.sigmas().size(), (
         "k has different size than data. Something went wrong during calculation..."
@@ -190,7 +177,6 @@ def calculate_k(f_obs_ref, f_obs_2, kweight_scale=0.05, log=sys.stdout):
         fontsize="xx-small",
         framealpha=0.5,
     )
-    # fig.tight_layout()
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
     plt.title(
         "Average k for high resolution reflections",

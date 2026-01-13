@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 authors and contact information
 -------
@@ -44,9 +43,6 @@ def outlier_rejection_only(f_obs_ref, f_obs_2, log=sys.stdout):
             sys.exit(
                 "Input files for outlier rejection don't have identical miller indices and I can't fix it",
                 file=log,
-            )
-            sys.exit(
-                "Input files for outlier rejection don't have identical miller indices and I can't fix it"
             )
 
     c = flex.double()  # to avoid confusion called 'c' instead of 'q'
@@ -111,7 +107,6 @@ def outlier_rejection_only(f_obs_ref, f_obs_2, log=sys.stdout):
 
 def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
     if check_common_indices([f_obs_ref, f_obs_2]) == False:
-        # print("Input files for q-weighthing don't have identical miller indices. Let's try fixing it", file=log)
         print(
             "Input files for q-weighthing don't have identical miller indices. Let's try fixing it"
         )
@@ -121,23 +116,19 @@ def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
                 "Input files for q-weighthing don't have identical miller indices and I can't fix it",
                 file=log,
             )
-            sys.exit(
-                "Input files for q-weighthing don't have identical miller indices and I can't fix it"
-            )
 
     cent = f_obs_ref.centric_flags()
     mult = f_obs_ref.multiplicities()
-    mult = flex.double(map(lambda x: float(x), mult.data()))
+    mult = flex.double([float(x) for x in mult.data()])
     mult = miller.array(miller_set=cent, data=mult)
     stol = f_obs_ref.unit_cell().stol(f_obs_ref.indices())
     res = 1 / (2 * stol)
     res = miller.array(miller_set=cent, data=res)
-    num = flex.double(map(lambda x: float(x + 1), cent.data()))
+    num = flex.double([float(x + 1) for x in cent.data()])
     num = miller.array(miller_set=cent, data=num)
 
     DECONV = flex.double()
     NODECONV = flex.double()
-    sigmadsq = flex.double()
     q = flex.double()
     indices = flex.miller_index()
     q_av_lst = []
@@ -165,9 +156,9 @@ def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
         sel_obs_ref = f_obs_ref.binner().selection(i_bin)
         f_obs_ref_bin = f_obs_ref.select(sel_obs_ref)
         f_obs_2_bin = f_obs_2.select(sel_obs_ref)
-        cent_bin = cent.select(sel_obs_ref)
+        cent.select(sel_obs_ref)
         mult_bin = mult.select(sel_obs_ref)
-        res_bin = res.select(sel_obs_ref)
+        res.select(sel_obs_ref)
         num_bin = num.select(sel_obs_ref)
         if f_obs_ref_bin.size() == 0:
             continue
@@ -296,15 +287,10 @@ def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
     ax1.plot(
         bin_res_cent_lst[1:], q_av_lst[1:], marker=".", label="Average q", color="red"
     )
-    # ax1.semilogy(bin_res_cent_lst[1:], q_av_lst[1:], marker = '.', label='Average q', color = 'red')
-    # ax1.fill_between(bin_res_cent_lst[1:], q_max_lst[1:], q_min_lst[1:], color='red', alpha=0.2)
     ax1.tick_params(axis="y")
     ax1.set_xlim(np.max(bin_res_cent_lst[1:]), np.min(bin_res_cent_lst[1:]))
     ax1.set_ylim(0, 1)
     ax2 = ax1.twinx()
-    # ax2.set_ylabel('Average difference F estimate in resolution bin')
-    # ax2.semilogy(bin_res_cent_lst[1:], sigmadsq_lst[1:], marker = '.', label='Average deltaF estimate in resolution bin', color = 'blue')
-    # ax2.tick_params(axis='y')
     ax2.fill_between(
         bin_res_cent_lst[1:],
         q_max_lst[1:],
@@ -319,8 +305,6 @@ def calculate_q(f_obs_ref, f_obs_2, log=sys.stdout):
     lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
 
-    # fig.legend(lines, labels, fontsize = 'x-small', framealpha=0.5, loc=6, bbox_to_anchor=(0.1, 0.1, 0.5, 0.5))
-    # fig.tight_layout()
     ax2.legend(
         lines,
         labels,

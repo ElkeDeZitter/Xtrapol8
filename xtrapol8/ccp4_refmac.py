@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 write bash script to run refmac and coot for reciprocal and real space refinement.
 
@@ -44,7 +43,6 @@ class Refmac_refinement(object):
         pdb_in,
         additional,
         F_column_labels="QFEXTR",
-        rfree_col="FreeR_flag",
         fill_missing=False,
         refinement_weight="AUTO",
         refinement_weight_sigmas="NOEX",
@@ -202,7 +200,7 @@ class Refmac_refinement(object):
         return mtz_out_dm
 
 
-class Coot_refinement(object):
+class Coot_refinement:
     def __init__(self, ligands, additional=""):
         self.ligands = ligands
         self.additional = additional
@@ -277,10 +275,6 @@ class Coot_refinement(object):
         Write input script for COOT based on the usage of an mtz file
         """
         mtz_name = get_name(mtz_in)
-        # if "/" in mtz_in:
-        # mtz_name = re.search(r"\/(.+?)\.mtz", mtz_in).group(1).split("/")[-1]
-        # else:
-        # mtz_name = re.sub("\.mtz","",mtz_in)
 
         column_labels_0_F = column_labels.split(",")[0].lstrip().rstrip()
         column_labels_0_P = column_labels.split(",")[1].lstrip().rstrip()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 authors and contact information
 -------
@@ -19,7 +18,6 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 import os
 import pickle
-import random
 import re
 import shutil
 import sys
@@ -633,8 +631,6 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
         framealpha=0.5,
     )
     plt.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
-    # plt.title('Completeness and Negative reflections')
-    # fig.tight_layout()
     plt.savefig("%s.pdf" % (outname), dpi=300, transparent=True)
     plt.savefig("%s.png" % (outname), dpi=300)
     plt.close()
@@ -644,60 +640,9 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     pickle.dump(stats, out)
     out.close()
 
-    # fig, host = plt.subplots()
-    # fig.subplots_adjust(right=0.55)
-    # par1 = host.twinx()
-    # par2 = host.twinx()
-    # par3 = host.twinx()
-    # par2.spines["right"].set_position(("axes", 1.25))
-    # par3.spines["right"].set_position(("axes",1.5))
-    # make_patch_spines_invisible(par2)
-    # make_patch_spines_invisible(par3)
-    # par2.spines["right"].set_visible(True)
-    # par3.spines["right"].set_visible(True)
-    # p1, = host.plot(bin_res_cent_lst[:], neg_lst[:], '-', label='# Neg. reflections', color = 'red')
-    # p2, = par1.plot(bin_res_cent_lst[:], comp_lst[:], '-', label='Completeness', color = 'green')
-    # p3, = par2.plot(bin_res_cent_lst[:],comp_true_lst[:], '-', label='True completeness', color = 'yellow')
-    # p4, = par3.plot(bin_res_cent_lst[:], neg_percent_lst[:], '-', label='Neg. reflections', color = 'blue')
-    # host.set_xlim(np.max(bin_res_cent_lst[:]), np.min(bin_res_cent_lst[:]))
-    # host.set_ylim(0, np.max(neg_lst))
-    # par1.set_ylim(0,100)
-    # par2.set_ylim(0,100)
-    # par3.set_ylim(0,100)
-    # host.set_xlabel('Resolution (A)')
-    # host.set_ylabel('Number of negative reflections in resolution bin')
-    # par1.set_ylabel('Completeness in resolution bin (%)')
-    # par2.set_ylabel('True completeness (%) = compl. of pos. refl. only')
-    # par3.set_ylabel('Negative reflections in resolution bin (%)')
-    # tkw = dict(size=4, width=1.5)
-    # host.tick_params(axis='y', colors=p1.get_color(), **tkw)
-    # par1.tick_params(axis='y', colors=p2.get_color(), **tkw)
-    # par2.tick_params(axis='y', colors=p3.get_color(), **tkw)
-    # par3.tick_params(axis='y', colors=p4.get_color(), **tkw)
-    # host.tick_params(axis='x', **tkw)
-    # lines = [p1, p2, p3, p4]
-    # host.legend(lines, [l.get_label() for l in lines], framealpha=0.5, loc=3, bbox_to_anchor=(0.05, 0.05, 0.5, 0.5))
-    # plt.title('Completeness and Negative reflections')
-    # fig.tight_layout()
-    # plt.savefig(outname, dpi=300, transparent=True)
-    # plt.close()
-
-
-def make_rfree_col(miller_array, fraction):
-    tot = miller_array.data().size()
-    num_free = int(tot * fraction)
-    free_ind = random.sample(range(tot), num_free)
-    free_col = np.zeros(tot, dtype=np.int32)
-    for i in range(tot):
-        if i in free_ind:
-            free_col[i] = 1
-    return miller.array(miller_set=miller_array, data=flex.int(free_col))
-
 
 def make_fwork_ffree(miller_array, r_free_flags):
-    r_free_flags = (
-        r_free_flags.data().as_bool()
-    )  # if r_free_flags are generated with make_rfree_col
+    r_free_flags = r_free_flags.data().as_bool()
     f_free = miller_array.select(r_free_flags)
     f_work = miller_array.select(~(r_free_flags))
     return f_work, f_free
