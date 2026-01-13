@@ -28,7 +28,7 @@ from wx.lib.pubsub import pub
 import matplotlib
 import wx
 
-from . import version
+from . import __version__
 from .Fextr import master_phil
 from .gui import panelIO, panelExtrapolation, panelRefinement
 from .gui.panelLog import TabLog, TabMainImg, TabOccResults
@@ -206,7 +206,7 @@ class MainFrame(wx.Frame):
     def __init__(self,args):
         """Constructor"""
         wx.Frame.__init__(self, None, wx.ID_ANY,
-                          "XtrapolG8 -- version %s" %(version.VERSION),
+                          "XtrapolG8 -- version %s" %(__version__),
                           size=(1100, 1000)
                           )
 

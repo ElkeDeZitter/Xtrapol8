@@ -100,7 +100,7 @@ from . import ccp4_refmac
 from . import map_tools_fomsource
 from . import map_tools_Millerset
 from . import phenix_refinements
-from . import version
+from . import __version__
 from .calculate_k import calculate_k
 from .calculate_q import calculate_q, outlier_rejection_only
 from .ccp4_scaleit import run_scaleit
@@ -1934,10 +1934,9 @@ class Filesandmaps(object):
 
 def run(args):
     
-    version.VERSION
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     print('-----------------------------------------')
-    print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now))
+    print("Xtrapol8 -- version %s -- run date: %s" %(__version__, now))
     print("Phenix version: {:s}".format(get_phenix_version()))
     print("CCP4 version: {:s}".format(get_ccp4_version()))
     print("CCTBX version: {:s}".format(get_cctbx_version()))
@@ -1962,7 +1961,7 @@ def run(args):
     logname = generate_log_name(now)
     global log
     log = open(logname, "w")
-    print("Xtrapol8 -- version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print("Xtrapol8 -- version %s -- run date: %s" %(__version__, now), file=log)
     print("Phenix version: {:s}".format(get_phenix_version()), file=log)
     print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
     print("CCTBX version: {:s}".format(get_cctbx_version()), file=log)

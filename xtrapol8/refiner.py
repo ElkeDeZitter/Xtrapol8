@@ -75,7 +75,7 @@ from libtbx.utils import Usage
 from mmtbx.scaling.matthews import p_vm_calculator
 import iotbx.phil
 
-from . import version
+from . import __version__
 from .ddm import Difference_distance_analysis
 from .distance_analysis import Distance_analysis
 from .Fextr_utils import *
@@ -711,17 +711,16 @@ def remove_unique_id_from_log(log_name):
     return new_name
 
 def run(args):
-    version.VERSION
     now = datetime.now().strftime('%Y-%m-%d_%Hh%M')
     #Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
     logname = generate_log_name(now)
     global log
     log = open(logname, "w")
 
-    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now), file=log)
+    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(__version__, now), file=log)
     print("Phenix version: {:s}".format(get_phenix_version()), file=log)
     print("CCP4 version: {:s}".format(get_ccp4_version()), file=log)
-    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(version.VERSION, now))
+    print("Xtrapol8 refiner -- Xtrapol8 version %s -- run date: %s" %(__version__, now))
     print("Phenix version: {:s}".format(get_phenix_version()))
     print("CCP4 version: {:s}".format(get_ccp4_version()))
 
