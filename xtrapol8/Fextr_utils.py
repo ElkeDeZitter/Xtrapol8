@@ -25,6 +25,7 @@ import re
 import shutil
 import sys
 import uuid
+from pathlib import Path
 
 from cctbx import miller, crystal
 from cctbx.array_family import flex
