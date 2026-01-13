@@ -50,6 +50,19 @@ dependencies = [
 Source = "https://github.com/ElkeDeZitter/Xtrapol8"
 Issues = "https://github.com/ElkeDeZitter/Xtrapol8/issues"
 
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # Pyflakes
+    "I",  # isort
+    "PL", # Pylint
+    "W",  # pycodestyle warnings
+]
+ignore = [
+    "PLR0913", # Too many arguments
+    "PLR2004", # Magic constant value
+]
+
 [tool.setuptools.dynamic]
 version = { attr = "xtrapol8.__version__" }
 

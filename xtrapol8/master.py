@@ -24,7 +24,8 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import iotbx.phil
 
 
-master_phil = iotbx.phil.parse("""
+master_phil = iotbx.phil.parse(
+    """
 input{
     reference_mtz = None
         .type = path
@@ -387,4 +388,6 @@ output{
         .help = Xtrapol8 launched from GUI. In order to work correctly, this should never be manually changed.
         .expert_level = 3
     }
-""", process_includes=True)
+""",
+    process_includes=True,
+)
