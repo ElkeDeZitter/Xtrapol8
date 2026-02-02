@@ -381,26 +381,6 @@ class Refiner:
         # can be estended with n_bases=.overall_countsresname_classes.get("common_rna_dna", 0)
         return vm_calc.solc(vm=vm_calc.vm(copies=1))
 
-    def phenix_density_modification(self, mtz_in, pdb_in):
-        """
-        Run phenix.density_modification
-        """
-
-        solc = self.get_solvent_content(pdb_in)
-        outname = re.sub(r".mtz$", "_densitymod.mtz", mtz_in)
-        log_file = re.sub(r".mtz$", ".log", outname)
-
-        print(
-            "Running density modification, output written to %s. Please wait..."
-            % (log_file)
-        )
-        os.system(
-            "phenix.density_modification %s %s input_files.map_coeffs_file=%s solvent_content=%.3f denmod.mask_type=histograms  output_files.output_mtz=%s > %s"
-            % (mtz_in, pdb_in, mtz_in, solc, outname, log_file)
-        )
-
-        return outname
-
     def get_F_column_labels(self, mtz):
         """
         get the labels of the first array in an mtz file
@@ -642,7 +622,6 @@ class Refiner:
 
         if self.density_modification.density_modification:
             print("DENSITY MODIFICATION WITH %s AND %s" % (mtz_out_rec, pdb_out_rec))
-            # mtz_dm = self.phenix_density_modification(mtz_out_rec, pdb_out_rec)
             mtz_dm = self.ccp4_dm(pdb_out_rec)
             print("Output density modification:", file=log)
             print("Output density modification:")

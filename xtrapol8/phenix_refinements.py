@@ -258,27 +258,6 @@ class Phenix_reciprocal_space_refinement:
 
         return param_file
 
-    def phenix_density_modification(self, mtz_in, pdb_in):
-        """
-        Run phenix.density_modification
-        """
-
-        solc = self.get_solvent_content()
-        outname = re.sub(r".mtz$", "_densitymod.mtz", mtz_in)
-        log_file = re.sub(r".mtz$", ".log", outname)
-
-        print(
-            "Running density modification, output written to %s. Please wait..."
-            % (log_file)
-        )
-        os.system(
-            "phenix.density_modification %s %s input_files.map_coeffs_file=%s solvent_content=%.3f "
-            "denmod.mask_type=histograms output_files.output_mtz=%s > %s"
-            % (mtz_in, pdb_in, mtz_in, solc, outname, log_file)
-        )
-
-        return outname
-
     def write_refmac_for_dm(self, pdb_in):
         """
         Write and excecute a bash script to run Refmac in order to get an mtz-file that can be used by dm.

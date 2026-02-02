@@ -1587,7 +1587,6 @@ class Fextrapolate:
 
         if density_modification:
             print("DENSITY MODIFICATION")
-            # mtz_dm = ref.phenix_density_modification(mtz_out_rec, pdb_out_rec)
             mtz_dm = reciprocal.ccp4_dm(pdb_out_rec, combine, cycles)
             print("Output density modification:", file=log)
             print("Output density modification:")
