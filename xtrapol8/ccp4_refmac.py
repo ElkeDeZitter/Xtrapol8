@@ -36,7 +36,7 @@ from .programs.refmac import refmac
 from .programs.uniqueify import uniqueify
 
 
-class Refmac_refinement(object):
+class Refmac_refinement:
     def __init__(
         self,
         mtz_in,

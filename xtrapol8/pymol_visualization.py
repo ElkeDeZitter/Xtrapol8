@@ -23,7 +23,7 @@ import re
 import numpy as np
 
 
-class Pymol_visualization(object):
+class Pymol_visualization:
     """
     class to open all output from Xtrapol8 calculations. Will search in outdir for the FoFo map, extrapolated map coefficients and output of reciprocal and real space refinement.
     It will only use ccp4 format map files as mtz cannot be loaded in open source pymol. Maps will be loaded but no isomesh or isosurface will be drawn.
@@ -195,7 +195,7 @@ class Pymol_visualization(object):
         return script_pymol
 
 
-class Pymol_movie(object):
+class Pymol_movie:
     """
     Aim is to merge Pymol visualization
     """

@@ -274,7 +274,7 @@ def sigmoid_fitting(sel, x):
         return np.array(popt)
 
 
-class Distance_analysis(object):
+class Distance_analysis:
     """
     Class to carry out the distance analysis. Fitting is done with a sigmoidal function. In the past we used an exponential function but the sigmoidal appears to work better.
     Needs a list of pdb files, with the first one being the reference file.
@@ -1176,7 +1176,7 @@ class Distance_analysis(object):
         return alp_mean, occ_mean
 
 
-class Filefinder(object):
+class Filefinder:
     """
     Find input files for the standalone version of the distance_analysis, based on the output of an Xtrapol8 run.
     """

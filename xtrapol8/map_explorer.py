@@ -466,7 +466,7 @@ def map_explorer(
     return outname, outname_zscore, mask, [pos, neg, pos + neg]
 
 
-class Maps(object):
+class Maps:
     def __init__(self, map_name):
         self.map_name = map_name
         # map origin

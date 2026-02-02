@@ -24,7 +24,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
-class plotalpha(object):
+class plotalpha:
     """
     Calculation of the alpha and occupancy based on the integrated difference maps.
     """

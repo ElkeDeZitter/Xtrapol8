@@ -123,7 +123,7 @@ refinement{
 )
 
 
-class DataHandler(object):
+class DataHandler:
     def __init__(
         self,
         refine_pdb_in,
@@ -225,7 +225,7 @@ class DataHandler(object):
             return os.path.isfile(fle)
 
 
-class Refiner(object):
+class Refiner:
     def __init__(
         self,
         pdb_in,

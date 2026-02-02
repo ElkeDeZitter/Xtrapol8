@@ -35,7 +35,7 @@ from mmtbx.scaling.matthews import p_vm_calculator
 from .Fextr_utils import get_name, get_phenix_subversion
 
 
-class Phenix_reciprocal_space_refinement(object):
+class Phenix_reciprocal_space_refinement:
     def __init__(
         self,
         mtz_in,
@@ -400,7 +400,7 @@ eof"
         return mtz_out_dm
 
 
-class Phenix_real_space_refinement(object):
+class Phenix_real_space_refinement:
     def __init__(
         self,
         real_cycles=5,

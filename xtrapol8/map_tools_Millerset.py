@@ -37,7 +37,7 @@ from cctbx import adptbx, miller
 from cctbx.array_family import flex
 
 
-class combine(object):
+class combine:
     def __init__(
         self,
         fobs_in,  # fobs_in is a Miller set containing the data
@@ -84,7 +84,7 @@ class combine(object):
         return result
 
 
-class electron_density_map(object):
+class electron_density_map:
     def __init__(
         self,
         fobs_in,  # fobs_in is a Miller set containing the data

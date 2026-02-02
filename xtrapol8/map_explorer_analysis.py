@@ -28,7 +28,7 @@ from matplotlib import pyplot as plt
 from mmtbx.secondary_structure.find_ss_from_ca import find_secondary_structure
 
 
-class Map_explorer_analysis(object):
+class Map_explorer_analysis:
     """
     This class is for the analysis of the output of mapexplorer: sum the integrated peakvolume for each residue and locate residues with highest peaks based on a Z-score analysis (asumes normal distribution when omitting central part of the distribution which is not taken into account + plot peakintegration in function of residue number and secondary structure.
     """

@@ -152,7 +152,7 @@ class SymManager(symmetry.manager):
         return err_m, err
 
 
-class DataHandler(object):
+class DataHandler:
     """
     Handle all input file and generate objects to be used in map calculations and analyses.
     """
@@ -618,7 +618,7 @@ class DataHandler(object):
             )
 
 
-class FobsFobs(object):
+class FobsFobs:
     """
     Class for the calculation of weighting difference structure factors and maps.
     """
@@ -747,7 +747,7 @@ class FobsFobs(object):
             return 1
 
 
-class Fextrapolate(object):
+class Fextrapolate:
     """
     Class for the calculation, analysis and usage of extrapolated structure factors.
     """
@@ -1975,7 +1975,7 @@ class Fextrapolate(object):
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
 
-class Filesandmaps(object):
+class Filesandmaps:
     """
     Class to generate mtz files with structure factors; and mtz,ccp4 and xplor files with map coefficients
     """

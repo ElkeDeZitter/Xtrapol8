@@ -37,7 +37,7 @@ from cctbx import adptbx, miller
 from cctbx.array_family import flex
 
 
-class combine(object):
+class combine:
     def __init__(
         self,
         fmodel_1,  # fmodel_1 is the one from which the observations and D will be taken
@@ -107,7 +107,7 @@ class combine(object):
         return result
 
 
-class electron_density_map(object):
+class electron_density_map:
     def __init__(
         self,
         fmodel_1,  # fmodel_1 is the one from which the observations and D will be taken
