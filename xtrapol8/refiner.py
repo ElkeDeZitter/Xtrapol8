@@ -335,7 +335,7 @@ class Refiner:
                 r_free_flag_parameters,
                 self.scattering_table,
             )
-        )  # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+        )
 
         # Find output files
         if (
@@ -467,14 +467,10 @@ class Refiner:
         if phenix_subversion >= 19:
             output_prefix = "output.prefix=%s_independent" % (mtz_name)
             model_format = "model_format=pdb"
-            # outpdb        = "%s_independent_real_space_refined_000.pdb"%(mtz_name)
         else:
             output_prefix = "output.file_name_prefix=%s_independent" % (mtz_name)
             model_format = "output.model_format=pdb"
-            # outpdb        = "%s_independent_real_space_refined.pdb"%(mtz_name)
 
-        # print("phenix.real_space_refine %s %s %s %s %s %s label='%s'" % (self.real_phil,
-        # mtz_in, self.additional, pdb_in, output_prefix, model_format, column_labels))
         real = os.system(
             "phenix.real_space_refine %s %s %s %s %s %s label='%s' scattering_table=%s"
             % (
@@ -536,11 +532,9 @@ class Refiner:
         if phenix_subversion >= 19:
             output_prefix = "output.prefix=%s_independent" % (ccp4_name)
             model_format = "model_format=pdb"
-            # outpdb        = "%s_independent_real_space_refined_000.pdb"%(ccp4_name)
         else:
             output_prefix = "output.file_name_prefix=%s_independent" % (ccp4_name)
             model_format = "output.model_format=pdb"
-            # outpdb        = "%s_independent_real_space_refined.pdb"%(ccp4_name)
 
         # launch phenix.real_space_refine
         real = os.system(
@@ -757,12 +751,10 @@ def run(args):
     log_dir = os.getcwd()
 
     # Extract input from inputfile and command line
-    # argument_interpreter = master_phil.command_line_argument_interpreter(home_scope="input")
     input_objects = iotbx.phil.process_command_line_with_files(
         args=args, master_phil=master_phil
     )
     params = input_objects.work.extract()
-    # modified_phil = master_phil.format(python_object=params)
 
     # Extract info form Xtrapol8 run
     Xtrapol8_input_objects = iotbx.phil.process_command_line_with_files(
@@ -909,10 +901,6 @@ def run(args):
     modified_phil = master_phil.format(python_object=params)
     modified_phil.show()
     modified_phil.show(out=log)
-    ##get the differences with the default values and only show these in the log-file
-    # diff_phil = master_phil.fetch_diff(source=modified_phil)
-    # diff_phil.show()
-    # diff_phil.show(out=log)
 
     print("-----------------------------------------")
     print("DATA PREPARATION")
@@ -922,8 +910,6 @@ def run(args):
     print("DATA PREPARATION", file=log)
     print("-----------------------------------------", file=log)
 
-    # remember starting directory:
-    startdir = os.getcwd()
     DH = DataHandler(
         params.input.model_pdb,
         Xtrapol8_params.input.additional_files,
@@ -1402,9 +1388,8 @@ def run(args):
             append_if_file_exist(mtzs_for_coot, mtz_rec)
             if Xtrapol8_params.refinement.phenix_keywords.density_modification.density_modification:
                 # mtz_dm = re.sub(".mtz$","_densitymod.mtz", mtz_rec)
-                mtz_dm = re.sub(
-                    ".mtz$", "_dm.mtz", mtz_rec
-                )  # probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
+                # probably wrong because the name of the extrapolated structure factors is used and not the refined mtz
+                mtz_dm = re.sub(".mtz$", "_dm.mtz", mtz_rec)
                 append_if_file_exist(mtzs_for_coot, mtz_dm)
 
             # elif Xtrapol8_params.refinement.refmac_keywords.density_modification.density_modification:
@@ -1441,12 +1426,6 @@ def run(args):
 
             print("------------------------------------")
             print("------------------------------------", file=log)
-
-        ##Add final lines to Pymol_script
-        # if os.path.isfile('%s/pymol_movie.py' %(DH.outdir)):
-        # Pymol_movie(Xtrapol8_params.occupancies.list_occ, resids_lst = DH.residue_list).write_pymol_appearance(
-        #'%s/pymol_movie.py' %(
-        # DH.outdir))
 
         print("Summary of occupancy determination:", file=log)
         print("Map type       Occupancy", file=log)
