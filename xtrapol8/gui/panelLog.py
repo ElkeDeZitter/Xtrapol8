@@ -49,7 +49,7 @@ class GradientButton (metallicbutton.MetallicButton):
                   gradient_percent=0, highlight_color=(160,190,210),
                   label_size=11, caption_size=8, button_margin=5,
                   disable_after_click=0, bmp2=None) :
-        if (isinstance(bmp, str) or isinstance(bmp, unicode)):
+        if isinstance(bmp, str):
             img = wx.Image(bmp, type=wx.BITMAP_TYPE_ANY, index=-1)
             #if size is not None :
             #        (w,h) = size
