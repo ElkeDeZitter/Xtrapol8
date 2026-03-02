@@ -22,8 +22,10 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 import os
 import re
+from contextlib import contextmanager
 from difflib import get_close_matches
 
+import coot_headless_api
 import iotbx.pdb
 from iotbx.file_reader import any_file
 from libtbx import adopt_init_args
@@ -34,6 +36,30 @@ from .programs.dm import dm
 from .programs.fft import fft
 from .programs.refmac import refmac
 from .programs.uniqueify import uniqueify
+
+CHAPI = coot_headless_api.molecules_container_t(False)
+
+
+@contextmanager
+def redirect_stdout_and_stderr(path: str):
+    """
+    Context manager to temporarily redirect stdout and stderr
+    at the OS file descriptor level to the specified log file.
+    This captures output from both Python and native extensions
+    (such as C/C++ libraries) for the duration of the context.
+    """
+    original_stdout_fd = os.dup(1)
+    original_stderr_fd = os.dup(2)
+    with open(path, "w", encoding="utf-8") as f:
+        try:
+            os.dup2(f.fileno(), 1)
+            os.dup2(f.fileno(), 2)
+            yield
+        finally:
+            os.dup2(original_stdout_fd, 1)
+            os.dup2(original_stderr_fd, 2)
+            os.close(original_stdout_fd)
+            os.close(original_stderr_fd)
 
 
 class Refmac_refinement:
@@ -205,30 +231,27 @@ class Coot_refinement:
         self.ligands = ligands
         self.additional = additional
 
-    def ligands_refinement(self, pdb_in):
+    def ligands_refinement(self, pdb_in, imol):
         pdb_hier = iotbx.pdb.hierarchy.input(file_name=pdb_in)
         hier = pdb_hier.hierarchy
 
-        if len(self.ligands) == 0:
-            ligand_refinement = ""
-        else:
-            ligand_refinement = "set_ligand_cluster_sigma_level(0.8)\nset_ligand_flexible_ligand_n_samples(10)\nset_matrix(120)\n"
+        if len(self.ligands) > 0:
+            CHAPI.set_map_weight(120)
             for lig in self.ligands:
                 for chain in hier.chains():
                     if chain.is_protein():
                         for res_group in chain.residue_groups():
                             for atom_group in res_group.atom_groups():
                                 if atom_group.resname == lig:
-                                    ligand_refinement += (
-                                        'refine_zone(0,"%s",%d,%d,"%s")\naccept_regularizement()\n'
-                                        % (
-                                            chain.id,
-                                            res_group.resseq_as_int(),
-                                            res_group.resseq_as_int(),
-                                            atom_group.altloc,
-                                        )
+                                    CHAPI.refine_residues(
+                                        imol,
+                                        chain.id,
+                                        res_group.resseq_as_int(),
+                                        "",  # insertion code
+                                        atom_group.altloc,
+                                        "SINGLE",  # refinement mode
+                                        1000,  # number of cycles
                                     )
-        return ligand_refinement
 
     def check_mtz_column(self, mtz_in, column_labels):
         """
@@ -270,170 +293,58 @@ class Coot_refinement:
 
         return column_labels_new.split(",")
 
-    def write_coot_input_real_space_refinement_mtz(self, pdb_in, mtz_in, column_labels):
+    def do_coot_real_space_refinement_mtz(self, pdb_in, mtz_in, column_labels):
         """
-        Write input script for COOT based on the usage of an mtz file
+        Run real-space refinement with COOT (CHAPI) using an mtz file
         """
-        mtz_name = get_name(mtz_in)
+        f_label = column_labels.split(",")[0].strip()
+        p_label = column_labels.split(",")[1].strip()
+        labels = f"{f_label},{p_label}"
+        if not self.check_mtz_column(mtz_in, labels):
+            print(f"{mtz_in}: column labels {labels} not found")
+            f_label, p_label = self.suggest_mtz_column(
+                mtz_in, labels, column_label_strings_constraint="2"
+            )
+            print(f"{mtz_in}: columns {f_label},{p_label} will be used")
+        imap = CHAPI.read_mtz(mtz_in, f_label, p_label, "", False, False)
+        pdb_out = self.do_coot_real_space_refinement(pdb_in, imap, mtz_in)
+        return pdb_out
 
-        column_labels_0_F = column_labels.split(",")[0].lstrip().rstrip()
-        column_labels_0_P = column_labels.split(",")[1].lstrip().rstrip()
-        column_labels_1_F = column_labels.split(",")[2].lstrip().rstrip()
-        column_labels_1_P = column_labels.split(",")[3].lstrip().rstrip()
+    def do_coot_real_space_refinement_ccp4(self, pdb_in, ccp4_in):
+        """
+        Real-space refinement with COOT (CHAPI) using a ccp4 file
+        """
+        imap = CHAPI.read_ccp4_map(ccp4_in, False)
+        pdb_out = self.do_coot_real_space_refinement(pdb_in, imap, ccp4_in)
+        return pdb_out
 
-        if (
-            self.check_mtz_column(
-                mtz_in, "{:s},{:s}".format(column_labels_0_F, column_labels_0_P)
-            )
-            == False
-        ):
-            print(
-                "{:s}: column labels {:s},{:s} not found".format(
-                    mtz_in, column_labels_0_F, column_labels_0_P
-                )
-            )
-            column_labels_0_F, column_labels_0_P = self.suggest_mtz_column(
-                mtz_in,
-                "{:s},{:s}".format(column_labels_0_F, column_labels_0_P),
-                column_label_strings_constraint="2",
-            )
-            print(
-                "{:s}: columns {:s},{:s} will be used".format(
-                    mtz_in, column_labels_0_F, column_labels_0_P
-                )
-            )
-
-        if (
-            self.check_mtz_column(
-                mtz_in, "{:s},{:s}".format(column_labels_1_F, column_labels_1_P)
-            )
-            == False
-        ):
-            print(
-                "{:s}: column labels {:s},{:s} not found".format(
-                    mtz_in, column_labels_1_F, column_labels_1_P
-                )
-            )
-            column_labels_1_F, column_labels_1_P = self.suggest_mtz_column(
-                mtz_in, "{:s},{:s}".format(column_labels_1_F, column_labels_1_P)
-            )
-            print(
-                "{:s}: columns {:s},{:s} will be used".format(
-                    mtz_in, column_labels_1_F, column_labels_1_P
-                )
-            )
-
-        additional_lines = ""
+    def do_coot_real_space_refinement(self, pdb_in, imap, map_source_filename):
+        "Real-space refinement with COOT (CHAPI) with an already-loaded map"
+        CHAPI.set_use_gemmi(False)
+        imol = CHAPI.read_coordinates(pdb_in)
         for cif in self.additional.split():
             if cif.endswith(".cif"):
-                additional_lines += 'read_cif_dictionary("%s")\n' % (cif)
+                CHAPI.import_cif_dictionary(cif, imol)
 
-        pdb_out = "%s_coot_real_space_refined_000.pdb" % (mtz_name)
+        CHAPI.set_imol_refinement_map(imap)
 
-        script_root = "coot_real_space_refinement"
-        script_out = "%s.py" % (script_root)
-        j = 1
-        while os.path.exists(script_out):
-            script_root = "%s_%d" % (script_root, j)
-            script_out = "%s.py" % (script_root)
-            j += 1
-            if j == 100:  # to avoid endless loop
-                break
+        self.ligands_refinement(pdb_in, imol)
 
-        i = open(script_out, "w")
-        i.write(
-            'handle_read_draw_molecule("%s")\n\
-%s\
-set_auto_read_column_labels("%s","%s",0)\n\
-set_auto_read_column_labels("%s","%s",1)\n\
-auto_read_make_and_draw_maps_from_mtz("%s")\n\
-close_molecule(3)\n\
-close_molecule(4)\n\
-set_refine_ramachandran_angles(1)\n\
-set_environment_distances_distance_limits(2.4,3.6)\n\
-set_ligand_water_to_protein_distance_limits(2.4,3.6)\n\
-set_refinement_immediate_replacement(1)\n\
-%s\
-set_matrix(20)\n\
-stepped_refine_protein(0,10)\n\
-accept_regularizement()\n\
-fit_waters(0)\n\
-accept_regularizement()\n\
-write_pdb_file(0,"%s")\n\
-coot_no_state_real_exit(1)'
-            % (
-                pdb_in,
-                additional_lines,
-                column_labels_0_F,
-                column_labels_0_P,
-                column_labels_1_F,
-                column_labels_1_P,
-                mtz_in,
-                self.ligands_refinement(pdb_in),
-                pdb_out,
-            )
-        )
+        CHAPI.set_map_weight(20)
+        CHAPI.set_use_rama_plot_restraints(True)
+        CHAPI.refine_residues_using_atom_cid(imol, "//", "ALL", 1000)
 
-        i.close()
+        CHAPI.set_add_waters_water_to_protein_distance_lim_min(2.4)
+        CHAPI.set_add_waters_water_to_protein_distance_lim_max(3.6)
+        # CHAPI.add_waters(imol, imap)  # TODO: Fix memory error
 
-        # save_state_file_py("%s_coot_real_space_refined.py")\n\
+        name = get_name(map_source_filename)
+        pdb_out = f"{name}_coot_real_space_refined_000.pdb"
+        CHAPI.write_coordinates(imol, pdb_out)
 
-        return script_out, pdb_out
-
-    def write_coot_input_real_space_refinement_ccp4(self, pdb_in, ccp4_in):
-        """
-        Write input script for COOT based on the usage of a ccp4 file
-        """
-        ccp4_name = get_name(ccp4_in)
-
-        additional_lines = ""
-        for cif in self.additional.split():
-            if cif.endswith(".cif"):
-                additional_lines += 'read_cif_dictionary("%s")\n' % (cif)
-
-        pdb_out = "%s_coot_real_space_refined_000.pdb" % (ccp4_name)
-
-        script_root = "coot_real_space_refinement"
-        script_out = "%s.py" % (script_root)
-        j = 1
-        while os.path.exists(script_out):
-            script_root = "%s_%d" % (script_root, j)
-            script_out = "%s.py" % (script_root)
-            j += 1
-            if j == 100:  # to avoid endless loop
-                break
-
-        i = open(script_out, "w")
-        i.write(
-            'handle_read_draw_molecule("%s")\n\
-%s\
-handle_read_ccp4_map("%s", 0)\n\
-set_refine_ramachandran_angles(1)\n\
-set_environment_distances_distance_limits(2.4,3.6)\n\
-set_ligand_water_to_protein_distance_limits(2.4,3.6)\n\
-set_refinement_immediate_replacement(1)\n\
-%s\
-set_matrix(20)\n\
-stepped_refine_protein(0,10)\n\
-accept_regularizement()\n\
-fit_waters(0)\n\
-accept_regularizement()\n\
-write_pdb_file(0,"%s")\n\
-coot_no_state_real_exit(1)'
-            % (
-                pdb_in,
-                additional_lines,
-                ccp4_in,
-                self.ligands_refinement(pdb_in),
-                pdb_out,
-            )
-        )
-
-        i.close()
-
-        # save_state_file_py("%s_coot_real_space_refined.py")\n\
-
-        return script_out, pdb_out
+        CHAPI.close_molecule(imol)
+        CHAPI.close_molecule(imap)
+        return pdb_out
 
     def get_mtz_resolution(self, mtz_in):
         """
@@ -448,17 +359,12 @@ coot_no_state_real_exit(1)'
         """
         Real space refinement within COOT based on an mtz file and spefic columns
         """
-        coot_log = "%s_coot_real_space_refined_000.log" % (get_name(mtz_in))
-        script_coot, pdb_out = self.write_coot_input_real_space_refinement_mtz(
-            pdb_in, mtz_in, column_labels
-        )
-        print(
-            "Running Real space refinement in COOT, output written to %s. Please wait..."
-            % (coot_log)
-        )
-        os.system(
-            "coot --no-graphics --script %s > %s" % (script_coot, coot_log)
-        )  # Use a second coot install to avoid interference with other coot windows that might already be open
+        print("Running Real space refinement in COOT")
+        coot_log = f"{get_name(mtz_in)}_coot_real_space_refined_000.log"
+        with redirect_stdout_and_stderr(coot_log):
+            pdb_out = self.do_coot_real_space_refinement_mtz(
+                pdb_in, mtz_in, column_labels
+            )
 
         return pdb_out
 
@@ -468,16 +374,9 @@ coot_no_state_real_exit(1)'
 
         Resolution is not required, but passed as an argument to remain consistent with real_space_refinement_ccp4 function within the Phenix_real_space_refinement class
         """
-        coot_log = "%s_coot_real_space_refined_000.log" % (get_name(ccp4_in))
-        script_coot, pdb_out = self.write_coot_input_real_space_refinement_ccp4(
-            pdb_in, ccp4_in
-        )
-        print(
-            "Running Real space refinement in COOT, output written to %s. Please wait..."
-            % (coot_log)
-        )
-        os.system(
-            "coot --no-graphics --script %s > %s" % (script_coot, coot_log)
-        )  # Use a second coot install to avoid interference with other coot windows that might already be open
+        print("Running Real space refinement in COOT. Please wait...")
+        coot_log = f"{get_name(ccp4_in)}_coot_real_space_refined_000.log"
+        with redirect_stdout_and_stderr(coot_log):
+            pdb_out = self.do_coot_real_space_refinement_ccp4(pdb_in, ccp4_in)
 
         return pdb_out
