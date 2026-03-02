@@ -134,72 +134,12 @@ def sigmoid_fit_2(fact, x):
     return L / (1 + np.exp(-k * (x - x0) - 1))
 
 
-def logfit(x, a, b, c):
-    """
-    logistic function = logfit
-    """
-    # c = 0
-    return a * (1 - np.exp(-b * (x - 1))) + c * x
-
-
-def logfit_2(fact, x):
-    """
-    variant of previous function for easier use with np.apply_along_axis
-    """
-    a, b, c = fact
-    # c = 0
-    return a * (1 - np.exp(-b * (x - 1))) + c * x
-
-
 def sumofsquares(arr):
     return np.sum(arr**2)
 
 
 def totalsumsquares(arr):
     return np.sum((arr - np.mean(arr)) ** 2)
-
-
-def fitting(sel, x):
-    """
-    fit with logfit model. Not used anymore.
-    """
-    if np.all(sel == 0):
-        return np.array([0.0, 0.0, 0.0])
-    else:
-        try:
-            # Extend the bmax-bkmin range for 0.05 on each side
-            bmax = val + 0.05  # see below for val definition and why bmax=val
-            bmin = (
-                val / (maxalpha - 1) - 0.05
-            )  # see below for val definition and why bmin=val/100
-            if bmax < bmin:
-                return np.array([0.0, 0.0, 0.0])
-
-            popt, _ = curve_fit(
-                logfit,
-                x,
-                sel,
-                sigma=np.sqrt(x),
-                absolute_sigma=False,
-                bounds=(
-                    (0.95 * np.max(sel), bmin, -0.001),
-                    (1.05 * np.max(sel), bmax, 0.001),
-                ),
-            )
-        except ValueError:
-            popt = np.array([0.0, 0.0, 0.0])
-        # print(np.array([popt[0], popt[1], popt[2]]))
-
-        # Excplude based on alpha.
-        alpha = (val / popt[1]) + 1
-        if alpha < 1.0:
-            # print("Minimum alpha reached. alpha and occupancy:", alpha, 1/alpha)
-            return np.array([0.0, 0.0, 0.0])
-        if alpha > maxalpha:
-            # print("Maximum alpha reached. alpha and occupancy:", alpha, 1/alpha)
-            return np.array([0.0, 0.0, 0.0])
-
-        return np.array(popt)
 
 
 def sigmoid_fitting(sel, x):
@@ -238,9 +178,8 @@ def sigmoid_fitting(sel, x):
         except RuntimeError:
             try:
                 # print("loosen fitting boundaries")
-                kmax = (
-                    val / 1 + 0.15
-                )  # Extend the kmax-kmin range for 0.15 on each side
+                # Extend the kmax-kmin range for 0.15 on each side
+                kmax = val / 1 + 0.15
                 kmin = val / maxalpha - 0.15
                 if kmax < kmin:
                     return np.array([0.0, 0.0, 0.0])
@@ -321,26 +260,6 @@ class Distance_analysis:
                 "Different number of models and occupancies. The distance analysis cannot be carried out."
             )
             sys.exit()
-
-        ##exponential fitting:
-        ##Search alpha for 0.95 = 1*(1-np.exp(-b*alpha))
-        ##   0.05 = 1/(np.exp(b*alpha)
-        ##   ln(1/0.05) = b*alpha
-        ##   ln(20)/b = alpha
-        ##For 98% of plateau level, need ln(50)
-        ##If a != 1, we need to use the gerenal case:
-        ##find x for 0.95 = a*(1-np.exp(-b*x))
-        ##   ln(-a/(0.95-a))/b = x
-        ##for any plateau-fraction (np.log is natural logarithm):
-        ##Just as done for the sigmoidal fit, a shift to the right has to be done. However, it cannot be brought into the constant val and needs to be taken into account upon calculation
-        # val = np.log(1/(1-self.plateau_fraction))
-        # global val
-        ##val/b = alpha
-        ##To find max and min b-values:
-        ##   b = val/(alpha-1)
-        ##alpha between 1 (but deviding by 1-1=0 is impossible) and maxalpha
-        ##bmax = val
-        ##bmin = val/(maxalpha-1)
 
         # Sigmoidal fitting: plateau_value = 1/ (1+ exp(-k x (alpha - alphainflection))
         # -k x (alpha - alphainflection) = ln[(1/plateau_fraction) -1]
@@ -498,7 +417,6 @@ class Distance_analysis:
                                     # print a.name
                                     coord.append(list(a.xyz))
                                     i = a.fetch_labels()
-                                    # info.append((i.resname, i.resseq, i.chain_id, i.altloc, i.name, i.i_seq))
                                     info.append(
                                         (
                                             i.resname,
@@ -567,32 +485,20 @@ class Distance_analysis:
         for i in range(lenght):
             ispeak = True
             if i - 1 > 0:
-                ispeak &= (
-                    x[i] > 1.5 * x[i - 1]
-                )  # peak value is at least 150 percent of neighbour peak
+                # peak value is at least 150 percent of neighbour peak
+                ispeak &= x[i] > 1.5 * x[i - 1]
             if i + 1 < lenght:
                 ispeak &= x[i] > 1.5 * x[i + 1]
 
-            ispeak &= (
-                x[i] > 0.25 * max
-            )  # peak value is at least 25 percent of max value
+            # peak value is at least 25 percent of max value
+            ispeak &= x[i] > 0.25 * max
             if ispeak:
                 ret.append(y[i])
         if ret == []:
             ret = list(y[np.where(x == max)])
         return ret
 
-    def remove_brackets_from_string(self, string):
-        """
-        Just remove all brackets from string
-        """
-        while "(" in string:
-            string = re.sub(r"\(", "", string)
-        while ")" in string:
-            string = re.sub(r"\)", "", string)
-        return string
-
-    def get_all_distances(self):  # , mindiff = 0.05):
+    def get_all_distances(self):
         """
         Calculate distances for atoms in of the residlist (or all atoms in case no residlist provided)
         """
@@ -611,7 +517,6 @@ class Distance_analysis:
             distances = np.triu(distances)
             # print("max distance:", np.max(distances))
             # Assemble the difference matrices from the different pdb-files
-            # alldistances.append(distances)
             try:
                 alldistances = np.vstack([alldistances, distances[np.newaxis, ...]])
             except NameError:
@@ -620,15 +525,6 @@ class Distance_analysis:
             # Substract the first pdb-file (which is the reference)
             print("calculate difference")
             difference = np.subtract(distances, alldistances[0])
-            # difference=distances-alldistances[0]
-            # difference=np.array(difference)
-            # Only keep the differences that are larger dan mindiff: this is not done here anymore: maxids and max_proj not used
-            # print("Filter distances > %.2f" %(mindiff))
-            # maxids = np.where(np.abs(difference)>mindiff)
-            ##minids = np.where(difference<-mindiff)
-            # max_proj=np.zeros(np.shape(difference))
-            # max_proj[maxids] = difference[maxids]
-            # max_proj[minids] = difference[minids]
             try:
                 alldifferences = np.vstack(
                     [alldifferences, difference[np.newaxis, ...]]
@@ -639,8 +535,6 @@ class Distance_analysis:
         self.info = info
         self.alldistances = alldistances
         self.alldifferences = alldifferences
-        # self.alldistances = np.asarray(alldistances)
-        # self.alldifferences = np.asarray(alldifferences)
 
         assert (
             self.info.shape[0]
@@ -719,7 +613,6 @@ class Distance_analysis:
         # In case fitting fails, we still have a matrix to continue with (but script will fail further downstream)
         # fitting_matrix = np.zeros((3,self.alldifferences.shape[1], self.alldifferences.shape[2]))
 
-        # print("--------------------")
         print("Fitting distances.")
         # generate the fitting_matrix which contains on every n,m the popt from fitting all
         # n,m elements for each alpha. Each element is thus a list of 3 values.
@@ -731,8 +624,6 @@ class Distance_analysis:
         # set waring and error to ignore because we will to divide by zero
         np.seterr(divide="ignore", invalid="ignore")
 
-        ##exponential fitting:
-        # fitting_matrix = np.apply_along_axis(fitting, axis=0, arr=self.alldifferences, x =x)
         # sigmoidal fitting:
         fitting_matrix = np.apply_along_axis(
             sigmoid_fitting, axis=0, arr=self.alldifferences, x=x
@@ -746,8 +637,6 @@ class Distance_analysis:
         )
 
         # calculate the residuals
-        ##exponential fitting:
-        # res_matrix = np.subtract(self.alldifferences, np.apply_along_axis(logfit_2, axis=0, arr=fitting_matrix, x=x))
         # sigmoidal fitting:
         res_matrix = np.subtract(
             self.alldifferences,
@@ -839,19 +728,12 @@ class Distance_analysis:
             )
 
             for n in np.where(np.any(toplot_matrix == 1, axis=1))[0].astype(int):
-                # n = int(n)
                 toplot2 = np.where(toplot_matrix[n] == 1)[0].astype(int)
                 for j in toplot2:
                     a = 0
                     title = "--".join(
                         ["-".join(info_for_print[n]), "-".join(info_for_print[j])]
                     )
-                    ##exponential fitting:
-                    # print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(val/fitting_matrix[1, n,j] + 1)), file=self.log)
-                    # print('{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}'.format(title, r_squared_matrix[n,j], chisq_matrix[n,j], 1/(val/fitting_matrix[1, n,j] + 1)))
-                    # ax0.plot(x,self.alldifferences[:, n, j],color="%s"%(colorlib[a]), linestyle=':', linewidth=0.30, label='Distance')# ,marker='s', label='Method 2, {:.0%} occ.'.format(occ))          #+'; '+str(int(wavenumber[0]))+r' cm$^{-1}$')
-                    # ax0.plot(x, np.abs(logfit_2(fitting_matrix[:,n, j], x)), 'r--', linewidth=0.20, label = 'Exp. fit')#label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
-
                     # sigmoidal fitting:
                     print(
                         "{:^40s} {:>10.2f} {:>5.2f} {:>5.2f}".format(
@@ -906,25 +788,7 @@ class Distance_analysis:
         # Plot the fit of the average
         # If not all items of fulllist_av == 0
         if np.min(fulllist_av) < np.max(fulllist_av):
-            ##exponential fitting
-            # poptave,pcovave = curve_fit(logfit,
-            # x,
-            # fulllist_av,
-            # sigma=np.sqrt(x)+x,
-            # absolute_sigma=False,
-            # bounds=((0.95*np.min(fulllist_av), val/maxalpha, -0.001), (1.05*np.max(fulllist_av),val, 0.001)))
-            # Sigmoidal fitting
-            # poptave,_ = curve_fit(sigmoid_fit,
-            # x,
-            # fulllist_av,
-            # sigma=np.sqrt(x)+x,
-            # absolute_sigma=False,
-            # bounds=((0.95*np.min(fulllist_av), val/maxalpha -0.05, 1), (1.05*np.max(fulllist_av),val/1 +0.05, maxalpha)))
             poptave = sigmoid_fitting(fulllist_av, x)
-
-            ##exponential fitting:
-            # ax0.plot(xx, logfit(xx,poptave[0],poptave[1],0), 'b-', label='Fit of average fit')
-            # sigmoidal fitting:
             ax0.plot(
                 xx,
                 sigmoid_fit(xx, poptave[0], poptave[1], poptave[2]),
@@ -936,8 +800,6 @@ class Distance_analysis:
             poptave = np.array([0.0, 0.0, 0.0])
 
         # Plot the average of all fits
-        ##exponential fitting:
-        # ax0.plot(xx, logfit(xx,np.median(possible_amp),(np.mean(possible_b)),0), 'b--', label='Average of all fits')
         # sigmoidal fitting:
         ax0.plot(
             xx,
@@ -975,8 +837,6 @@ class Distance_analysis:
         ax0.set_title("Distance differences", fontsize="medium")  # ,fontweight="bold")
 
         # Plot the histogram with possible occupancies
-        ##exponential fitting:
-        # possible_occ = np.round(1/(val/possible_b +1 ), decimals=3)
         # sigmoidal fitting:
         possible_occ = np.round(1 / (((val) / possible_b) + possible_x0), decimals=3)
         # print(possible_occ)
@@ -1015,8 +875,6 @@ class Distance_analysis:
         plt.savefig("Distance_difference_plot_%s.png" % (self.outsuffix), dpi=300)
         plt.close()
 
-        ##exponential fitting:
-        # return possible_b, poptave
         # sigmoidal fitting:
         return possible_b, poptave, possible_x0
 
@@ -1028,15 +886,11 @@ class Distance_analysis:
             return 1.0, 1.0
 
         if self.resids_lst == None:
-            ##exponential fitting:
-            # possible_b, poptave = self.plot_distance_differences_and_get_possible_b()
             # sigmoidal fitting:
             possible_b, poptave, possible_x0 = (
                 self.plot_distance_differences_and_get_possible_b()
             )
         else:
-            ##exponential fitting:
-            # possible_b, poptave = self.plot_distance_differences_and_get_possible_b()
             # sigmoidal fitting:
             possible_b, poptave, possible_x0 = (
                 self.plot_distance_differences_and_get_possible_b()
@@ -1058,10 +912,8 @@ class Distance_analysis:
                 peaks = np.average(peaks)
             mode = scipy.stats.mode(np.round(possible_b, 2))[0][0]
 
-            # if sigmoidal fitting:
             # calculate x0 statistics
             x0_mean = np.mean(possible_x0)
-            x0_stdev = np.std(possible_x0)
             counts_x0, bins_x0 = np.histogram(possible_x0)
             peaks_x0 = self.find_peaks(counts_x0, bins_x0)
             if len(peaks_x0) > 1:
@@ -1073,20 +925,6 @@ class Distance_analysis:
 
             # Print results to log file and to stdout
             try:
-                ##exponential fitting:
-                # alp_mean = val/b_mean + 1
-                # occ_mean = 1/alp_mean
-                # occ_stdev = 1/(val/b_stdev)
-                # occ_interval_max = occ_mean + occ_stdev
-                # if occ_interval_max > 1:
-                # occ_interval_max = 1.0
-                # occ_interval_min = occ_mean - occ_stdev
-                # if occ_interval_min < 0:
-                # occ_interval_min= 0.0
-                # occ_histogram = 1/(val/np.asarray(peaks, dtype='float64') + 1)
-                # occ_mode = 1/(val/mode + 1)
-                # occ_av_distance = 1/(val/poptave[1]+ 1)
-
                 # sigmoidal fitting:
                 alp_mean = ((val) / b_mean) + x0_mean
                 occ_mean = 1 / alp_mean
@@ -1286,13 +1124,11 @@ def main():
         raise Usage(
             "phenix.python distance_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last"
         )
-        sys.exit(1)
     if "--help" in sys.argv or "-h" in sys.argv:
         master_phil.show(attributes_level=1)
         raise Usage(
             "phenix.python distance_analysis.py + [.phil] + [arguments]\n arguments only overwrite .phil if provided last"
         )
-        sys.exit(1)
 
     # Extract input from inputfile and command line
     input_objects = iotbx.phil.process_command_line_with_files(
