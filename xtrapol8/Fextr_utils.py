@@ -1004,7 +1004,7 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
     with open(pickle_file, "rb") as stats_file:
         while True:
             try:
-                stats = np.array(pickle.load(stats_file))
+                stats = np.array(pickle.load(stats_file), dtype=object)
                 # stats = np.array(tuple(stats), dtype='f8, S32, i4, i4, i4')
                 try:
                     alldata = np.vstack([alldata, stats[np.newaxis, ...]])
