@@ -3073,7 +3073,6 @@ def run(args):
         # Go back to output directory and generate the plots from the pickle files
         os.chdir(outdir)
         plot_Fextr_sigmas()
-        # plot_sigmas(maptype_lst=list(map(lambda x: re.sub(r"\_map$", "", x), final_maptypes)))
         plot_negative_reflections()
 
     # free some memory by deleting the fofo_map

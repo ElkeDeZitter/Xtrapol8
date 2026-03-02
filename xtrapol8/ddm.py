@@ -262,7 +262,7 @@ class Difference_distance_analysis:
         """
         From the all atom ddm, calculate a new ddm that returns only the average distance per residue pair
         """
-        f = np.vectorize(lambda x: int(x))
+        f = np.vectorize(int)
         seq_info_unique, indices = np.unique(
             f(df.loc[:, "resseq"]), return_inverse=True
         )
@@ -387,7 +387,7 @@ class Difference_distance_analysis:
                     seq_ticks = seq_info_unique[
                         0::tick_jump
                     ]  # residues for which we will show tick positions
-                    tick_pos = list(map(lambda x: x * tick_jump, range(len(seq_ticks))))
+                    tick_pos = [x * tick_jump for x in range(len(seq_ticks))]
 
                     # if ddm_scale = None, then the scale will be based on the first chain, but will be the same
                     # for all different chains, which is important for chain comparison

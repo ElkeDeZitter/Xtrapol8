@@ -250,7 +250,7 @@ class Distance_analysis:
 
         print("DISTANCE ANALYSIS")
         print("DISTANCE ANALYSIS", file=self.log)
-        alphas = list(map(lambda x: round(1 / x, 3), occupancies))
+        alphas = [round(1 / x, 3) for x in occupancies]
 
         if 1.0 not in alphas and len(alphas) != len(pdblst):
             alphas = [1] + alphas
@@ -1058,11 +1058,11 @@ class Filefinder:
 
             try:
                 pdb_fles = glob.glob("{:s}*real_space*.pdb".format(d))
-                pdb_fles.sort(key=lambda x: os.path.getmtime(x))
+                pdb_fles.sort(key=os.path.getmtime)
                 pdb_out = pdb_fles[-1]
             except IndexError:
                 pdb_out = glob.glob("{:s}*.pdb".format(d))
-                pdb_fles.sort(key=lambda x: os.path.getmtime(x))
+                pdb_fles.sort(key=os.path.getmtime)
                 pdb_out = pdb_fles[-1]
 
             pdb_list.append(os.path.abspath(check_file_existance(pdb_out)))

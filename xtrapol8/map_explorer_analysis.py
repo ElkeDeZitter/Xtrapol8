@@ -85,7 +85,7 @@ class Map_explorer_analysis:
             ]
             for line in peaklines_ligands
         ]
-        cnp = list(map(lambda x: [x[0], float(x[-1])], cnp))
+        cnp = [[x[0], float(x[-1])] for x in cnp]
         cnp = sorted(cnp, key=lambda x: x[0])
         pos_peaklist = [x for x in cnp if x[-1] > 0]
         pos_peaklist = self.peaksum_per_residue(pos_peaklist)
@@ -189,7 +189,7 @@ class Map_explorer_analysis:
             [line.split()[2], line.split()[1], line.split()[-2]]
             for line in self.peaklines_noligands
         ]
-        cnp = list(map(lambda x: [x[0], int(x[1]), float(x[2])], cnp))
+        cnp = [[x[0], int(x[1]), float(x[2])] for x in cnp]
         cnp.sort()
         # only keep hihgest peak per residue
         x = 0
@@ -214,7 +214,7 @@ class Map_explorer_analysis:
             [line.split()[2], line.split()[1], line.split()[-2]]
             for line in self.peaklines_noligands
         ]
-        cnp = list(map(lambda x: [x[0], int(x[1]), float(x[2])], cnp))
+        cnp = [[x[0], int(x[1]), float(x[2])] for x in cnp]
         print(cnp)
         cnp.sort()
         pos_peaklist = [x for x in cnp if x[2] > 0]

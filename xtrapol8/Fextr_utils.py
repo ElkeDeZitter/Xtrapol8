@@ -37,7 +37,7 @@ def get_python_version():
     """
     Function to get the python version
     """
-    version = ".".join(map(lambda x: str(x), sys.version_info[0:3]))
+    version = ".".join(map(str, sys.version_info[0:3]))
     return version
 
 
@@ -1360,7 +1360,7 @@ def plot_correlations(occ_lst, correlation_list):
         "list with occupancies and correlations not of equal length"
     )
 
-    alphas = list(map(lambda x: round(1 / x, 3), occ_lst))
+    alphas = [round(1 / x, 3) for x in occ_lst]
 
     plt.close()
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))

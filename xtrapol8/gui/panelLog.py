@@ -1544,7 +1544,7 @@ class TabOccResults(ScrolledPanel):
             seq_ticks = seq_info_unique[
                 0::tick_jump
             ]  # residues for which we will show tick positions
-            tick_pos = list(map(lambda x: x * tick_jump, range(len(seq_ticks))))
+            tick_pos = [x * tick_jump for x in range(len(seq_ticks))]
 
             img = axs[row, col].imshow(FINAL2, cmap=rvb, vmin=-scale, vmax=scale)
 
@@ -1631,7 +1631,6 @@ class TabOccResults(ScrolledPanel):
         self.ImgSizer.Layout()
         self.mainSizer.Layout()
         self.FitInside()
-
 
     def addImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)

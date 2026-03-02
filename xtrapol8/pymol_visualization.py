@@ -216,7 +216,7 @@ class Pymol_movie:
         if pdblst != None:
             # Sort the pdb files and alphas in order to have alpha from small to large, this is important for fitting
             # This might not work in pyhton3
-            alphas = list(map(lambda x: round(1 / x, 3), occupancies))
+            alphas = [round(1 / x, 3) for x in occupancies]
             if ccp4_maps != None:
                 zipped = zip(alphas, pdblst, ccp4_maps)
                 zipped_sorted = sorted(zipped, key=lambda x: x[0])
