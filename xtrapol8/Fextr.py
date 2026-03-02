@@ -120,7 +120,7 @@ class SymManager(symmetry.manager):
     """
 
     def __init__(self, model_in):
-        super(SymManager, self).__init__()
+        super().__init__()
 
         self.model = model_in
         self.process_pdb_file(self.model)
@@ -128,9 +128,8 @@ class SymManager(symmetry.manager):
     def check_symm(self, *hkls):
         for reflections in hkls:
             # the first check can only be applied for the unit cell as space groups belonging to the same point group can be allowed, while we need to have exactly the same space groups
-            _, UC_err = self.process_reflections_file(
-                reflections
-            )  # Not sure which tolerance range is applied
+            # Not sure which tolerance range is applied
+            _, UC_err = self.process_reflections_file(reflections)
             SG_ok = str(self.current_space_group) == str(
                 reflections.crystal_symmetry().space_group_info()
             )
@@ -216,8 +215,6 @@ class DataHandler:
             force_type="pdb",
             raise_sorry_if_errors=True,
         )
-        # No H deletion for electron diffraction, however leads to crash of fmodel update all scales
-        # self.model_in = any_file(self.pdb_in, force_type="pdb", raise_sorry_if_errors=True)
 
     def check_all_files(self):
         err = 0
@@ -312,9 +309,8 @@ class DataHandler:
             else:
                 self.pdb_in = os.path.abspath(self.pdb_in)
         else:
-            self.pdb_in = os.path.abspath(
-                self.pdb_in
-            )  # We will need absolute path of pdb file for later refinements in subdirectories
+            # We will need absolute path of pdb file for later refinements in subdirectories
+            self.pdb_in = os.path.abspath(self.pdb_in)
         return self.pdb_in
 
     def extract_fobs(self, low_res, high_res):
@@ -346,17 +342,6 @@ class DataHandler:
         """
         self.SG = str(self.model_in.crystal_symmetry().space_group_info())
         self.UC = self.model_in.crystal_symmetry().unit_cell()
-
-    def resolution_cutoff(self, f_obs, low_res, high_res):
-        """
-        Cut data at low and high resolution, only if the data extend beyond the limit.
-        """
-        dmax, dmin = f_obs.d_max_min()
-        if high_res != None and high_res > dmin:
-            dmin = high_res
-        if low_res != None and low_res < dmax:
-            dmax = low_res
-        return f_obs.resolution_filter(dmax, dmin)
 
     def check_additional_files(self):
         """
@@ -390,7 +375,6 @@ class DataHandler:
             pdb_parameters=pdb.input(self.pdb_in),
             cif_objects=self.cif_objects,
         )
-        # log                       = log)
         processed_pdb_files_srv.process_pdb_files(pdb_file_names=[self.pdb_in])
         self.additional = additional
 
@@ -415,7 +399,7 @@ class DataHandler:
                         cif_list.append(ligand)
             else:
                 try:  # This is for a raw downloaded cif file (bugs may appear later in Xtrapol8). Requires a single ligand per file for now
-                    ligand = cif[1].keys()[0]
+                    ligand = list(cif[1].keys())[0]
                     if len(ligand) == 3 and ligand not in cif_list:
                         cif_list.append(ligand)
                 except AttributeError:
@@ -452,7 +436,7 @@ class DataHandler:
         if the number of Rfree-flagged reflections is too low (consequennce of outlier rejection during scaling), re-assign
         """
         if self.fmodel.f_obs().data().size() > fobs.data().size():
-            dt = np.dtype([("h", np.int), ("k", np.int), ("l", np.int)])
+            dt = np.dtype([("h", int), ("k", int), ("l", int)])
             f1 = np.array(self.fmodel.f_obs().indices(), dtype=dt)
             f2 = np.array(fobs.indices(), dtype=dt)
             selection = np.nonzero(np.in1d(f1, f2))[0]
@@ -460,7 +444,7 @@ class DataHandler:
 
             sel = np.zeros(f1.shape[0])
             np.put(sel, selection, 1)
-            sel_bool = list(map(lambda x: bool(int(x)), list(sel)))
+            sel_bool = [bool(int(x)) for x in list(sel)]
             selection_flags = flex.bool(sel_bool)
             self.fmodel = self.fmodel.select(selection_flags)
 
@@ -475,9 +459,8 @@ class DataHandler:
             frac = free / tot
             if frac < 0.048:
                 print("Rfree fraction too low, re-assign Rfree flags")
-                self.rfree = self.fmodel.f_obs().generate_r_free_flags(
-                    fraction=0.05
-                )  # during the two scaling steps some structure factors might be removed and thus new Rfree reflections have to be chosen
+                # during the two scaling steps some structure factors might be removed and thus new Rfree reflections have to be chosen
+                self.rfree = self.fmodel.f_obs().generate_r_free_flags(fraction=0.05)
                 self.fmodel.update(r_free_flags=self.rfree)
 
     def get_common_indices_and_Fobs_off(self, f_obs_on):
@@ -1238,7 +1221,6 @@ class Fextrapolate:
                 % (new_neg_refl_handle, self.neg_refl_handle),
                 file=log,
             )
-            # fextr_ms = self.negatives_reject(self.fextr_ms)
             fextr_ms = self.negatives_reject(ms)
             rfree, fmodel_fobs_off = self.get_updated_fmodel_fobs_off(fextr_ms)
             self.FM = Filesandmaps(
@@ -1438,7 +1420,7 @@ class Fextrapolate:
         if fmodel_f_obs.data().size() < self.fmodel_fobs_off.f_obs().data().size():
             rfree, miller_array = self.rfree.common_sets(miller_array)
 
-            dt = np.dtype([("h", np.int), ("k", np.int), ("l", np.int)])
+            dt = np.dtype([("h", int), ("k", int), ("l", int)])
             f1 = np.array(self.fmodel_fobs_off.f_obs().indices(), dtype=dt)
             f2 = np.array(fmodel_f_obs.indices(), dtype=dt)
             selection = np.nonzero(np.in1d(f1, f2))[0]
@@ -1446,7 +1428,7 @@ class Fextrapolate:
 
             sel = np.zeros(f1.shape[0])
             np.put(sel, selection, 1)
-            sel_bool = list(map(lambda x: bool(int(x)), list(sel)))
+            sel_bool = [bool(int(x)) for x in list(sel)]
             selection_flags = flex.bool(sel_bool)
             fmodel_fobs_off = self.fmodel_fobs_off.select(selection_flags)
 
@@ -1477,7 +1459,7 @@ class Fextrapolate:
         1) reciprocal space refinement in extrapolated structure factors (mtz_F and pdb_in)
         2) real-space refinement in Fextr map coefficients (mtz_map and pdb_in)
         3) real space refinement with results reciprocal space refinement (mtz_out and pd_out = output of step 1)
-        !!! take care: different definition of column labels as compared to refmac_coot_refinements!!! here: values and phases for 2FoFc kind of map only
+        !!! take care: different definition of column labels!!! here: values and phases for 2FoFc kind of map only
 
         Adapted for phenix only at this stage!
         """
@@ -1662,317 +1644,6 @@ class Fextrapolate:
 
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
-    def phenix_phenix_refinements(
-        self,
-        mtz_F=None,
-        mtz_map=None,
-        pdb_in=None,
-        additional=None,
-        F_column_labels="QFEXTR",
-        column_labels="2FOFCWT,PH2FOFCWT",
-        scattering_table="n_gaussian",
-        keywords={},
-    ):
-        """
-        Reciprocal space and real space refinement in the extrapolated structure factors and map coefficients, respectively, using Phenix.
-        1) reciprocal space refinement in extrapolated structure factors (mtz_F and pdb_in)
-        2) real-space refinement in Fextr map coefficients (mtz_map and pdb_in)
-        3) real space refinement with results reciprocal space refinement (mtz_out and pd_out = output of step 1)
-        !!! take care: different definition of column labels as compared to refmac_coot_refinements!!! here: values and phases for 2FoFc kind of map only
-        """
-
-        if mtz_F == None:
-            mtz_F = self.F_name
-        if mtz_map == None:
-            mtz_map = self.mtz_name
-        assert pdb_in != None, "Specify pdb for refinement"
-
-        ref = phenix_refinements.Phenix_refinements(
-            mtz_F,
-            pdb_in,
-            additional=additional,
-            F_column_labels=F_column_labels,
-            strategy=keywords.refine.strategy,
-            rec_cycles=keywords.main.cycles,
-            real_cycles=keywords.real_space_refine.cycles,
-            wxc_scale=keywords.target_weights.wxc_scale,
-            wxu_scale=keywords.target_weights.wxu_scale,
-            solvent=keywords.main.ordered_solvent,
-            sim_annealing=keywords.main.simulated_annealing,
-            sim_annealing_pars=keywords.simulated_annealing,
-            map_sharpening=keywords.map_sharpening.map_sharpening,
-            scattering_table=scattering_table,
-            weight_sel_crit=keywords.target_weights.weight_selection_criteria,
-            additional_reciprocal_keywords=keywords.additional_reciprocal_space_keywords,
-            additional_real_keywords=keywords.additional_real_space_keywords,
-            log=log,
-        )
-
-        print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" % (mtz_F, pdb_in))
-        mtz_out_rec, pdb_out_rec = ref.phenix_reciprocal_space_refinement()
-        print("Output reciprocal space refinement:", file=log)
-        print("----------------")
-        print("Output reciprocal space refinement:")
-        if os.path.isfile(pdb_out_rec):
-            print("    pdb-file: %s" % (pdb_out_rec), file=log)
-            print("    pdb-file: %s" % (pdb_out_rec))
-        else:
-            print(
-                "    pdb-file not found, %s incorrectly returned" % (pdb_in), file=log
-            )
-            print("    pdb-file not found, %s incorrectly returned" % (pdb_in))
-            pdb_out_rec = pdb_in
-        if os.path.isfile(mtz_out_rec):
-            print("    mtz-file: %s" % (mtz_out_rec), file=log)
-            print("    mtz-file: %s" % (mtz_out_rec))
-        else:
-            print("    mtz-file not found. Refinement failed.", file=log)
-            print("    mtz-file not found. Refinement failed.")
-        print("----------------")
-
-        if keywords.density_modification.density_modification:
-            print("DENSITY MODIFICATION WITH %s AND %s" % (mtz_F, pdb_out_rec))
-            mtz_dm = ref.ccp4_dm(
-                pdb_out_rec,
-                keywords.density_modification.combine,
-                keywords.density_modification.cycles,
-            )
-            print("Output density modification:", file=log)
-            print("Output density modification:")
-            if os.path.isfile(mtz_dm):
-                print("    mtz-file: %s" % (mtz_dm), file=log)
-                print("    mtz-file: %s" % (mtz_dm))
-            else:
-                print("    mtz-file not found. Density modification failed.", file=log)
-                print("    mtz-file not found. Density modification failed.")
-
-        print("REAL SPACE REFINEMENT WITH %s AND %s" % (mtz_map, pdb_in))
-        pdb_out_real = ref.phenix_real_space_refinement_mtz(
-            mtz_map, pdb_in, column_labels
-        )
-        print("Output real space refinement:", file=log)
-        print("----------------")
-        print("Output real space refinement:")
-        if os.path.isfile(pdb_out_real):
-            print("    pdb-file: %s" % (pdb_out_real), file=log)
-            print("    pdb-file: %s" % (pdb_out_real))
-        else:
-            print(
-                "    pdb-file not found, %s incorrectly returned" % (pdb_in), file=log
-            )
-            print("    pdb-file not found, %s incorrectly returned" % (pdb_in))
-            pdb_out_real = pdb_in
-        print("----------------")
-
-        if keywords.density_modification.density_modification and os.path.isfile(
-            mtz_dm
-        ):
-            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
-            _, high_res = ref.get_mtz_resolution(mtz_dm)
-            print("REAL SPACE REFINEMENT WITH %s AND %s" % (ccp4_dm, pdb_out_rec))
-            pdb_out_rec_real = ref.phenix_real_space_refinement_ccp4(
-                ccp4_dm, pdb_out_rec, high_res
-            )
-            print(
-                "Output real space refinement after reciprocal space refinement:",
-                file=log,
-            )
-            print("----------------")
-            print("Output real space refinement after reciprocal space refinement:")
-            if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s" % (pdb_out_rec_real), file=log)
-                print("    pdb-file: %s" % (pdb_out_rec_real))
-            else:
-                print(
-                    "    pdb-file not found, %s incorrectly returned" % (pdb_out_rec),
-                    file=log,
-                )
-                print("    pdb-file not found, %s incorrectly returned" % (pdb_out_rec))
-                pdb_out_rec_real = pdb_out_rec
-            print("----------------")
-        else:
-            print("REAL SPACE REFINEMENT WITH %s AND %s" % (mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = ref.phenix_real_space_refinement_mtz(
-                mtz_out_rec, pdb_out_rec, "2FOFCWT,PH2FOFCWT"
-            )
-            print(
-                "Output real space refinement after reciprocal space refinement:",
-                file=log,
-            )
-            print("----------------")
-            print("Output real space refinement after reciprocal space refinement:")
-            if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s" % (pdb_out_rec_real), file=log)
-                print("    pdb-file: %s" % (pdb_out_rec_real))
-            else:
-                print(
-                    "    pdb-file not found, %s incorrectly returned" % (pdb_out_rec),
-                    file=log,
-                )
-                print("    pdb-file not found, %s incorrectly returned" % (pdb_out_rec))
-                pdb_out_rec_real = pdb_out_rec
-            print("----------------")
-
-        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
-
-    def refmac_coot_refinements(
-        self,
-        mtz_F=None,
-        mtz_map=None,
-        pdb_in=None,
-        additional=None,
-        ligands_list=None,
-        F_column_labels="QFEXTR",
-        map_column_labels="2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT",
-        keywords={},
-    ):
-        """
-        Reciprocal space and real space refinement in the extrapolated structure factors using Refmac and map coefficients using COOT, respectively.
-        1) reciprocal space refinement in extrapolated structure factors (mtz_F and pdb_in)
-        2) real-space refinement in Fextr map coefficients (mtz_map and pdb_in)
-        3) real space refinement with results reciprocal space refinement (mtz_out and pd_out = output of step 1)
-        !!! take care: different definition of column labels as compared to phenix_refinements!!! here: values and phases for 2FoFc and FoFc kind of map
-        """
-        if mtz_F == None:
-            mtz_F = self.F_name
-        if mtz_map == None:
-            mtz_map = self.mtz_name
-        assert pdb_in != None, "Specify pdb for refinement"
-
-        ref = ccp4_refmac.refmac_refinements(
-            mtz_F,
-            pdb_in,
-            additional,
-            ligands_list,
-            F_column_labels=F_column_labels,
-            fill_missing=False,
-            refinement_weight=keywords.target_weights.weight,
-            refinement_weight_sigmas=keywords.target_weights.experimental_sigmas,
-            refinement_weighting_term=keywords.target_weights.weighting_term,
-            refinement_type=keywords.refine.type,
-            TLS=keywords.refine.TLS,
-            TLS_cycles=keywords.refine.TLS_cycles,
-            bfac_set=keywords.refine.bfac_set,
-            twinning=keywords.refine.twinning,
-            Brefinement=keywords.refine.Brefinement,
-            cycles=keywords.refine.cycles,
-            external_restraints=keywords.restraints.external_restraints,
-            jelly_body_refinement=keywords.restraints.jelly_body_refinement,
-            jelly_body_sigma=keywords.restraints.jelly_body_sigma,
-            jelly_body_additional_restraints=keywords.restraints.jelly_body_additional_restraints,
-            map_sharpening=keywords.map_sharpening.map_sharpening,
-            density_modification=keywords.density_modification.density_modification,
-            dm_combine=keywords.density_modification.combine,
-            dm_ncycle=keywords.density_modification.cycles,
-            additional_reciprocal_keywords=keywords.additional_refmac_keywords,
-        )
-
-        print("Refinements:", file=log)
-
-        print("RECIPROCAL SPACE REFINEMENT WITH %s AND %s" % (mtz_F, pdb_in))
-        if keywords.density_modification.density_modification:
-            mtz_out_rec, pdb_out_rec, mtz_dm = ref.refmac_reciprocal_space_refinement()
-        else:
-            mtz_out_rec, pdb_out_rec, _ = ref.refmac_reciprocal_space_refinement()
-        print("output reciprocal space refinement:", file=log)
-        print("----------------")
-        print("output reciprocal space refinement:")
-        if os.path.isfile(pdb_out_rec):
-            print("    pdb-file: %s" % (pdb_out_rec), file=log)
-            print("    pdb-file: %s" % (pdb_out_rec))
-        else:
-            print(
-                "    pdb-file not found, %s incorrectly returned" % (pdb_in), file=log
-            )
-            print("    pdb-file not found, %s incorrectly returned" % (pdb_in))
-            pdb_out_rec = pdb_in
-        if os.path.isfile(mtz_out_rec):
-            print("    mtz-file: %s" % (mtz_out_rec), file=log)
-            print("    mtz-file: %s" % (mtz_out_rec))
-        elif mtz_out_rec == mtz_F:
-            print("    mtz-file not found. Refinement failed.", file=log)
-            print("    mtz-file not found. Refinement failed.")
-        else:
-            print("    mtz-file not found. Refinement failed.", file=log)
-            print("    mtz-file not found. Refinement failed.")
-        if keywords.density_modification.density_modification:
-            print("Output density modification:", file=log)
-            print("Output density modification:")
-            if mtz_dm == mtz_out_rec:
-                print("    mtz-file not found. Density modification failed.", file=log)
-                print("    mtz-file not found. Density modification failed.")
-            elif os.path.isfile(mtz_dm):
-                print("    mtz-file: %s" % (mtz_dm), file=log)
-                print("    mtz-file: %s" % (mtz_dm))
-            else:
-                print("    mtz-file not found. Density modification failed.", file=log)
-                print("    mtz-file not found. Density modification failed.")
-        print("----------------")
-
-        print("REAL SPACE REFINEMENT WITH %s AND %s" % (mtz_map, pdb_in))
-        pdb_out_real = ref.coot_real_space_refinement_mtz(
-            pdb_in, mtz_map, map_column_labels
-        )
-        print("output real space refinement:", file=log)
-        print("----------------")
-        print("output real space refinement:")
-        if os.path.isfile(pdb_out_real):
-            print("    pdb-file: %s" % (pdb_out_real), file=log)
-            print("    pdb-file: %s" % (pdb_out_real))
-        else:
-            print(
-                "    pdb-file not found, %s incorrectly returned" % (pdb_in), file=log
-            )
-            print("    pdb-file not found, %s incorrectly returned" % (pdb_in))
-            pdb_out_real = pdb_in
-        print("----------------")
-
-        if keywords.density_modification.density_modification:
-            ccp4_dm = re.sub(r".mtz$", ".ccp4", mtz_dm)
-            print("REAL SPACE REFINEMENT WITH %s AND %s" % (ccp4_dm, pdb_out_rec))
-            pdb_out_rec_real = ref.coot_real_space_refinement_ccp4(pdb_out_rec, ccp4_dm)
-            print(
-                "output real space refinement after reciprocal space refinement:",
-                file=log,
-            )
-            print("----------------")
-            print("output real space refinement after reciprocal space refinement:")
-            if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s" % (pdb_out_rec_real), file=log)
-                print("    pdb-file: %s" % (pdb_out_rec_real))
-            else:
-                print(
-                    "    pdb-file not found, %s incorrectly returned" % (pdb_in),
-                    file=log,
-                )
-                print("    pdb-file not found, %s incorrectly returned" % (pdb_in))
-                pdb_out_rec_real = pdb_out_rec
-            print("----------------")
-        else:
-            print("REAL SPACE REFINEMENT WITH %s AND %s" % (mtz_out_rec, pdb_out_rec))
-            pdb_out_rec_real = ref.coot_real_space_refinement_mtz(
-                pdb_out_rec, mtz_out_rec, "2FOFCWT, PH2FOFCWT, FOFCWT, PHFOFCWT"
-            )
-            print(
-                "output real space refinement after reciprocal space refinement:",
-                file=log,
-            )
-            print("----------------")
-            print("output real space refinement after reciprocal space refinement:")
-            if os.path.isfile(pdb_out_rec_real):
-                print("    pdb-file: %s" % (pdb_out_rec_real), file=log)
-                print("    pdb-file: %s" % (pdb_out_rec_real))
-            else:
-                print(
-                    "    pdb-file not found, %s incorrectly returned" % (pdb_in),
-                    file=log,
-                )
-                print("    pdb-file not found, %s incorrectly returned" % (pdb_in))
-                pdb_out_rec_real = pdb_out_rec
-            print("----------------")
-
-        return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
-
 
 class Filesandmaps:
     """
@@ -2104,52 +1775,11 @@ class Filesandmaps:
         mtz_object = mtz_dataset.mtz_object()
         mtz_object.write(file_name=self.mtz_name)
 
-    def ccp4_xplor_mapcoefs(self, mc_map, mc_diff):
-        """
-        Generate ccp4 and xplor files with map coefficients. First file is 2mFo-DFc type, second file is mFo-DFc type
-        resolution factor =0.25 and buffer = 5.0 default values in mtz2map
-        """
-        fft_map_2mfodfc = mc_map.fft_map(
-            crystal_gridding=self.crystal_gridding, resolution_factor=0.25
-        ).apply_sigma_scaling()
-        # fft_map_2mfodfc.as_ccp4_map(file_name = self.ccp4_name_2FoFc) #Origin not correct, causes problems with pymol
-        iotbx.map_tools.write_ccp4_map(
-            sites_cart=self.sites_cart,
-            unit_cell=fft_map_2mfodfc.unit_cell(),
-            map_data=fft_map_2mfodfc.real_map(),
-            n_real=fft_map_2mfodfc.n_real(),
-            buffer=5.0,
-            file_name=self.ccp4_name_2FoFc,
-        )
-
-        fft_map_mfodfc = mc_diff.fft_map(
-            crystal_gridding=self.crystal_gridding, resolution_factor=0.25
-        ).apply_sigma_scaling()
-        iotbx.map_tools.write_ccp4_map(
-            sites_cart=self.sites_cart,
-            unit_cell=fft_map_mfodfc.unit_cell(),
-            map_data=fft_map_mfodfc.real_map(),
-            n_real=fft_map_mfodfc.n_real(),
-            buffer=5.0,
-            file_name=self.ccp4_name_FoFc,
-        )
-
-        # fft_map_mfodfc.as_xplor_map(file_name = self.xplor_name_FoFc)
-        # Next is how xplor map are calculated in mtz2map although sites_cart are extracted from a pdb instead of fmodel. In our case coordinates are fractional and hence it is not working
-        mmtbx.maps.utils.write_xplor_map(
-            sites_cart=self.sites_cart,
-            unit_cell=fft_map_mfodfc.unit_cell(),
-            map_data=fft_map_mfodfc.real_map(),
-            n_real=fft_map_mfodfc.n_real(),
-            buffer=5.0,
-            file_name=self.xplor_name_FoFc,
-        )
-
     def ccp4_mapcoefs(self, mc_map, mc_diff):
         """
         Generate ccp4 files with map coefficients. First file is 2mFo-DFc type, second file is mFo-DFc type
         resolution factor =0.25 and buffer = 5.0 default values in mtz2map
-        Same as ccp4_xplor_mapcoefs but no calculation of xplor maps
+        No calculation of xplor maps
         """
         # Calculate 2mFo-DFc type of map
         fft_map_2mfodfc = mc_map.fft_map(
@@ -2209,7 +1839,7 @@ class Filesandmaps:
             file_name=ccp4_name,
         )
 
-        return mtz_name, ccp4_name  # , xplor_name
+        return mtz_name, ccp4_name
 
     def write_Fextr_maps(self, fill_missing=True):
         """
@@ -2229,27 +1859,28 @@ class Filesandmaps:
         fmodel_update = self.fmodel.deep_copy()
         print("\nUpdating scales for map calculations, can take a few minutes")
         try:
-            fmodel_update.update_all_scales(
-                remove_outliers=False, log=sys.stdout
-            )  # need update_all in order to update alpha
+            # need update_all in order to update alpha
+            fmodel_update.update_all_scales(remove_outliers=False, log=sys.stdout)
             fmodel_update.show()
         except RuntimeError:
             print(
                 "The model-based structure factors could not be scaled using the fast method. Try again with slow method"
             )
+            # need update_all in order to update alpha
             fmodel_update.update_all_scales(
                 remove_outliers=False, log=sys.stdout, fast=False
-            )  # need update_all in order to update alpha
+            )
             fmodel_update.show()
-        edm = mmtbx.map_tools.electron_density_map(
-            fmodel=fmodel_update
-        )  # electron density map object created
+        # electron density map object created
+        edm = mmtbx.map_tools.electron_density_map(fmodel=fmodel_update)
+        # mfodfc mapcoefs defined
         mc_mfodfc = edm.map_coefficients(
             map_type="mfo-dfc", isotropize=True, fill_missing=False
-        )  # mfodfc mapcoefs defined
+        )
+        # 2mfodfc mapcoefs defined
         mc_2mfodfc = edm.map_coefficients(
             map_type="2mfo-dfc", isotropize=True, fill_missing=fill_missing
-        )  # 2mfodfc mapcoefs defined
+        )
         self.mtz_mapcoefs(mc_2mfodfc, mc_mfodfc)
         self.ccp4_mapcoefs(mc_2mfodfc, mc_mfodfc)
 
@@ -2268,36 +1899,34 @@ class Filesandmaps:
         )
         self.ccp4_name_2FoFc = "%s_2m%s-DFc.ccp4" % (self.prefix, self.maptype)
         self.ccp4_name_FoFc = "%s_m%s-DFc.ccp4" % (self.prefix, self.maptype)
-        # self.xplor_name_2FoFc = '%s_2m%s-DFc.map' %(self.prefix, self.maptype)
-        # self.xplor_name_FoFc  = '%s_m%s-DFc.map' %(self.prefix, self.maptype)
 
         self.mtz_file_Fs()
 
         fmodel_update = self.fmodel.deep_copy()
         print("\nUpdating scales for map calculations, can take a few minutes")
         try:
-            fmodel_update.update_all_scales(
-                remove_outliers=False, log=sys.stdout
-            )  # need update_all in order to update alpha
+            # need update_all in order to update alpha
+            fmodel_update.update_all_scales(remove_outliers=False, log=sys.stdout)
             fmodel_update.show()
         except RuntimeError:
             print(
                 "The model-based structure factors could not be scaled using the fast method. Try again with slow method"
             )
+            # need update_all in order to update alpha
             fmodel_update.update_all_scales(
                 remove_outliers=False, log=sys.stdout, fast=False
-            )  # need update_all in order to update alpha
+            )
             fmodel_update.show()
-        # fmodel_update.update(f_obs=self.fmodel.f_obs()) #to avoid Fextr being altered
-        edm = mmtbx.map_tools.electron_density_map(
-            fmodel=fmodel_update
-        )  # electron density map object created
+        # electron density map object created
+        edm = mmtbx.map_tools.electron_density_map(fmodel=fmodel_update)
+        # mfodfc mapcoefs defined
         mc_mfodfc = edm.map_coefficients(
             map_type="mfo-dfc", isotropize=True, fill_missing=False
-        )  # mfodfc mapcoefs defined
+        )
+        # 2mfodfc mapcoefs defined
         mc_2mfodfc = edm.map_coefficients(
             map_type="2mfo-dfc", isotropize=True, fill_missing=fill_missing
-        )  # 2mfodfc mapcoefs defined
+        )
         self.mtz_mapcoefs(mc_2mfodfc, mc_mfodfc)
         self.ccp4_mapcoefs(mc_2mfodfc, mc_mfodfc)
 
@@ -2318,17 +1947,17 @@ class Filesandmaps:
         fmodel_update = self.fmodel.deep_copy()
         print("\nUpdating scales for map calculations, can take a few minutes")
         try:
-            fmodel_update.update_all_scales(
-                remove_outliers=False, log=sys.stdout
-            )  # need update all in order to update alpha
+            # need update all in order to update alpha
+            fmodel_update.update_all_scales(remove_outliers=False, log=sys.stdout)
             fmodel_update.show()
         except RuntimeError:
             print(
                 "The model-based structure factors could not be scaled using the fast method. Try again with slow method"
             )
+            # need update all in order to update alpha
             fmodel_update.update_all_scales(
                 remove_outliers=False, log=sys.stdout, fast=False
-            )  # need update all in order to update alpha
+            )
             fmodel_update.show()
         fmodel_update.update(f_obs=self.fmodel.f_obs())  # to avoid Fextr being altered
         edm = map_tools_fomsource.electron_density_map(
@@ -2387,14 +2016,11 @@ def run(args):
     log_dir = os.getcwd()
 
     # Extract input from inputfile and command line
-    argument_interpreter = master_phil.command_line_argument_interpreter(
-        home_scope="input"
-    )
+    master_phil.command_line_argument_interpreter(home_scope="input")
     input_objects = iotbx.phil.process_command_line_with_files(
         args=args, master_phil=master_phil
     )
     params = input_objects.work.extract()
-    # modified_phil = master_phil.format(python_object=params)
 
     remarks = []
     # Check if non-phenix programs can be found:
@@ -2599,7 +2225,7 @@ def run(args):
         params.occupancies.list_occ = None
     else:
         params.occupancies.list_occ = occ_lst
-    ################################################################
+
     if len(remarks) > 0:
         print("-----------------------------------------", file=log)
         print("REMARKS", file=log)
@@ -2610,7 +2236,6 @@ def run(args):
         print("REMARKS")
         print("-----------------------------------------")
         print("\n".join(remarks))
-        #############################################################
 
     # Add all arguments to log-file
     print("-----------------------------------------", file=log)
@@ -2622,13 +2247,11 @@ def run(args):
     print("-----------------------------------------")
 
     modified_phil = master_phil.format(python_object=params)
-    # modified_phil.show(out=log)
     # get the differences with the default values and only show these in the log-file
     diff_phil = master_phil.fetch_diff(source=modified_phil)
     diff_phil.show()
     diff_phil.show(out=log)
 
-    ################################################################
     print("-----------------------------------------")
     print("DATA PREPARATION")
     print("-----------------------------------------")
@@ -2685,12 +2308,11 @@ def run(args):
     params.input.reference_mtz = os.path.abspath(DH.mtz_off)
     params.input.triggered_mtz = os.path.abspath(DH.mtz_on)
     params.output.outdir = DH.outdir  # This should already be the absolute path
-    params.input.additional_files = list(
-        map(lambda x: os.path.abspath(x), params.input.additional_files)
-    )
+    params.input.additional_files = [
+        os.path.abspath(x) for x in params.input.additional_files
+    ]
 
     # change to output directory
-    startdir = os.getcwd()
     outdir = DH.outdir
     os.chdir(outdir)
 
@@ -2810,7 +2432,7 @@ def run(args):
     if params.scaling.b_scaling != "no":
         print("Updating all fmodel scales.")
         try:
-            DH.fmodel.update_all_scales(show=True)  # , log=log)
+            DH.fmodel.update_all_scales(show=True)
         except RuntimeError:
             print(
                 "Fast method failed. Try again with slow method. This may lead to wrong scaling."
@@ -2838,7 +2460,6 @@ def run(args):
                 fast=False,
                 show=True,
             )
-    # DH.fmodel.show()
     DH.fmodel.info().show_rfactors_targets_scales_overall(out=sys.stdout)
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model")
     print("R_work:", DH.fmodel.r_work())
@@ -2846,9 +2467,8 @@ def run(args):
     print("Fobs,reference and Fcalc,reference scaled using mmtbx f_model", file=log)
     print("R_work:", DH.fmodel.r_work(), file=log)
     print("R_free:", DH.fmodel.r_free(), file=log)
-    DH.fobs_on = DH.get_common_indices_and_Fobs_off(
-        DH.fobs_on
-    )  # compare reflections and reassemble off_state data set after scaling of f_obs_off
+    # compare reflections and reassemble off_state data set after scaling of f_obs_off
+    DH.fobs_on = DH.get_common_indices_and_Fobs_off(DH.fobs_on)
     print("----Scaling Ftriggered with Freference----", file=log)
     print("----Scaling Ftriggered with Freference----")
     DH.scale_fobss(
@@ -2859,12 +2479,10 @@ def run(args):
     # update the parameters so that they appear correct in the output phil files
     params.scaling.high_resolution = DH.scaling_dmin
     params.scaling.low_resolution = DH.scaling_dmax
-    DH.fobs_on_scaled = DH.get_common_indices_and_Fobs_off(
-        DH.fobs_on_scaled
-    )  # compare reflections and reassemble off_state data set after scaling of f_obs_on
-    DH.update_fmodel(
-        DH.fobs_off_scaled
-    )  # alter fmodel to remove reflections that were removed during fobs_on scaling
+    # compare reflections and reassemble off_state data set after scaling of f_obs_on
+    DH.fobs_on_scaled = DH.get_common_indices_and_Fobs_off(DH.fobs_on_scaled)
+    # alter fmodel to remove reflections that were removed during fobs_on scaling
+    DH.update_fmodel(DH.fobs_off_scaled)
     riso, cciso = compute_r_factors(
         DH.fobs_off_scaled, DH.fobs_on_scaled, DH.rfree, log=log
     )
@@ -2926,8 +2544,6 @@ def run(args):
         DH.fmodel, DH.rfree, outname, qweighting=qFoFo_weight, kweighting=kFoFo_weight
     )
 
-    ################################################################
-
     # Use ccp4 map to find and integrate the peaks, annotate the peaks to residues and keep a list with the most important residues only based on a user-defined Z-score level
     print("\n************Map explorer************", file=log)
     print("\n************Map explorer************")
@@ -2941,7 +2557,6 @@ def run(args):
         params.map_explorer.peak_detection_threshold,
         params.map_explorer.z_score,
     )
-    # residlist_zscore  = Map_explorer_analysis(peakintegration_file = map_expl_out_FoFo,log=log).residlist_top(Z=params.map_explorer.z_score)
     print(
         "FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
         % (map_expl_out_FoFo, residlist_zscore),
@@ -2951,7 +2566,6 @@ def run(args):
         "FoFo map explored. Results in %s, residue list in residlist.txt and residues associated to highestpeaks in %s\n"
         % (map_expl_out_FoFo, residlist_zscore)
     )
-    # print('---------------------------')
     map_expl_out_FoFo = os.path.abspath(check_file_existance(map_expl_out_FoFo))
     residlist_zscore = os.path.abspath(check_file_existance(residlist_zscore))
 
@@ -2962,7 +2576,6 @@ def run(args):
         ligands=DH.extract_ligand_codes(),
         log=log,
     ).get_ss(DH.pdb_in)
-    # print('---------------------------')
 
     # Set parameter for whether or not q_weighting is applied on the FoFo calculation. This will be used later in extrapolated map calculation.
     # k-weighting is not yet set, this might pose problems
@@ -2996,7 +2609,7 @@ def run(args):
             )
             tr = [
                 os.path.join(root, fle)
-                for root, dirs, files in os.walk(outdir)
+                for root, _, files in os.walk(outdir)
                 for fle in files
                 if outname in fle
             ]
@@ -3024,7 +2637,6 @@ def run(args):
 
         sys.exit()
 
-    ################################################################
     print("-----------------------------------------")
     print("CALCULATE (Q/K-WEIGHTED) FEXTRAPOLATED MAPS")
     print("-----------------------------------------")
@@ -3103,7 +2715,7 @@ def run(args):
         os.remove("%s/pymol_movie.py" % (outdir))
 
     fofo_data = ccp4_map.map_reader(file_name=FoFo.ccp4_name).data.as_numpy_array()
-    ################################################################
+
     # Loop over occupancies and calculate extrapolated structure factors
     for occ in params.occupancies.list_occ:
         Fextr = Fextrapolate(
@@ -3449,7 +3061,6 @@ def run(args):
             print("\n---> Results in %s" % (os.getcwd()))
             print("------------------------------------")
 
-        ################################################################
         # remove empty directories to avoid any confusion. secure because os.rmdir can only remove empty directories.
         if len(os.listdir(new_dirpath_q)) == 0:
             os.rmdir(new_dirpath_q)
@@ -3466,21 +3077,17 @@ def run(args):
 
     # free some memory by deleting the fofo_map
     del fofo_data
-    ################################################################
+
     # Repeat the last step in order to make sure we have all plots correctly
     # Go back to output directory and generate the plots from the pickle files
     os.chdir(outdir)
     plot_Fextr_sigmas()
-    # plot_sigmas(maptype_lst=list(map(lambda x: re.sub(r"\_map$", "", x), final_maptypes)))
     plot_negative_reflections()
-
-    # plot_correlations(params.occupancies.list_occ, cc_list)
 
     print("-----------------------------------------")
     print("CALCULATE (Q/K-WEIGHTED) FEXTRAPOLATED MAPS DONE")
     print("-----------------------------------------")
 
-    ################################################################
     print("ESTIMATE OPTIMAL OCCUPANCY")
     print("-----------------------------------------")
 
@@ -3500,7 +3107,6 @@ def run(args):
         % (residlst)
     )
 
-    ################################################################
     # occupancy estimation will be performed for all map types, but the final automatic descision will be based on a priority list.
     # This means that if maptypes Fextr and qFextr are selected, the output of qFextr will have priority.
     # Therefore, here we loop over the maptypes in a reversed order to
@@ -3619,8 +3225,7 @@ def run(args):
             # Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             # This assumption is made in order to avoid storing the log-files in even another list
             plot_Rfactors_per_alpha(
-                list(map(lambda fle: re.sub(r"mtz$", "log", fle), recref_mtz_lst)),
-                mp_type,
+                [re.sub(r"mtz$", "log", fle) for fle in recref_mtz_lst], mp_type
             )
             print("", file=log)
             print("")
@@ -3654,7 +3259,6 @@ def run(args):
                     outsuffix=mp_type,
                     log=log,
                 ).extract_alpha()
-            # print("---------", file=log)
             print("", file=log)
             print("")
 
@@ -3666,69 +3270,47 @@ def run(args):
             if (
                 outname == "triggered"
             ):  # if dummy name applied, the files still contain the dummy name
-                pymol_mtz_list = list(
-                    map(
-                        lambda fle: re.sub(r"triggered", params.output.outname, fle),
-                        pymol_mtz_list,
-                    )
-                )
-                pymol_pdb_list = list(
-                    map(
-                        lambda fle: re.sub(r"triggered", params.output.outname, fle),
-                        pymol_pdb_list,
-                    )
-                )
+                pymol_mtz_list = [
+                    re.sub(r"triggered", params.output.outname, fle)
+                    for fle in pymol_mtz_list
+                ]
+                pymol_pdb_list = [
+                    re.sub(r"triggered", params.output.outname, fle)
+                    for fle in pymol_pdb_list
+                ]
             # Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
             # Otherwise use the real space refined models + direct maps
             if pdb_list == recrealref_lst:
-                ccp4_list = list(
-                    map(
-                        lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle),
-                        pymol_mtz_list,
-                    )
-                )
+                ccp4_list = [
+                    re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle)
+                    for fle in pymol_mtz_list
+                ]
                 model_label = "%s_reciprocal_real_space" % (mp_type)
                 ccp4_map_label = "%s_reciprocal_space" % (mp)
-                # Pymol_movie(params.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list, resids_lst = residlst, model_label='%s_reciprocal_real_space'%(mp_type), ccp4_map_label='%s_reciprocal_space'%(mp)).write_pymol_script()
             else:
                 if mp == "qFgenick_map":
-                    ccp4_list = list(
-                        map(
-                            lambda fle: re.search(
-                                "(.+?)2mqFgenick-DFc_reciprocal", fle
-                            ).group(1)
-                            + "mqFgenick-DFc.ccp4",
-                            pymol_mtz_list,
-                        )
-                    )
+                    ccp4_list = [
+                        re.search("(.+?)2mqFgenick-DFc_reciprocal", fle).group(1)
+                        + "mqFgenick-DFc.ccp4"
+                        for fle in pymol_mtz_list
+                    ]
                 elif mp == "kFgenick_map":
-                    ccp4_list = list(
-                        map(
-                            lambda fle: re.search(
-                                "(.+?)2mkFgenick-DFc_reciprocal", fle
-                            ).group(1)
-                            + "mkFgenick-DFc.ccp4",
-                            pymol_mtz_list,
-                        )
-                    )
+                    ccp4_list = [
+                        re.search("(.+?)2mkFgenick-DFc_reciprocal", fle).group(1)
+                        + "mkFgenick-DFc.ccp4"
+                        for fle in pymol_mtz_list
+                    ]
                 elif mp == "Fgenick_map":
-                    ccp4_list = list(
-                        map(
-                            lambda fle: re.search(
-                                "(.+?)2mFgenick-DFc_reciprocal", fle
-                            ).group(1)
-                            + "mFgenick-DFc.ccp4",
-                            pymol_mtz_list,
-                        )
-                    )
+                    ccp4_list = [
+                        re.search("(.+?)2mFgenick-DFc_reciprocal", fle).group(1)
+                        + "mFgenick-DFc.ccp4"
+                        for fle in pymol_mtz_list
+                    ]
                 else:
-                    ccp4_list = list(
-                        map(
-                            lambda fle: re.search(r"(.+?)\_reciprocal", fle).group(1)
-                            + ".ccp4",
-                            pymol_mtz_list,
-                        )
-                    )
+                    ccp4_list = [
+                        re.search("(.+?)_reciprocal", fle).group(1) + ".ccp4"
+                        for fle in pymol_mtz_list
+                    ]
                 model_label = "%s_real_space" % (mp_type)
                 ccp4_map_label = "%s" % (mp)
             if (
@@ -3881,7 +3463,6 @@ def run(args):
     print("ESTIMATE OPTIMAL OCCUPANCY DONE")
     print("-----------------------------------------")
 
-    ################################################################
     # Run refinements for chosen occupancy when in faf mode (as no refinement has yet run):
     # 1) move to directory where refinements have to be run
     # 2) find correct input files
@@ -4005,7 +3586,6 @@ def run(args):
         pickle.dump(occ_overview, occ_pickle)
         occ_pickle.close()
 
-    ################################################################
     # Make sure we are in the output directory
     if os.getcwd() != outdir:
         os.chdir(outdir)
@@ -4019,7 +3599,7 @@ def run(args):
         )
         tr = [
             os.path.join(root, fle)
-            for root, dirs, files in os.walk(outdir)
+            for root, _, files in os.walk(outdir)
             for fle in files
             if outname in fle
         ]
@@ -4028,7 +3608,7 @@ def run(args):
 
         coot_scripts = [
             os.path.join(root, fle)
-            for root, dirs, files in os.walk(outdir)
+            for root, _, files in os.walk(outdir)
             for fle in files
             if fle.startswith("coot_all_")
         ]
@@ -4050,24 +3630,6 @@ def run(args):
     # Make a list of all temporal files. Upon their removal disk space can be saved
     list_redundant_files(outdir)
 
-    #################################################################
-    # print('-----------------------------------------', file=log)
-    # print("WRITE PYMOL AND COOT SCRIPTS", file=log)
-    # print('-----------------------------------------', file=log)
-
-    ##The pymol movie script is already made
-    # print("pymol movie with models and maps in %s/pymol_movie.py. Run from terminal or pymol command line"%(outdir), file=log)
-
-    ##The pymol script with just all models and maps is still missing
-    ##This script is not working properly and models and maps are in wrong session subfolers or even missing
-    # pymol_script = Pymol_visualization(DH.pdb_in, outdir).open_all_in_pymol()
-    # print("pymol script with all models written in %s/%s. Can be run from a terminal with 'Pymol %s/%s' if Pymol is in your PATH or 'run %s/%s'from a pymol command line"%(outdir, pymol_script, outdir, pymol_script, outdir, pymol_script), file=log)
-
-    # print('-----------------------------------------', file=log)
-    # print("WRITE PYMOL AND COOT SCRIPTS DONE", file=log)
-    # print('-----------------------------------------', file=log)
-
-    ################################################################
     # Write a phil file. Parameters changed during the excecution of Xtrapol8 are possible when problems appeared
     if params.f_and_maps.negative_and_missing == "fill_missing":
         params.f_and_maps.negative_and_missing = "keep_and_fill"
@@ -4107,8 +3669,6 @@ def run(args):
 
     if params.output.open_coot and shutil.which("coot"):
         os.system("coot --script %s" % (script_coot))
-
-    ################################################################
 
 
 def main():
