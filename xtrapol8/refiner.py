@@ -68,6 +68,7 @@ import re
 import shutil
 import sys
 from datetime import datetime
+from uuid import uuid4
 
 import iotbx.phil
 from iotbx.file_reader import any_file
@@ -699,17 +700,6 @@ class Refiner:
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
 
-def generate_log_name(time_stamp):
-    """
-    Generate a unique name for the Xtrapol8 logfile.
-    A short uuid of 20 characters is added to the logfile name.
-    """
-    uuid = get_unique_id(36)
-    logname = "%s_Xtrapol8_refinements_%s.log" % (time_stamp, uuid)
-
-    return logname
-
-
 def remove_unique_id_from_log(log_name):
     """
     Remove the unqiue sequence from the log file
@@ -724,7 +714,7 @@ def remove_unique_id_from_log(log_name):
 def run(args):
     now = datetime.now().strftime("%Y-%m-%d_%Hh%M")
     # Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
-    logname = generate_log_name(now)
+    logname = f"{now}_Xtrapol8_refinements_{uuid4()}.log"
     global log
     log = open(logname, "w")
 

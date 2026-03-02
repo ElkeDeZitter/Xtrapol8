@@ -77,6 +77,7 @@ import re
 import shutil
 import sys
 from datetime import datetime
+from uuid import uuid4
 
 import iotbx.map_tools
 import iotbx.phil
@@ -2004,7 +2005,7 @@ def run(args):
         sys.exit()
 
     # Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
-    logname = generate_log_name(now)
+    logname = f"{now}_Xtrapol8_{uuid4()}.log"
     global log
     log = open(logname, "w")
     print("Xtrapol8 -- version %s -- run date: %s" % (__version__, now), file=log)

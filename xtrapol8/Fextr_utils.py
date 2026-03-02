@@ -21,7 +21,6 @@ import pickle
 import re
 import shutil
 import sys
-import uuid
 from pathlib import Path
 
 import cctbx
@@ -48,26 +47,6 @@ def get_cctbx_version():
     """
     version = cctbx.__version__
     return version
-
-
-def get_unique_id(id_length=20):
-    """
-    Function to get a unique id based on UUID with length id_length
-    """
-    if id_length > 36:
-        id_length == 36
-    return str(uuid.uuid4())[:id_length]
-
-
-def generate_log_name(time_stamp):
-    """
-    Generate a unique name for the Xtrapol8 logfile.
-    A short uuid of 20 characters is added to the logfile name.
-    """
-    uuid = get_unique_id(36)
-    logname = "%s_Xtrapol8_%s.log" % (time_stamp, uuid)
-
-    return logname
 
 
 def remove_unique_id_from_log(log_name):
