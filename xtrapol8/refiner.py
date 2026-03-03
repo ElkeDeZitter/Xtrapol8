@@ -315,16 +315,9 @@ class Refiner:
         except AttributeError:
             outprefix = "%s_independent_reciprocal_space" % (mtz_name)
 
-        # Specify phenix version dependent parameters
-        phenix_version, phenix_subversion = get_phenix_subversion()
-        print("Phenix version: %s" % (phenix_version))
-
-        if phenix_subversion <= 20:
-            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1 "
-        else:  # phenix version 1.21
-            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
-            # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
-            # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
+        r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1 "
+        # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
+        # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
         reciprocal = subprocess.call(
             "phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true refinement.main.scattering_table=%s "
@@ -460,16 +453,8 @@ class Refiner:
 
         mtz_name = get_name(mtz_in)
 
-        # Specify phenix version dependent parameters
-        phenix_version, phenix_subversion = get_phenix_subversion()
-        print("Phenix version: %s" % (phenix_version))
-
-        if phenix_subversion >= 19:
-            output_prefix = "output.prefix=%s_independent" % (mtz_name)
-            model_format = "model_format=pdb"
-        else:
-            output_prefix = "output.file_name_prefix=%s_independent" % (mtz_name)
-            model_format = "output.model_format=pdb"
+        output_prefix = "output.prefix=%s_independent" % (mtz_name)
+        model_format = "model_format=pdb"
 
         real = subprocess.call(
             "phenix.real_space_refine %s %s %s %s %s %s label='%s' scattering_table=%s"
@@ -487,28 +472,14 @@ class Refiner:
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
-            if phenix_subversion >= 19:
-                try:
-                    pdb_fles = glob.glob(
-                        "%s_independent_real_space_refined_???.pdb" % (mtz_name)
-                    )
-                    # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(mtz_name) in
-                    #            fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_independent_real_space_refined_000.pdb" % (mtz_name)
-            else:
-                try:
-                    pdb_fles = glob.glob(
-                        "%s_independent_real_space_refined.pdb" % (mtz_name)
-                    )
-                    # [fle for fle in os.listdir(os.getcwd()) if
-                    #            "%s_independent_real_space_refined" % (mtz_name) in fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_independent_real_space_refined.pdb" % (mtz_name)
+            try:
+                pdb_fles = glob.glob(
+                    "%s_independent_real_space_refined_???.pdb" % (mtz_name)
+                )
+                pdb_fles.sort()
+                outpdb = pdb_fles[-1]
+            except IndexError:
+                outpdb = "%s_independent_real_space_refined_000.pdb" % (mtz_name)
         else:  # not correctly finished
             outpdb = "not_a_file"
 
@@ -523,16 +494,8 @@ class Refiner:
 
         ccp4_name = get_name(ccp4_in)
 
-        # Specify phenix version dependent parameters
-        phenix_version, phenix_subversion = get_phenix_subversion()
-        print("Phenix version: %s" % (phenix_version))
-
-        if phenix_subversion >= 19:
-            output_prefix = "output.prefix=%s_independent" % (ccp4_name)
-            model_format = "model_format=pdb"
-        else:
-            output_prefix = "output.file_name_prefix=%s_independent" % (ccp4_name)
-            model_format = "output.model_format=pdb"
+        output_prefix = "output.prefix=%s_independent" % (ccp4_name)
+        model_format = "model_format=pdb"
 
         # launch phenix.real_space_refine
         real = subprocess.call(
@@ -551,28 +514,14 @@ class Refiner:
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
-            if phenix_subversion >= 19:
-                try:
-                    pdb_fles = glob.glob(
-                        "%s_independent_real_space_refined_???.pdb" % (ccp4_name)
-                    )
-                    # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(ccp4_name) in
-                    #            fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_independent_real_space_refined_000.pdb" % (ccp4_name)
-            else:
-                try:
-                    pdb_fles = glob.glob(
-                        "%s_independent_real_space_refined.pdb" % (ccp4_name)
-                    )
-                    # [fle for fle in os.listdir(os.getcwd()) if
-                    #            "%s_independent_real_space_refined" % (ccp4_name) in fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_independent_real_space_refined.pdb" % (ccp4_name)
+            try:
+                pdb_fles = glob.glob(
+                    "%s_independent_real_space_refined_???.pdb" % (ccp4_name)
+                )
+                pdb_fles.sort()
+                outpdb = pdb_fles[-1]
+            except IndexError:
+                outpdb = "%s_independent_real_space_refined_000.pdb" % (ccp4_name)
         else:  # not correctly finished
             outpdb = "not_a_file"
 

@@ -33,7 +33,7 @@ from iotbx.file_reader import any_file
 from libtbx import adopt_init_args
 from mmtbx.scaling.matthews import p_vm_calculator
 
-from .Fextr_utils import get_name, get_phenix_subversion
+from .Fextr_utils import get_name
 from .programs.dm import dm
 from .programs.fft import fft
 from .programs.refmac import refmac_for_dm
@@ -69,9 +69,6 @@ class Phenix_reciprocal_space_refinement:
             self.params = ""
 
         self.mtz_name = get_name(self.mtz_in)
-
-        # get phenix subversion, important since syntax can differ between versions
-        self.phenix_subversion = get_phenix_subversion()[1]
 
     def reciprocal_space_refinement(self):
         "run phenix.refine"
@@ -126,12 +123,9 @@ class Phenix_reciprocal_space_refinement:
                 % (self.weight_sel_crit.r_free_minus_r_work)
             )
 
-        if self.phenix_subversion <= 20:
-            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
-        else:  # phenix version 1.21
-            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1"
-            # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
-            # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
+        r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1"
+        # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
+        # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
         reciprocal = subprocess.call(
             "phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
@@ -304,7 +298,6 @@ class Phenix_real_space_refinement:
         log=sys.stdout,
     ):
         adopt_init_args(self, locals())
-        self.phenix_subversion = get_phenix_subversion()[1]
 
     def check_mtz_column(self, mtz_in, column_labels):
         """
@@ -372,25 +365,12 @@ class Phenix_real_space_refinement:
             )
             print("{:s}: columns {:s} will be used".format(mtz_in, column_labels))
 
-        # Phenix version dependent parameters
-        if self.phenix_subversion >= 18:
-            rotamer_restraints = (
-                "rotamers.restraints.enabled=False"  # rotamers.fit=all?
-            )
-        else:
-            rotamer_restraints = "rotamer_restraints=False"
+        rotamer_restraints = "rotamers.restraints.enabled=False"  # rotamers.fit=all?
 
         prefix = "%s_phenix" % (mtz_name)
-        if self.phenix_subversion >= 19:
-            output_prefix = "output.prefix=%s" % (prefix)
-            model_format = "model_format=pdb"
-            # outpdb        = "%s_real_space_refined_000.pdb"%(mtz_name)
-            ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
-        else:
-            output_prefix = "output.file_name_prefix=%s" % (prefix)
-            model_format = "output.model_format=pdb"
-            # outpdb        = "%s_real_space_refined.pdb"%(mtz_name)
-            ramachandran_restraints = "ramachandran_restraints=False"
+        output_prefix = "output.prefix=%s" % (prefix)
+        model_format = "model_format=pdb"
+        ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
 
         additional_keywords_line = ""
         if len(self.additional_real_keywords) > 0:
@@ -417,24 +397,12 @@ class Phenix_real_space_refinement:
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
-            if self.phenix_subversion >= 19:
-                try:
-                    pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
-                    # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(mtz_name) in
-                    #            fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_real_space_refined_000.pdb" % (prefix)
-            else:
-                try:
-                    pdb_fles = glob.glob("%s_real_space_refined.pdb" % (prefix))
-                    # [fle for fle in os.listdir(os.getcwd()) if
-                    #            "%s_independent_real_space_refined" % (mtz_name) in fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_real_space_refined.pdb" % (prefix)
+            try:
+                pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
+                pdb_fles.sort()
+                outpdb = pdb_fles[-1]
+            except IndexError:
+                outpdb = "%s_real_space_refined_000.pdb" % (prefix)
         else:  # not correctly finished
             outpdb = "not_a_file"
 
@@ -451,24 +419,12 @@ class Phenix_real_space_refinement:
 
         # Specify phenix version dependent parameters
 
-        if self.phenix_subversion >= 18:
-            rotamer_restraints = (
-                "rotamers.restraints.enabled=False"  # rotamers.fit=all?
-            )
-        else:
-            rotamer_restraints = "rotamer_restraints=False"
+        rotamer_restraints = "rotamers.restraints.enabled=False"  # rotamers.fit=all?
 
         prefix = "%s_phenix" % (ccp4_name)
-        if self.phenix_subversion >= 19:
-            output_prefix = "output.prefix=%s" % (prefix)
-            model_format = "model_format=pdb"
-            # outpdb        = "%s_real_space_refined_000.pdb"%(ccp4_name)
-            ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
-        else:
-            output_prefix = "output.file_name_prefix=%s" % (prefix)
-            model_format = "output.model_format=pdb"
-            # outpdb        = "%s_real_space_refined.pdb"%(ccp4_name)
-            ramachandran_restraints = "ramachandran_restraints=False"
+        output_prefix = "output.prefix=%s" % (prefix)
+        model_format = "model_format=pdb"
+        ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
 
         additional_keywords_line = ""
         if len(self.additional_real_keywords) > 0:
@@ -495,24 +451,12 @@ class Phenix_real_space_refinement:
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
-            if self.phenix_subversion >= 19:
-                try:
-                    pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
-                    # [fle for fle in os.listdir(os.getcwd()) if "%s_independent_real_space_refined_0"%(ccp4_name) in
-                    #            fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_real_space_refined_000.pdb" % (prefix)
-            else:
-                try:
-                    pdb_fles = glob.glob("%s_real_space_refined.pdb" % (prefix))
-                    # [fle for fle in os.listdir(os.getcwd()) if
-                    #            "%s_independent_real_space_refined" % (prefix) in fle and fle.endswith('pdb')]
-                    pdb_fles.sort()
-                    outpdb = pdb_fles[-1]
-                except IndexError:
-                    outpdb = "%s_real_space_refined.pdb" % (prefix)
+            try:
+                pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
+                pdb_fles.sort()
+                outpdb = pdb_fles[-1]
+            except IndexError:
+                outpdb = "%s_real_space_refined_000.pdb" % (prefix)
         else:  # not correctly finished
             outpdb = "not_a_file"
 

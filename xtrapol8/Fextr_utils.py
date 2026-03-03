@@ -66,22 +66,6 @@ def get_phenix_version():
     return "Phenix not found"
 
 
-def get_phenix_subversion():
-    """
-    Weird construction to get the phenix version.
-    This is required since some parameter names change between versions.
-    """
-    # Get phenix subversion, important since syntax can differ between versions
-    version = get_phenix_version()
-    try:
-        subversion = int(version[2:4])
-    except ValueError:
-        # Nightly versions can have no number (phenix-dev versions).
-        # Assume latest version so put number high.
-        subversion = 100
-    return version, subversion
-
-
 def get_ccp4_version():
     "Get the ccp4 version."
     if clib := os.environ.get("CLIB"):
