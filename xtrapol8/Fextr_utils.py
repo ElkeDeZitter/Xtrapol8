@@ -110,14 +110,6 @@ def convert_bytes(num):
         num /= 1024.0
 
 
-def phenix_version_from_logfile(logfile):
-    with open(logfile) as l:
-        fle = l.read().split("\n")
-    V_lne = [lne for lne in fle if "Version" in lne][0]
-    version = int(re.search(r"Version: 1\.(.+)\.", V_lne).group(1))
-    return version
-
-
 def get_name(fle):
     """
     Get the name of the file without the path and format
