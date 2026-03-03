@@ -154,7 +154,7 @@ class Phenix_reciprocal_space_refinement:
                 sim_annealing,
                 additional_keywords_line,
             )
-        )  # wxc_scale=0.021 #target_weights.optimize_xyz_weight=True
+        )
 
         # Find output files, automatically
         if (

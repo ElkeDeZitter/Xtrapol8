@@ -58,17 +58,15 @@ class combine:
         self.f_obs = None
         self.f_model = None
         if not self.mnm.ml_map:
-            self.f_obs = (
-                self.fmodel_1.f_obs().data() * fo_scale
-            )  # calculation of fo_scale*Fo
+            # calculation of fo_scale*Fo
+            self.f_obs = self.fmodel_1.f_obs().data() * fo_scale
         else:
             if self.mch_1 is None:
                 self.mch_1 = self.fmodel_1.map_calculation_helper()
             if self.mch_2 is None:
                 self.mch_2 = self.fmodel_2.map_calculation_helper()
-        self.f_obs = (
-            self.mch_1.f_obs.data() * fo_scale * self.mch_2.fom
-        )  # calculation of fo_scale*m*Fo
+        # calculation of fo_scale*m*Fo
+        self.f_obs = self.mch_1.f_obs.data() * fo_scale * self.mch_2.fom
 
     def map_coefficients(self, f_model=None):
         def compute(fo, fc, miller_set):
@@ -83,24 +81,24 @@ class combine:
         if f_model is None:
             if not self.mnm.ml_map:
                 self.f_model = self.fmodel_1.f_model_scaled_with_k1()
-                f_model_data = (
-                    self.f_model.data() * self.fc_scale
-                )  # calculation of fc_scale*Fc
+                # calculation of fc_scale*Fc
+                f_model_data = self.f_model.data() * self.fc_scale
             else:
                 self.f_model = self.mch_1.f_model
+                # calculation of fc_scale*D*Fc
                 f_model_data = (
                     self.f_model.data() * self.fc_scale * self.mch_1.alpha.data()
-                )  # calculation of fc_scale*D*Fc
+                )
         else:
             self.f_model = f_model
             if not self.mnm.ml_map:
-                f_model_data = (
-                    self.f_model.data() * self.fc_scale
-                )  # calculation of fc_scale*Fc
+                # calculation of fc_scale*Fc
+                f_model_data = self.f_model.data() * self.fc_scale
             else:
+                # calculation of fc_scale*D*Fc
                 f_model_data = (
                     self.f_model.data() * self.fc_scale * self.mch_1.alpha.data()
-                )  # calculation of fc_scale*D*Fc
+                )
         result = compute(
             fo=self.f_obs, fc=f_model_data, miller_set=self.fmodel_1.f_obs()
         )
@@ -132,7 +130,6 @@ class electron_density_map:
         sharp=False,
         pdb_hierarchy=None,  # XXX required for map_type=llg
     ):
-        map_name_manager = mmtbx.map_names(map_name_string=map_type)
         if self.mch_1 is None:
             self.mch_1 = self.fmodel_1.map_calculation_helper()
         if self.mch_2 is None:

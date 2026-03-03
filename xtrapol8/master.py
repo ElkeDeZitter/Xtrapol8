@@ -40,7 +40,7 @@ input{
         .expert_level = 0
     additional_files = None
         .type = path
-        .multiple = True 
+        .multiple = True
         .help = Additional files required for refinement, e.g ligand cif file, restraints file.
         .expert_level = 0
     high_resolution = None
@@ -166,7 +166,7 @@ refinement{
         .help = use Refmac for reciprocal space refinement and COOT for real-space refinement instead of phenix.refine and phenix.real_space_refine. This keyword will becone obsolete in furure Xtrapol8 versions, use reciprocal_space and real_space instead.
         .expert_level = 0
     phenix_keywords{
-            real_space_refine{
+        real_space_refine{
             cycles = 5
             .type = int
             .help = Number of refinement cycles for real space refinement.

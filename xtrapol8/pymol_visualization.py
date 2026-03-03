@@ -17,182 +17,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 -------
 """
 
-import os
-import re
-
 import numpy as np
-
-
-class Pymol_visualization:
-    """
-    class to open all output from Xtrapol8 calculations. Will search in outdir for the FoFo map, extrapolated map coefficients and output of reciprocal and real space refinement.
-    It will only use ccp4 format map files as mtz cannot be loaded in open source pymol. Maps will be loaded but no isomesh or isosurface will be drawn.
-    """
-
-    def __init__(self, pdb_in, outdir):
-        self.pdb_in = pdb_in
-        self.outdir = outdir
-
-    def get_basename(self, fle, extention):
-        if "/" in fle:
-            name = re.search(r"\/(.+?)\.%s" % (extention), fle).group(1).split("/")[-1]
-        else:
-            name = re.sub(r"\.%s" % (extention), "", fle)
-        return name
-
-    def find_fofo(self):
-        """
-        In outdir search for the FoFo maps in ccp4 format
-        """
-        maps = [
-            self.outdir + "/" + fle
-            for fle in os.listdir(self.outdir)
-            if fle.lower().endswith("fofo.ccp4")
-        ]
-        if len(maps) > 1:
-            print("multiple FoFo difference maps found. All will be loaded")
-        return maps
-
-    def find_subdirectories(self):
-        """
-        in outdir find the names of the subd_subdirectories, these will contain the output of the extrapolated structure factor calculations
-        """
-        dirs = [
-            dr
-            for dr in os.listdir(self.outdir)
-            if ("occupancy" in dr and os.path.isdir(self.outdir + "/" + dr))
-        ]
-        return dirs
-
-    def find_extrapolated_maps(self, dr):
-        """
-        In a subdirectory dr from outdir, search for the extrapolated maps in ccp4 format. If we also want to show the output of refinement, then the output should be written into ccp4 format
-        """
-        maps = [
-            self.outdir + "/" + dr + "/" + fle
-            for fle in os.listdir(self.outdir + "/" + dr)
-            if "ccp4" in fle
-        ]
-        return maps
-
-    def extract_maptype_from_ccp4_file(self, file_name):
-        """
-        From the ccp4 file name, extract the maptype. !!! Warning: This is very sensitive to changes to file names!!!!
-        For (q)Fextr and 9q)Fextr_calc names:
-        ccp4_name_2FoFc  = '%s_2m%s-DFc.ccp4' %(prefix, maptype)
-        ccp4_name_FoFc   = '%s_m%s-DFc.ccp4' %(prefix, maptype)
-        for (q)Fgenick names:
-        ccp4_name_2FoFc  = '%s_m%s.ccp4' %(prefix, maptype)
-        ccp4_name_FoFc   = '%s_m%s-DFc.ccp4' %(prefix, maptype)
-        """
-        if "extr" in file_name.lower():
-            try:
-                maptype = re.search(r"2m(.+?)-dfc", file_name.lower()).group(1)
-            except AttributeError:
-                try:
-                    maptype = re.search(r"m(.+?)-dfc", file_name.lower()).group(1)
-                except AttributeError:
-                    return None
-        elif "genick" in file_name.lower():
-            try:
-                maptype = re.search(r"m(.+?)-dfc", file_name.lower()).group(1)
-            except AttributeError:
-                try:
-                    maptype = re.search(r"m(.+?)\.ccp4", file_name.lower()).group(1)
-                except AttributeError:
-                    return None
-        else:  # if not extr or genick in filename
-            maptype = None
-        return maptype
-
-    def extract_maptype_from_pdb_file(self, file_name):
-        """
-        From the pdb file name, extract the maptype. !!! Warning: This is very sensitive to changes to file names!!!!
-        """
-
-        if "extr" in file_name.lower():
-            try:
-                maptype = re.search(r"_m(.+?)-dfc", file_name.lower()).group(1)
-            except AttributeError:
-                return None
-        elif "genick" in file_name.lower():
-            try:
-                maptype = re.search(r"fgenick_m(.+?)-dfc", file_name.lower()).group(1)
-            except AttributeError:
-                return None
-        else:  # if not extr or genick in filename
-            maptype = None
-        return maptype
-
-    def find_real_space_refined_models(self, dr):
-        """
-        In a subdirectory dr from outdir, search for the pdb files which come from the real space refinement into the extrapolated map (no reciprocal space or real space after reciprocal space refinement)
-        """
-        models = [
-            self.outdir + "/" + dr + "/" + fle
-            for fle in os.listdir(self.outdir + "/" + dr)
-            if "pdb" in fle and ("reciprocal" and "refmac") not in fle
-        ]
-        return models
-
-    def open_all_in_pymol(self):
-        """
-        Write script that opens all files defined above. Script can be run using 'Pymol <where/it/is>/pymol_all.py
-        """
-
-        script_pymol = self.outdir + "/pymol_all.py"
-        i = open(script_pymol, "w")
-        i.write("from pymol import cmd\ncmd.set('group_auto_mode', 1)\n")
-
-        # load dark model
-        name_dark = self.get_basename(self.pdb_in, "pdb")
-        i.write("cmd.load('%s','%s')\n" % (self.pdb_in, name_dark))
-
-        # load Fo-Fo difference maps
-        i.write("cmd.group('FoFo_map')\n")
-        for mp in self.find_fofo():
-            name = self.get_basename(mp, "ccp4")
-            i.write("cmd.load('%s', 'FoFo_map.%s')\n" % (mp, name))
-
-        # load extrapolated maps and models
-        for dr in self.find_subdirectories():
-            i.write("cmd.group('%s')\n" % (dr))
-            maptypes = []
-            for mp in self.find_extrapolated_maps(dr):
-                name = self.get_basename(mp, "ccp4")
-                maptype = self.extract_maptype_from_ccp4_file(name)
-                if maptype != None:
-                    if maptype not in maptypes:  # if maptype not in the list yet
-                        i.write(
-                            "cmd.group('%s.%s')\n" % (dr, maptype)
-                        )  # create the subgroup
-                        maptypes.append(
-                            maptype
-                        )  # append to map so that the subgroup will not be re-created
-                    i.write(
-                        "cmd.load('%s', '%s.%s.%s_map')\n" % (mp, dr, maptype, name)
-                    )
-                else:  # maptype could not be extracted
-                    i.write("cmd.load('%s', '%s.%s_map')\n" % (mp, dr, name))
-            for model in self.find_real_space_refined_models(dr):
-                name = self.get_basename(model, "pdb")
-                maptype = self.extract_maptype_from_pdb_file(name)
-                if maptype != None:
-                    if maptype not in maptypes:  # if maptype not in the list yet
-                        i.write(
-                            "cmd.group('%s.%s')\n" % (dr, maptype)
-                        )  # create the subgroup
-                        maptypes.append(
-                            maptype
-                        )  # append to map so that the subgroup will not be re-created
-                    i.write("cmd.load('%s', '%s.%s.%s')\n" % (model, dr, maptype, name))
-                else:  # maptype could not be extracted
-                    i.write("cmd.load('%s', '%s.%s')\n" % (model, dr, name))
-
-        i.write("cmd.center('%s')" % (name_dark))
-
-        i.close()
-        return script_pymol
 
 
 class Pymol_movie:
@@ -314,11 +139,6 @@ class Pymol_movie:
     def show_mesh(self, outscript):
         if self.resids_lst == None:
             print("No residues selected for isomesh.")
-            # if len(self.residlist)<50:
-            #     print("No residues selected for isomesh. The molecule is small thus showing isomesh for all residues")
-            #     outscript.write('cmd.isomesh("%s", "maps_%s", 1.0, "all", carve=1.6)\n'%(self.ccp4_map_label, self.ccp4_map_label))
-            # else:
-            #     print("No residues selected for isomesh.")
         else:
             if self.waters and self.resids:
                 selection = " or ".join(
@@ -339,12 +159,6 @@ class Pymol_movie:
         outscript.write('cmd.show("mesh", "qF*")\n')
         outscript.write('cmd.set("mesh_width", 0.3)\n')
 
-    def remove_old_outscript(self, outscript):
-        try:
-            os.remove(outscript)
-        except OSError:
-            print("%s doen not exist, hence cannot be removed.")
-
     def write_pymol_script(self, outfile="pymol_movie.py"):
         self.get_residlist()
         if self.resids_lst != None:
@@ -355,7 +169,6 @@ class Pymol_movie:
             self.load_maps(o)
             self.show_mesh(o)
         o.close()
-        # return outfile
 
     def write_pymol_appearance(self, outfile="pymol_movie.py"):
         self.get_residlist()
@@ -366,4 +179,3 @@ class Pymol_movie:
         self.show_sticks_and_spheres(o)
         self.additional_settings(o)
         o.close()
-        # return outfile

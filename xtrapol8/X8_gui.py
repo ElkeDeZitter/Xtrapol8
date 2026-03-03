@@ -44,7 +44,6 @@ bookStyleYES = wx.aui.AUI_NB_DEFAULT_STYLE & wx.aui.AUI_NB_CLOSE_ON_ACTIVE_TAB
 wx.SystemOptions.SetOption("osx.openfiledialog.always-show-types", "1")
 
 
-########################################################################
 class NotebookConfigure(AuiNotebook):
     """
     Notebook for all X8 parameters
@@ -53,7 +52,6 @@ class NotebookConfigure(AuiNotebook):
     Third tab: Refinement
     """
 
-    # ----------------------------------------------------------------------
     def __init__(self, parent):
         AuiNotebook.__init__(self, parent, id=wx.ID_ANY, style=bookStyleNO)
         # wx.BK_DEFAULT
@@ -76,7 +74,6 @@ class NotebookConfigure(AuiNotebook):
 
 
 class NoteBookResults(AuiNotebook):
-    # ----------------------------------------------------------------------
     def __init__(self, parent, options):
         AuiNotebook.__init__(self, parent, id=wx.ID_ANY, style=bookStyleNO)
         self.tabLog = TabLog(self, options)
@@ -164,7 +161,6 @@ class MainNotebook(AuiNotebook):
 class X8Thread(Thread):
     """This is the thread which will run the code"""
 
-    # ----------------------------------------------------------------------
     def __init__(self, input_phil, Nlog):
         self.input = input_phil
         self.Nlog = Nlog
@@ -172,7 +168,6 @@ class X8Thread(Thread):
         self.daemon = True
         self._stop = threading.Event()
 
-    # ----------------------------------------------------------------------
     def run(self):
         count = 0
         # For debugging purpose
@@ -203,15 +198,12 @@ class X8Thread(Thread):
         return self._stop.isSet()
 
 
-########################################################################
-########################################################################
 class MainFrame(wx.Frame):
     """
     Main Frame holding all widgets.
     This Frame also holds part of the model (design to be improved)
     """
 
-    # ----------------------------------------------------------------------
     def __init__(self, args):
         """Constructor"""
         wx.Frame.__init__(
@@ -249,7 +241,6 @@ class MainFrame(wx.Frame):
         # Adding the ToolBar
         self.ToolBar = wx.ToolBar(self, -1)
         self.ToolBar.SetToolBitmapSize(size=(1, 1))
-        # self.ToolBar.AddTool(101, "Settings",  wx.Bitmap(os.path.join(script_dir, "gui/pngs/settings_scaled.png")))
         self.ToolBar.AddTool(
             102, "Run", wx.Bitmap(os.path.join(script_dir, "gui/pngs/run_scaled.png"))
         )
@@ -264,9 +255,8 @@ class MainFrame(wx.Frame):
         # The panel will hold the MainNotebook
         panel = wx.Panel(parent=self)
         self.notebook = MainNotebook(panel)
-        self.Bind(
-            wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.OnPageClose, self.notebook
-        )  # Closgin a run tab
+        # Closgin a run tab
+        self.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSE, self.OnPageClose, self.notebook)
 
         # This list will holds all inputs (type phil objects) of the different runs (only Run tabs in the Gui which are still visible)
         self.inputs = []
@@ -307,27 +297,7 @@ class MainFrame(wx.Frame):
         self.Show()
         if len(args) > 1:
             phil = args[1]
-            # try:
             self.OnOpenPhil(event=None, phil_file=phil)
-            # except:
-            #    pass
-
-    # def X8ModeChanged(self ,mode):
-    # old, new = mode
-    # modes = ["FoFo", "FNF", "CNC"]
-    # new_mode = modes[new]
-    ## Saving phil for future restauration
-    # input_phil = self.extract_phil()
-    # modified_phil = master_phil.format(python_object=input_phil)
-    # modified_phil.show(out=open(".%s.phil"%old, "w"))
-
-    ## Restauration if possible
-    # self.notebook.Configure.tabExt.currentX8Mode = new_mode
-    # phil_file = ".%s.phil" % new_mode
-    # if os.path.exists(phil_file):
-    # user_params = self.extract_debug_phil(open(phil_file).read())
-    # self.SetWidgetsTabExt(user_params,SetX8=False)
-    ##self
 
     def update(self, event):
         """
@@ -390,7 +360,6 @@ class MainFrame(wx.Frame):
                         else:
                             tab.addFextrImg(filepath)
                     else:
-                        # return
                         print("%s does not exists" % filepath)
 
     def OnPageClose(self, evt):
@@ -407,7 +376,6 @@ class MainFrame(wx.Frame):
                     "WorkStatus",
                     wx.YES_NO | wx.NO_DEFAULT,
                 ).ShowModal()
-                # print Stop
                 if Stop == wx.ID_YES:
                     print("Clicked YES")
                     SelectedThread.stop()
@@ -521,7 +489,6 @@ class MainFrame(wx.Frame):
                 self.notebook.ResultsBooks[run].tabLog.CreateCoot()
             else:
                 self.notebook.ResultsBooks[run].tabOcc.onFinished()
-
 
     def check_user_input(self):
         tabIO = self.notebook.Configure.tabIO
@@ -1123,8 +1090,6 @@ class MainFrame(wx.Frame):
         if X8Mode == 0:
             tobeparsed += "output.generate_fofo_only = True\n"
 
-        ################################
-
         #####################
         ### Type of Fextr ###
         #####################
@@ -1152,9 +1117,6 @@ class MainFrame(wx.Frame):
             )
         else:
             tobeparsed += "f_and_maps.f_extrapolated_and_maps = None\n"
-        #    print("You need to at least select one type of extrapolated structure factors to compute")
-        #    return
-        ################################
 
         ##############################
         ### Map explorer - Ext_tab ###
@@ -1173,7 +1135,6 @@ class MainFrame(wx.Frame):
         )
         # "map_explorer.use_occupancy_from_distance_analysis = %s\n" % tabExt.DistanceAnalysis.GetValue()
         # TODO: user_params.map_explorer.use_occupancy_from_distance_analysis = ?
-        ##############################
 
         ###########################################
         ### Neg N Missing Refelctions - Ext tab ###
@@ -1191,7 +1152,6 @@ class MainFrame(wx.Frame):
         # missing = 'fill'
 
         tobeparsed += "f_and_maps.negative_and_missing = %s_%s\n" % (neg, missing)
-        ###########################################
 
         ###########################################
         ### Scaling Resolution ###

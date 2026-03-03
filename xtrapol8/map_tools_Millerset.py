@@ -56,12 +56,12 @@ class combine:
         self.f_obs = None
         self.f_model = None
         if not self.mnm.ml_map:
-            self.f_obs = self.fobs_in.data() * fo_scale  # calculation of fo_scale*Fo
+            # calculation of fo_scale*Fo
+            self.f_obs = self.fobs_in.data() * fo_scale
         elif self.mch_2 is None:
             self.mch_2 = self.fmodel_2.map_calculation_helper()
-        self.f_obs = (
-            self.fobs_in.data() * fo_scale * self.mch_2.fom
-        )  # calculation of fo_scale*m*Fo
+        # calculation of fo_scale*m*Fo
+        self.f_obs = self.fobs_in.data() * fo_scale * self.mch_2.fom
 
     def map_coefficients(self, f_model=None):
         def compute(fo, miller_set):
@@ -103,7 +103,6 @@ class electron_density_map:
         sharp=False,
         pdb_hierarchy=None,
     ):  # XXX required for map_type=llg
-        map_name_manager = mmtbx.map_names(map_name_string=map_type)
         if self.mch_2 is None:
             self.mch_2 = self.fmodel_2.map_calculation_helper()
         assert (
@@ -126,7 +125,6 @@ class electron_density_map:
             fc_scale=fc_scale,
             map_calculation_helper_2=self.mch_2,
         ).map_coefficients()
-        r_free_flags = None
         if sharp:
             ss = 1.0 / flex.pow2(coeffs.d_spacings().data()) / 4.0
             b = (

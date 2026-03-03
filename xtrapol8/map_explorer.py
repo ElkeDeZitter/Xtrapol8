@@ -90,8 +90,6 @@ def get_atom_info_residlist(pdb, resid_list_in):
     pdb_hier = hierarchy.input(file_name=pdb)
     hier = pdb_hier.hierarchy
 
-    # chains = [chain.id for chain in hier.chains()]
-
     coord = []
     info = []
 
@@ -171,11 +169,10 @@ def do_blob_search(map_object, threshold, peak, coord_pdb, radius, info):
         copy_peak = np.where(map_object.data >= peak, 1, 0)
         bla = ("positive", "above")
 
-    labeled_array, num_features = ndimage.label(copy, structure=s)
+    labeled_array, _ = ndimage.label(copy, structure=s)
     labeled_array_peak, num_features_peak = ndimage.label(copy_peak, structure=s)
 
     all_atoms = []
-    mask_indices = []
     blobs = []
     bla = (num_features_peak,) + bla
     print(
@@ -277,11 +274,9 @@ def check_inputs(
         sys.exit(1)
     elif map_name.endswith("ccp4"):
         map_object = CCP4_Maps(map_name)
-        # xplor = iotbx.xplor.map.reader(file_name=map)
     else:
         try:
             map_object = XPLOR_Maps(map_name)
-            #    = ccp4_map.map_reader(file_name=map)
         except:
             print(
                 "Sorry, %s map is not a valid XPLOR or CCP4 map. Aborting map explorer."
@@ -355,7 +350,6 @@ def print_results(blobs, out=sys.stdout, residlst_out=None):
                 residIDlst.append(residID)
                 residlst_out.write(residID)
         print("")
-        # out.write("\n")
 
 
 def map_explorer(
@@ -446,9 +440,8 @@ def map_explorer(
         )
         mask = blobs[:, -1]
         shape1 = mask.shape[0]
-        mask = mask.reshape(
-            (1, shape1)
-        )  # to make compatible with the mask generated based on Z-scoring
+        # to make compatible with the mask generated based on Z-scoring
+        mask = mask.reshape((1, shape1))
         outname_zscore = None
 
         pos = 0
@@ -525,11 +518,6 @@ class Maps:
                 % (tuple(indices) + tuple(cartesian))
             )
         return cartesian
-
-    # not used in this script
-    def get_indices_from_coord(self, coord, origin_xyz, steps_xyz, verbose=False):
-        indices = np.abs(coord - origin_xyz) / steps_xyz
-        return np.rint(indices).astype(np.int32)
 
 
 class CCP4_Maps(Maps):

@@ -222,16 +222,18 @@ def plot_FsigF(prefix):
     ax1.plot(
         bin_res_cent_lst[:], f_sigf_lst[:], marker=".", label="<F/sig(F)>", color="red"
     )
+    # (<I/sig(I)> = 2)
     ax1.plot(
         bin_res_cent_lst[:], s[:], linestyle=":", label="<F/sig(F)> = 0.8", color="blue"
-    )  # (<I/sig(I)> = 2)
+    )
+    # (<I/sig(I)> = 1.5)
     ax1.plot(
         bin_res_cent_lst[:],
         l[:],
         linestyle=":",
         label="<F/sig(F)> = 1.2",
         color="green",
-    )  # (<I/sig(I)> = 1.5)
+    )
 
     ax1.plot(
         np.array([ids]),
@@ -525,51 +527,6 @@ def plot_alpha_occupancy_determination(suffix):
             alphafound,
         ) = pickle.load(stats_file)
 
-    ### OLD PLOTALPHA:
-    # if resids_lst_used == False:
-    # ax1.plot(alphas, int1, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-    # else:
-    # try:
-    # ax1.plot(alphas, int1_norm, 'o', color = 'red', label='Selected residues')
-    # ax1.plot(alphas, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')
-    # ax1.plot(alphas, results, '^', color="green", label='Selected residues with enhanced SNR')
-    # except:
-    # ax1.plot(alphas, int1_norm, 'o', color = 'red')
-
-    # ax1.set_ylim([0.,1.1])
-    # ax1.set_xlim([np.min(alphas)*0.95,np.max(alphas)*1.05])
-    # ax1.set_xlabel('Alpha value = 1/occupancy')
-    # ax1.set_ylabel('Normalized difference map ratio')
-
-    # if resids_lst_used == False:
-    # ax2.plot(occupancies, int1_norm, 's', markersize = 5, color = 'blue', label='All peaks') #int1, int2 and conv will be the same, so we can plot only int1 and avoid the try catch
-    # else:
-    # try:
-    # ax2.plot(occupancies, int1_norm, 'o', color = 'red', label='Selected residues')
-    # ax2.plot(occupancies, int2_norm, 's', markersize = 5, color = 'blue', label='All peaks')
-    # ax2.plot(occupancies, results, '^', color="green", label='Selected residues with enhanced SNR')
-    # except:
-    # ax2.plot(alphas,int1, 'o', color = 'red')
-
-    # ax2.set_ylim([0.,1.1])
-    # ax2.set_xlim([np.min(occupancies)*0.95,np.max(occupancies)*1.05])
-    # ax2.set_xlabel('Triggered state occupancy')
-    # ax2.set_ylabel('Normalized difference map ratio')
-    # ax2.legend(loc='lower right', bbox_to_anchor=(0.92, -0.05, 0.45, 0.5), fontsize = 'x-small', framealpha=0.5)
-
-    # if alphafound:
-    # ax1.set_title('Alpha determination', fontsize = 'medium',fontweight="bold")
-    # ax2.set_title('Occupancy determination', fontsize = 'medium',fontweight="bold")
-    # else:
-    # ax1.set_title('Alpha determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-    # ax1.text(np.min(self.alphas), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
-    # ax2.set_title('Occupancy determination IMPOSSIBLE', fontsize = 'medium',fontweight="bold")
-    # ax2.text(np.min(self.occupancies), 0.5, 'no peaks found in at least one of the maps\n for the selected residues')
-    # plt.subplots_adjust(hspace=0.25,wspace=0.4, left=0.09, right=0.88, top = 0.95)
-    # plt.savefig("%s.pdf"%(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
-    # plt.savefig("%s.png"%(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
-    # plt.close()
-
     fig, axes = plt.subplots(2, 2, figsize=(10, 10))
 
     if reference[0] == 0:
@@ -780,14 +737,12 @@ def plot_Fextrsigmas(prefix, pickle_file="Fextr_binstats.pickle"):
             except EOFError:
                 break
 
-    # extract the occupancies
-    occ_lst = list(set(alldata[:, 0]))
     # get the indices concerning the specific maptype we are looking at
     indices = np.where(alldata[:, 2] == maptype)[0]
 
     mn = 0
     mx = 0
-    fig, ax0 = plt.subplots(1, 1, figsize=(10, 5))
+    _, ax0 = plt.subplots(1, 1, figsize=(10, 5))
     ax1 = ax0.twinx()
     for a in indices:
         occ, _, _, bin_res_cent_lst, fextr_data_lst, fextr_sigmas_lst, _, _ = alldata[a]
@@ -911,8 +866,7 @@ def plot_ddm(pickle_file="ddm.pickle", scale=1.5):
 
     fig, axs = plt.subplots(
         n_rows, n_cols, figsize=(10 * n_rows, 10 * n_cols), squeeze=False
-    )  # , constrained_layout=True)
-    # fig.subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=0.05)
+    )
     c = mcolors.ColorConverter().to_rgb
     rvb = make_colormap(
         [c("blue"), c("white"), 0.40, c("white"), 0.60, c("white"), c("red")]
@@ -934,9 +888,8 @@ def plot_ddm(pickle_file="ddm.pickle", scale=1.5):
         mask[np.triu_indices_from(mask)] = True
         FINAL2 = np.ma.array(ddm_residue, mask=mask)
 
-        tick_jump = int(
-            np.round(len(seq_info_unique) / 15, 0)
-        )  # we want to add 15 seq_ticks
+        # we want to add 15 seq_ticks
+        tick_jump = int(np.round(len(seq_info_unique) / 15, 0))
         seq_ticks = seq_info_unique[
             0::tick_jump
         ]  # residues for which we will show tick positions

@@ -1147,7 +1147,6 @@ def run(args):
         print("ESTIMATE OPTIMAL OCCUPANCY USING THE DISTANCE METHOD", file=log)
         print("-----------------------------------------", file=log)
 
-        ################################################################
         # occupancy estimation will be performed for all map types, but the final automatic descision will be based on a priority list.
         # This means that if maptypes Fextr and qFextr are selected, the output of qFextr will have priority.
         # Therefore, here we loop over the maptypes in a reversed order to
