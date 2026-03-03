@@ -24,7 +24,6 @@ import sys
 from pathlib import Path
 
 import cctbx
-import iotbx
 import numpy as np
 from cctbx import crystal, miller
 from cctbx.array_family import flex
@@ -111,31 +110,7 @@ def convert_bytes(num: int):
 
 
 def get_name(fle):
-    """
-    Get the name of the file without the path and format
-
-    Parameters:
-    -----------
-    file (str)
-        path of the file from which the name is searched
-    file_format (format, example: .cif)
-        format of the file input
-
-    Returns:
-    -----------
-    name (str)
-        name of the file without path or format
-    """
-    try:  # iotbx.file_reader.splitext from phenix 1.19
-        _, file_format, _ = iotbx.file_reader.splitext(fle)
-    except ValueError:  # iotbx.file_reader.splitext from phenix 1.18
-        _, file_format = os.path.splitext(fle)
-    # get format of the input file
-    if "/" in fle:
-        name = re.search(r"\/(.+?)\%s$" % (file_format), fle).group(1).split("/")[-1]
-    else:
-        name = re.sub(r"\%s$" % (file_format), "", fle)
-    return name
+    return Path(fle).stem
 
 
 def make_miller_array(data, sigma, SG, UC, indices):
