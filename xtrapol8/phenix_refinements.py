@@ -33,6 +33,9 @@ from libtbx import adopt_init_args
 from mmtbx.scaling.matthews import p_vm_calculator
 
 from .Fextr_utils import get_name, get_phenix_subversion
+from .programs.dm import dm
+from .programs.fft import fft
+from .programs.refmac import refmac_for_dm
 
 
 class Phenix_reciprocal_space_refinement:
@@ -258,124 +261,40 @@ class Phenix_reciprocal_space_refinement:
 
         return param_file
 
-    def write_refmac_for_dm(self, pdb_in):
-        """
-        Write and excecute a bash script to run Refmac in order to get an mtz-file that can be used by dm.
-        """
-
-        additional_lines = ""
-        for cif in self.additional.split():
-            if cif.endswith(".cif"):
-                additional_lines += "LIB_IN %s " % (cif)
-
-        mtz_out = "%s_for_dm.mtz" % (get_name(self.mtz_in))
-        pdb_out = "%s_for_dm.pdb" % (get_name(self.mtz_in))
-        log_file = "%s_refmac_for_dm.log" % (get_name(self.mtz_in))
-
-        script_out = "launch_refmac_for_dm.sh"
-        i = open(script_out, "w")
-        i.write(
-            "#!/bin/sh\n\
-refmac5 XYZIN %s HKLIN %s XYZOUT %s HKLOUT %s %s<<eof > %s \n\
-LABIN  FP=%s SIGFP=SIG%s FREE=FreeR_flag\n\
-REFI TYPE REST RESI MLKF BREF ISOT METH CGMAT \n\
-nfree include 1 \n\
-make check NONE \n\
-ncyc 0 \n\
-MAPC SHAR \n\
-NOHARVEST \n\
-END \n\
-eof"
-            % (
-                pdb_in,
-                self.mtz_in,
-                pdb_out,
-                mtz_out,
-                additional_lines,
-                log_file,
-                self.F_column_labels,
-                self.F_column_labels,
-            )
+    def do_refmac_for_dm(self, pdb_in):
+        "Run Refmac in order to get an mtz-file that can be used by dm."
+        return refmac_for_dm(
+            xyzin=pdb_in,
+            hklin=self.mtz_in,
+            libins=self.additional.split(),
+            f_label=self.F_column_labels,
         )
 
-        i.close()
-        os.system("chmod +x %s" % (script_out))
-        print(
-            "Running refmac with zero cycles to prepare files suitable for running dm afterwards, output written to "
-            "%s. Please wait..." % (log_file)
-        )
-        os.system("./%s" % (script_out))
-
-        return mtz_out, pdb_out
-
-    def write_density_modification_script(
-        self, mtz_in, mtz_out, combine, cycles, log_file
-    ):
+    def do_density_modification(self, mtz_in, mtz_out, combine, cycles, log_file):
         """
-        Write script to perform density modification with dm. In order to have the correct columns, the mtz-file
+        Perform density modification with dm.
+        In order to have the correct columns, the mtz-file
         should original from refmac.
         """
         solc = self.get_solvent_content()
-
-        script_out = "launch_dm.sh"
-        i = open(script_out, "w")
-        i.write(
-            "#!/bin/sh \n\
-\n\
-#dm:\n\
-dm hklin %s hklout %s <<eor > %s \n\
-SOLC %.3f\n\
-MODE SOLV HIST MULTI SAYR\n\
-COMBINE %s\n\
-NCYC %d\n\
-LABI FP=%s SIGFP=SIG%s PHIO=PHIC_ALL FOMO=FOM\n\
-LABO FDM=FDM PHIDM=PHIDM\n\
-eor\n"
-            % (
-                mtz_in,
-                mtz_out,
-                log_file,
-                solc,
-                combine,
-                cycles,
-                self.F_column_labels,
-                self.F_column_labels,
-            )
-        )
-
+        dm(mtz_in, mtz_out, solc, combine, cycles, self.F_column_labels, log_file)
         ccp4_map_name = re.sub(r".mtz$", ".ccp4", mtz_out)
-
-        i.write(
-            "#generate map in ccp4 format\n\
-fft hklin %s mapout %s <<eof > fft.log\n\
-LABI F1=FDM PHI=PHIDM\n\
-eof"
-            % (mtz_out, ccp4_map_name)
-        )
-
-        i.close()
-        os.system("chmod +x %s" % (script_out))
-        return script_out
+        fft(mtz_out, ccp4_map_name, "FDM", "PHIDM")
 
     def ccp4_dm(self, pdb_in, combine, cycles):
         """
-        Use dm to perform density modification. In order to get the correct columns, we first run refmac with 0
-        cycles with the refined model from phenix.refine.
+        Use dm to perform density modification.
+        In order to get the correct columns, we first run refmac with 0 cycles
+        with the refined model from phenix.refine.
         """
-        mtz_for_dm, _ = self.write_refmac_for_dm(pdb_in)
-        # mtz_out_dm = re.sub(r"for_dm.mtz$", "dm.mtz", mtz_for_dm)
+        mtz_for_dm, _ = self.do_refmac_for_dm(pdb_in)
         mtz_out_dm = re.sub(r".pdb$", "_dm.mtz", pdb_in)
         if os.path.isfile(mtz_for_dm):
             log_file = re.sub(r".mtz$", ".log", mtz_out_dm)
-            script_dm = self.write_density_modification_script(
+            print(f"Running density modification, see {log_file}. Please wait...")
+            self.do_density_modification(
                 mtz_for_dm, mtz_out_dm, combine, cycles, log_file
             )
-            print(
-                "Running density modification, output written to %s. Please wait..."
-                % (log_file)
-            )
-            os.system("./%s" % (script_dm))
-
         return mtz_out_dm
 
 
@@ -389,8 +308,6 @@ class Phenix_real_space_refinement:
         log=sys.stdout,
     ):
         adopt_init_args(self, locals())
-
-        # get phenix subversion, important since syntax can differ between versions
         self.phenix_subversion = get_phenix_subversion()[1]
 
     def check_mtz_column(self, mtz_in, column_labels):
