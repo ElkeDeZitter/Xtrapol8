@@ -156,17 +156,6 @@ def get_name(fle):
     return name
 
 
-def get_pdb_name(pdb_file):
-    if "/" in pdb_file:
-        name = re.search(r"\/(.+?)\.pdb$", pdb_file).group(1).split("/")[-1]
-    else:
-        name = re.sub(r"\.pdb$", "", pdb_file)
-    # if len(name)>80:
-    # print("%s is a long name, let's call it %s" %(name, name[:30]+name[-30:]))
-    # name = name[:30]+name[-30:]
-    return name
-
-
 def make_miller_array(data, sigma, SG, UC, indices):
     ms = miller.set(
         crystal_symmetry=crystal.symmetry(space_group_symbol=SG, unit_cell=UC),
@@ -217,24 +206,6 @@ def check_and_delete_hydrogen(pdb_file):
         )
         p.close()
         pdb_ed = os.path.abspath(check_file_existance("model_edit.pdb"))
-    return pdb_ed
-
-
-def check_and_delete_altlocs(pdb_file):
-    pdb_hier = hierarchy.input(file_name=pdb_file)
-    if pdb_hier.hierarchy.altloc_indices().size() == 1:
-        pdb_ed = pdb_file
-    else:
-        pdb_hier.hierarchy.remove_alt_confs(always_keep_one_conformer=True)
-        p = open("model_NoAltlocs.pdb", "w")
-        p.write(
-            pdb_hier.hierarchy.as_pdb_string(
-                crystal_symmetry=pdb_hier.input.crystal_symmetry()
-            ),
-            output_break_records=False,
-        )
-        p.close()
-        pdb_ed = os.path.abspath(check_file_existance("model_NoAltlocs.pdb"))
     return pdb_ed
 
 
@@ -341,24 +312,6 @@ def open_all_in_coot(
     # os.system("coot --script %s" %(script_coot))
 
 
-def get_common_indices_dict(refl_dict):  # Use at own risk, some columns might be lost
-    # argument to be given should be like {'f_obs_off':f_obs_off, 'f_obs_on':f_obs_on, 'phase_info': phase_info}
-    refl_dict_comm = {}
-    for a in refl_dict:
-        for b in refl_dict:
-            if b != a:
-                a_comm = a + "_comm"
-                b_comm = b + "_comm"
-                a_comm, b_comm = refl_dict[a].common_sets(refl_dict[b])
-                refl_dict_comm[a + "_comm"] = a_comm
-                refl_dict_comm[b + "_comm"] = b_comm
-    outlst = []
-    for name in refl_dict_comm:
-        outlst.append(refl_dict_comm[name])
-
-    return outlst
-
-
 def check_common_indices(refl_lst):
     for a in refl_lst:
         for b in refl_lst:
@@ -372,13 +325,6 @@ def check_common_indices(refl_lst):
                 else:
                     compatible = True
     return compatible
-
-
-def make_patch_spines_invisible(ax):
-    ax.set_frame_on(True)
-    ax.patch.set_visible(False)
-    for sp in ax.spines.values():
-        sp.set_visible(False)
 
 
 def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
@@ -598,13 +544,6 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
     stats = [bin_res_cent_lst, neg_lst, neg_percent_lst, comp_lst, comp_true_lst, s]
     pickle.dump(stats, out)
     out.close()
-
-
-def make_fwork_ffree(miller_array, r_free_flags):
-    r_free_flags = r_free_flags.data().as_bool()
-    f_free = miller_array.select(r_free_flags)
-    f_work = miller_array.select(~(r_free_flags))
-    return f_work, f_free
 
 
 def compute_f_sigf(miller_array, prefix, log=sys.stdout):
@@ -1330,37 +1269,3 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
 
     # return r_work, r_free
     return r_work, cc_work
-
-
-def plot_correlations(occ_lst, correlation_list):
-    """
-    Plot the correlations calculated in plot_F1_F2 in function of the occupancy
-    """
-    assert len(occ_lst) == len(correlation_list), (
-        "list with occupancies and correlations not of equal length"
-    )
-
-    alphas = [round(1 / x, 3) for x in occ_lst]
-
-    plt.close()
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
-    ax1.plot(occ_lst, correlation_list, marker="o", color="red", label="Correlation")
-    # plot the linear fit, we only need two values for plotting a line
-    ax1.set_xlabel("Triggered state occupancy")
-    ax1.set_ylabel("Pearson correlalation coefficient")
-
-    ax2.plot(alphas, correlation_list, marker="o", color="red", label="Correlation")
-    # plot the linear fit, we only need two values for plotting a line
-    ax2.set_xlabel("Alpha")
-    ax2.set_ylabel("Pearson correlalation coefficient")
-
-    # ax1.legend(loc='lower right', bbox_to_anchor=(0.79, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
-    plt.title(
-        "Correlation between reference and extrapolated structure factors",
-        fontsize="medium",
-        fontweight="bold",
-    )
-    plt.subplots_adjust(hspace=0.35, left=0.09, right=0.80, top=0.95)
-    plt.savefig("correlations_per_alpha.pdf", dpi=300, transparent=True)
-    # plt.savefig("correlations_per_alpha.png", dpi=300, transparent=True)
-    plt.close()
