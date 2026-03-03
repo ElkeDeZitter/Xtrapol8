@@ -103,10 +103,10 @@ def list_redundant_files():
                     f.write(f"{path} : {size}\n")
 
 
-def convert_bytes(num):
+def convert_bytes(num: int):
     for unit in ["B", "KB", "MB", "GB", "TB"]:
         if num < 1024.0:
-            return "%3.1f %s" % (num, unit)
+            return f"{num:3.1f} {unit}"
         num /= 1024.0
 
 
