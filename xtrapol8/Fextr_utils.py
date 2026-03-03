@@ -52,11 +52,10 @@ def get_cctbx_version():
 def remove_unique_id_from_log(log_name):
     """
     Remove the unqiue sequence from the log file
+    I.e. something_{uuid4()}.log to something.log
     """
-    index = log_name.find("Xtrapol8") + len("Xtrapol8")
-    new_name = log_name[:index] + ".log"
+    new_name = log_name[:-41] + ".log"
     os.rename(log_name, new_name)
-
     return new_name
 
 

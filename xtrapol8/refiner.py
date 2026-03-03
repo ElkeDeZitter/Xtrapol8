@@ -700,17 +700,6 @@ class Refiner:
         return mtz_out_rec, pdb_out_rec, pdb_out_real, pdb_out_rec_real
 
 
-def remove_unique_id_from_log(log_name):
-    """
-    Remove the unqiue sequence from the log file
-    """
-    index = log_name.find("Xtrapol8_refinements") + len("Xtrapol8_refinements")
-    new_name = log_name[:index] + ".log"
-    os.rename(log_name, new_name)
-
-    return new_name
-
-
 def run(args):
     now = datetime.now().strftime("%Y-%m-%d_%Hh%M")
     # Generate log-file. Needs to be created before the output directory is created and to be a global parameter in order to be easily used in all classes and functions
