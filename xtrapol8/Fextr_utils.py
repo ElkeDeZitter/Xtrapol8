@@ -131,13 +131,11 @@ def phase_transfer(
     return miller.array(miller_set=miller_array, data=miller_array.data() * tmp.data())
 
 
-def check_file_existance(fle):
-    if os.path.isfile(fle) == True:
-        fle = fle
-    else:
-        print("%s cannot be found. Check if it is existing." % (fle))
-        fle = ""
-    return fle
+def check_file_existance(file):
+    if Path(file).is_file():
+        return file
+    print(f"{file} cannot be found. Check if it is existing.")
+    return ""
 
 
 def append_if_file_exist(lst, fle):
