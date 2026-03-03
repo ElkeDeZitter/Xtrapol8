@@ -3628,7 +3628,7 @@ def run(args):
     if os.getcwd() != outdir:
         os.chdir(outdir)
     # Make a list of all temporal files. Upon their removal disk space can be saved
-    list_redundant_files(outdir)
+    list_redundant_files()
 
     # Write a phil file. Parameters changed during the excecution of Xtrapol8 are possible when problems appeared
     if params.f_and_maps.negative_and_missing == "fill_missing":

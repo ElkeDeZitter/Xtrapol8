@@ -93,19 +93,14 @@ def get_ccp4_version():
     return "CCP4 not found"
 
 
-def list_redundant_files(outdir):
-    o = open("redundant_files.txt", "w")
-    for dirpath, dirnames, filenames in os.walk(os.getcwd()):
-        for fle in filenames:
-            if fle.endswith("map") or fle.endswith("sh"):
-                o.write(
-                    "%s : %s\n"
-                    % (
-                        os.path.join(dirpath, fle),
-                        file_size(os.path.join(dirpath, fle)),
-                    )
-                )
-    o.close()
+def list_redundant_files():
+    with open("redundant_files.txt", "w", encoding="utf-8") as f:
+        for dirpath, _, filenames in os.walk(Path.cwd()):
+            for name in filenames:
+                path = Path(dirpath, name)
+                if path.suffix in [".map", ".sh"]:
+                    size = convert_bytes(path.stat().st_size)
+                    f.write(f"{path} : {size}\n")
 
 
 def convert_bytes(num):
@@ -113,12 +108,6 @@ def convert_bytes(num):
         if num < 1024.0:
             return "%3.1f %s" % (num, unit)
         num /= 1024.0
-
-
-def file_size(file_path):
-    if os.path.isfile(file_path):
-        file_info = os.stat(file_path)
-        return convert_bytes(file_info.st_size)
 
 
 def phenix_version_from_logfile(logfile):
