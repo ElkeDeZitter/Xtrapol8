@@ -75,6 +75,7 @@ import os
 import pickle
 import re
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from uuid import uuid4
@@ -2634,7 +2635,7 @@ def run(args):
 
         log.close()
         if params.output.open_coot and shutil.which("coot"):
-            os.system("coot --script %s" % (script_coot))
+            subprocess.call("coot --script %s" % (script_coot))
 
         sys.exit()
 
@@ -3668,7 +3669,7 @@ def run(args):
     log.close()
 
     if params.output.open_coot and shutil.which("coot"):
-        os.system("coot --script %s" % (script_coot))
+        subprocess.call("coot --script %s" % (script_coot))
 
 
 def main():

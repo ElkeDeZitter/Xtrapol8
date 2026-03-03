@@ -24,6 +24,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import glob
 import os
 import re
+import subprocess
 import sys
 from difflib import get_close_matches
 
@@ -73,9 +74,7 @@ class Phenix_reciprocal_space_refinement:
         self.phenix_subversion = get_phenix_subversion()[1]
 
     def reciprocal_space_refinement(self):
-        """
-        use Bash line to run phenix.refine as usual (use of os.system is bad practice)
-        """
+        "run phenix.refine"
         try:
             if self.F_column_labels.lower().startswith("q"):
                 maptype = "q" + self.F_column_labels.lower()[1:].capitalize()
@@ -134,8 +133,7 @@ class Phenix_reciprocal_space_refinement:
             # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
             # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
-        # TODO os.system -> subprocess.something (read the docs!)
-        reciprocal = os.system(
+        reciprocal = subprocess.call(
             "phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
             "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
             "refinement.main.scattering_table=%s "
@@ -160,9 +158,7 @@ class Phenix_reciprocal_space_refinement:
         )
 
         # Find output files, automatically
-        if (
-            reciprocal == 0
-        ):  # os.system has correctly finished, then search for the last refined structure
+        if reciprocal == 0:  # correctly finished, search for the last refined structure
             try:
                 mtz_fles = glob.glob("%s_???.mtz" % (outprefix))
                 # [fle for fle in os.listdir(os.getcwd()) if outprefix+"_0" in fle and fle.endswith('mtz') and not
@@ -176,7 +172,7 @@ class Phenix_reciprocal_space_refinement:
             except IndexError:
                 mtz_out = "%s_001.mtz" % (outprefix)
                 pdb_out = "%s_001.pdb" % (outprefix)
-        else:  # os.system has not correctly finished
+        else:  # not correctly finished
             mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
@@ -362,7 +358,7 @@ class Phenix_real_space_refinement:
     def real_space_refinement_mtz(self, mtz_in, pdb_in, column_labels):
         """
         Real space refinement based on mtz file and specified column labels
-        use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
+        run phenix.real_space_refine
         Some parameters have changed between version 1.17, 1.18 and 1.19 hence the weird construction to grap the version
         """
 
@@ -401,7 +397,7 @@ class Phenix_real_space_refinement:
             for keyword in self.additional_real_keywords:
                 additional_keywords_line += "%s " % (keyword)
 
-        real = os.system(
+        real = subprocess.call(
             "phenix.real_space_refine %s %s %s "
             "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=%s c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s"
             % (
@@ -420,9 +416,7 @@ class Phenix_real_space_refinement:
         )
 
         # Find output file
-        if (
-            real == 0
-        ):  # os.system has correctly finished. Then search for the last refined structure
+        if real == 0:  # correctly finished. search for the last refined structure
             if self.phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
@@ -441,7 +435,7 @@ class Phenix_real_space_refinement:
                     outpdb = pdb_fles[-1]
                 except IndexError:
                     outpdb = "%s_real_space_refined.pdb" % (prefix)
-        else:  # os.system has not correctly finished
+        else:  # not correctly finished
             outpdb = "not_a_file"
 
         return outpdb
@@ -449,7 +443,7 @@ class Phenix_real_space_refinement:
     def real_space_refinement_ccp4(self, ccp4_in, pdb_in, resolution):
         """
         Real space refinement based on ccp4 file
-        use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
+        run phenix.real_space_refine
         Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grap the version
         """
 
@@ -481,7 +475,7 @@ class Phenix_real_space_refinement:
             for keyword in self.additional_real_keywords:
                 additional_keywords_line += "%s " % (keyword)
 
-        real = os.system(
+        real = subprocess.call(
             "phenix.real_space_refine %s %s %s "
             "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=%s c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s %s %s ignore_symmetry_conflicts=True resolution=%.2f %s"
             % (
@@ -500,9 +494,7 @@ class Phenix_real_space_refinement:
         )
 
         # Find output file
-        if (
-            real == 0
-        ):  # os.system has correctly finished. Then search for the last refined structure
+        if real == 0:  # correctly finished. search for the last refined structure
             if self.phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
@@ -521,7 +513,7 @@ class Phenix_real_space_refinement:
                     outpdb = pdb_fles[-1]
                 except IndexError:
                     outpdb = "%s_real_space_refined.pdb" % (prefix)
-        else:  # os.system has not correctly finished
+        else:  # not correctly finished
             outpdb = "not_a_file"
 
         return outpdb

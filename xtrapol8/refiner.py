@@ -66,6 +66,7 @@ import glob
 import os
 import re
 import shutil
+import subprocess
 import sys
 from datetime import datetime
 from uuid import uuid4
@@ -325,7 +326,7 @@ class Refiner:
             # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
             # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
-        reciprocal = os.system(
+        reciprocal = subprocess.call(
             "phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true refinement.main.scattering_table=%s "
             % (
                 self.reciprocal_phil,
@@ -339,9 +340,7 @@ class Refiner:
         )
 
         # Find output files
-        if (
-            reciprocal == 0
-        ):  # os.system has correctly finished, then search for the last refined structure
+        if reciprocal == 0:  # correctly finished, search for the last refined structure
             try:
                 mtz_fles = glob.glob("%s_???.mtz" % (outprefix))
                 # [fle for fle in os.listdir(os.getcwd()) if outprefix+"_0" in fle and fle.endswith('mtz') and not
@@ -355,7 +354,7 @@ class Refiner:
             except IndexError:
                 mtz_out = "%s_001.mtz" % (outprefix)
                 pdb_out = "%s_001.pdb" % (outprefix)
-        else:  # os.system has not correctly finished
+        else:  # not correctly finished
             mtz_out = "not_a_file"
             pdb_out = "refinement_did_not_finish_correcty"
 
@@ -455,7 +454,7 @@ class Refiner:
     def phenix_real_space_refinement_mtz(self, mtz_in, pdb_in, column_labels):
         """
         Real space refinement based on mtz file and specified column labels
-        use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
+        run phenix.real_space_refine
         Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grep the version
         """
 
@@ -472,7 +471,7 @@ class Refiner:
             output_prefix = "output.file_name_prefix=%s_independent" % (mtz_name)
             model_format = "output.model_format=pdb"
 
-        real = os.system(
+        real = subprocess.call(
             "phenix.real_space_refine %s %s %s %s %s %s label='%s' scattering_table=%s"
             % (
                 self.real_phil,
@@ -487,9 +486,7 @@ class Refiner:
         )
 
         # Find output file
-        if (
-            real == 0
-        ):  # os.system has correctly finished. Then search for the last refined structure
+        if real == 0:  # correctly finished. search for the last refined structure
             if phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob(
@@ -512,7 +509,7 @@ class Refiner:
                     outpdb = pdb_fles[-1]
                 except IndexError:
                     outpdb = "%s_independent_real_space_refined.pdb" % (mtz_name)
-        else:  # os.systenm has nog correctly finished
+        else:  # not correctly finished
             outpdb = "not_a_file"
 
         return outpdb
@@ -520,7 +517,7 @@ class Refiner:
     def phenix_real_space_refinement_ccp4(self, ccp4_in, pdb_in, resolution):
         """
         Real space refinement based on ccp4 file
-        use Bash line to run phenix.real_space_refine as usual (use of os.system is bad practice).
+        run phenix.real_space_refine
         Some parameters have changed between version 1.7, 1.8 and 1.9 hence the weird construction to grap the version
         """
 
@@ -538,7 +535,7 @@ class Refiner:
             model_format = "output.model_format=pdb"
 
         # launch phenix.real_space_refine
-        real = os.system(
+        real = subprocess.call(
             "phenix.real_space_refine %s %s %s %s %s %s resolution=%.2f scattering_table=%s"
             % (
                 self.real_phil,
@@ -553,9 +550,7 @@ class Refiner:
         )
 
         # Find output file
-        if (
-            real == 0
-        ):  # os.system has correctly finished. Then search for the last refined structure
+        if real == 0:  # correctly finished. search for the last refined structure
             if phenix_subversion >= 19:
                 try:
                     pdb_fles = glob.glob(
@@ -578,7 +573,7 @@ class Refiner:
                     outpdb = pdb_fles[-1]
                 except IndexError:
                     outpdb = "%s_independent_real_space_refined.pdb" % (ccp4_name)
-        else:  # os.systenm has nog correctly finished
+        else:  # not correctly finished
             outpdb = "not_a_file"
 
         return outpdb

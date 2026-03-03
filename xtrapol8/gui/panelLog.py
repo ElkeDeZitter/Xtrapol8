@@ -23,6 +23,7 @@ import math
 import os
 import pickle
 import re
+import subprocess
 
 import matplotlib.colors as mcolors
 import numpy as np
@@ -281,7 +282,7 @@ class TabLog(wx.Panel):
                 self.options.output.outdir, "coot_all_{:s}Fo-Fo.py".format(p)
             )
             if os.path.isfile(script_coot):
-                os.system("coot --script %s &" % (script_coot))
+                subprocess.call("coot --script %s &" % (script_coot))
                 break
 
 
@@ -1249,7 +1250,7 @@ class TabOccResults(ScrolledPanel):
         evt.Skip()
 
     def onCoot(self, evt):
-        os.system("coot --script %s &" % self.coot_scripts[self.fextr])
+        subprocess.call("coot --script %s &" % self.coot_scripts[self.fextr])
 
     def plot_FsigF(self, pickle_file):
         """
