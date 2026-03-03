@@ -21,7 +21,6 @@ import math
 import sys
 
 import numpy as np
-import scipy.stats
 from cctbx.array_family import flex
 from iotbx.pdb import hierarchy
 from matplotlib import pyplot as plt
@@ -45,17 +44,6 @@ class Map_explorer_analysis:
             ]
         self.check_peaks()
         self.ligands = ligands
-        # self.waters = self.check_water(self.peaklines)
-
-    def check_water(self, table):
-        """
-        search for waters in a table, e.g. self.peaklines. We should not need this anymore
-        """
-        waters_found = False
-        for lne in table:
-            if lne.split()[0] == "HOH":
-                waters_found = True
-        return waters_found
 
     def check_peaks(self):
         try:
@@ -93,84 +81,6 @@ class Map_explorer_analysis:
         neg_peaklist = self.peaksum_per_residue(neg_peaklist)
         return pos_peaklist, neg_peaklist
 
-    def peaklist_corrected(self):
-        # peaklist_corrected(self, threshold):
-        assert self.peaklines != None
-        # peaks = np.array([line.split()[-3] for line in self.peaklines], dtype=np.float32)
-        # self.peaks_corr = np.where(peaks<0, peaks+threshold, peaks-threshold)
-        peaks = np.array(
-            [line.split()[-2] for line in self.peaklines], dtype=np.float32
-        )
-        self.peaks_corr = np.where(
-            peaks < 0,
-            peaks - (np.max(np.where(peaks > 0, -np.infty, peaks))),
-            peaks - (np.min(np.where(peaks < 0, np.infty, peaks))),
-        )  # substract central part which is not taken into account because of threshold
-
-    def residlist_top(self, Z=2):
-        """
-        Function to get the highest integrated peak areas.
-        As only peaks are listed above a certain threshold, we need to subtract the middle part of the distribution to obtain a normal distribution.
-        If no peakintion file is provided, then an empty file is returned.
-        If the distribution is not Gausian, then all peaks are returned.
-        If no peaks have a z-score higher higher than Z, then all peaks are returned.
-        """
-        outname = "residlist_Zscore%.2f.txt" % (Z)
-        residlst = open(outname, "w")
-        residlst.write("%4s %4s %4s %3s\n" % ("Resn", "Resv", "Chain", "Alt"))
-
-        # write empty file if no peaks (empty peaklist or no peaklist)
-        if self.peaklines == None:
-            residlst.close()
-            return outname
-
-        # correct distrubution to obtain normal distribution
-        self.peaklist_corrected()
-        # test for normal distribution
-        try:
-            _, p = scipy.stats.normaltest(self.peaks_corr)
-            if p >= 0.05:
-                print(
-                    "Peaks not normal distributed (p-value for normality test = %.3f). All peaks will be written to Z-score file. This is however NOT correct!"
-                    % (p),
-                    file=self.log,
-                )
-                print(
-                    "Peaks not normal distributed (p-value for normality test = %.3f). All peaks will be written to Z-score file. This is however NOT correct!"
-                    % (p)
-                )
-                for line in self.peaklines:
-                    residlst.write("%s\n" % (line))
-                residlst.close()
-                return outname
-        except ValueError:
-            print(
-                "Test for normality could not be performed. Probably not enough peaks. Reconsider the map_explorer parameters",
-                file=self.log,
-            )
-            print(
-                "Test for normality could not be performed. Probably not enough peaks. Reconsider the map_explorer parameters"
-            )
-            for line in self.peaklines:
-                residlst.write("%s\n" % (line))
-            residlst.close()
-            return outname
-
-        # Get highest integrated peak areas
-        zscores = scipy.stats.zscore(self.peaks_corr)
-        peak_indices = np.where(abs(zscores) > Z)[0]
-
-        if peak_indices.shape[0] > 0:
-            for x in peak_indices:
-                residlst.write("%s\n" % (self.peaklines[x][:19]))
-        else:
-            print("No peaks found above Z-score.", file=self.log)
-            print("No peaks found above Z-score.")
-            for line in self.peaklines:
-                residlst.write("%s\n" % (line))
-        residlst.close()
-        return outname
-
     def remove_ligands_from_peaklines(self):
         assert self.ligands != None
         assert self.peaklines != None
@@ -181,32 +91,6 @@ class Map_explorer_analysis:
             and line.split()[0] not in self.ligands
             and line.split()[0] != "HOH"
         ]
-
-    def get_highest_peak_per_residue(self):
-        # to be compatible with secondary_structure plot, waters and ligands have to be removed
-        self.remove_ligands_from_peaklines()
-        cnp = [
-            [line.split()[2], line.split()[1], line.split()[-2]]
-            for line in self.peaklines_noligands
-        ]
-        cnp = [[x[0], int(x[1]), float(x[2])] for x in cnp]
-        cnp.sort()
-        # only keep hihgest peak per residue
-        x = 0
-        while x < len(cnp) - 1:
-            try:
-                if ",".join(str(cnp[x][0:2])) == ",".join(str(cnp[x + 1][0:2])):
-                    if np.abs(cnp[x][2]) <= np.abs(cnp[x + 1][2]):
-                        cnp.remove(cnp[x])
-                    else:
-                        cnp.remove(cnp[x + 1])
-                else:
-                    x += 1
-            except (
-                IndexError
-            ):  # due to removed items the list has a smaller length than len(cnp)-2
-                break
-        return cnp
 
     def get_sorted_peaklist(self):
         self.remove_ligands_from_peaklines()  # to be compatible with secondary_structure plot, waters and ligands have to be removed
@@ -307,16 +191,6 @@ class Map_explorer_analysis:
                     m.remove_chain(chain)
                     # remove the chain
 
-        # for chain in hier.chains():
-        # for res_group in chain.residue_groups():
-        # for atom_group in res_group.atom_groups():
-        # if atom_group.resname=='HOH':
-
-        # for chain in hier.chains():
-        # for res_group in chain.residue_groups():
-        # for atom_group in res_group.atom_groups():
-        # if atom_group.resname=='Na':
-
         # get the secondary structure
         fss = find_secondary_structure(hierarchy=hier)
         results = fss.get_results()
@@ -394,7 +268,7 @@ class Map_explorer_analysis:
         # initiate plot
         fig, axs = plt.subplots(
             n_rows, n_cols, figsize=(5 * n_rows, 5 * n_cols), squeeze=False
-        )  # , constrained_layout=True)
+        )
 
         # get minimum and maximum value in order to have the same y-axis on each plot
         mn, mx = self.get_plot_limits(
