@@ -132,27 +132,9 @@ def get_name(fle):
         _, file_format = os.path.splitext(fle)
     # get format of the input file
     if "/" in fle:
-        # if the path of the file contains '/'
-        # name=re.split("/", file)[-1]
-        # #the name of the file takes the name of the file in the last folder
-        # if file[-4]+file[-3]+file[-2]+file[-1]== file_format:
-        # #if the 4 last strings of the name are the file format
-        #     name=name[:-4]
-        #     #the file format is deducted from the name
-        # find name independent of the lengt of the file_format
         name = re.search(r"\/(.+?)\%s$" % (file_format), fle).group(1).split("/")[-1]
     else:
         name = re.sub(r"\%s$" % (file_format), "", fle)
-
-    # if len(name)>80:
-
-    # new_name = raw_input("%s is a long name, please a shorter prefix to use. If you provide nothing (just press enter) I will use '%s' as prefix for the output files." %(name, name[:30]+name[-30:]))
-    # if new_name == '' or new_name == ' ':
-    # name = name[:30]+name[-30:]
-    # else:
-    # name = new_name
-    # print("%s is a long name, let's call it '%s' in the output files." %(name, name[:30]+name[-30:]))
-    # name = name[:30]+name[-30:]
     return name
 
 
@@ -172,9 +154,6 @@ def phase_transfer(
         miller_set=miller_array, data=flex.double(miller_array.indices().size(), 1)
     ).phase_transfer(phase_source=phase_source)
     return miller.array(miller_set=miller_array, data=miller_array.data() * tmp.data())
-    # phased_data = miller_array.data() * tmp.data()
-    # phased_ms = make_miller_array(phased_data, sigmas, SG, UC, indices)
-    # return phased_ms
 
 
 def check_file_existance(fle):
@@ -219,9 +198,8 @@ def open_all_in_coot(
 
     script_coot = "%s/coot_all_%s.py" % (outdir, suffix)
     i = open(script_coot, "w")
-    i.write(
-        'set_nomenclature_errors_on_read("auto-correct")\n'
-    )  # choice between "auto-correct", "ignore", "prompt"
+    # choice between "auto-correct", "ignore", "prompt"
+    i.write('set_nomenclature_errors_on_read("auto-correct")\n')
 
     additional_lines = ""
     if len(additional) > 0:
@@ -309,7 +287,6 @@ def open_all_in_coot(
     i.close()
 
     return script_coot
-    # os.system("coot --script %s" %(script_coot))
 
 
 def check_common_indices(refl_lst):
@@ -393,7 +370,6 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
                 comp_true_bin_data[i_bin] * 100,
             )
         )
-        # print("%s  %8d  %8d (%.2f %%)    %.2f%%      %.2f%%" % (legend, f_bin.size(), neg, neg_percent, comp_bin_data[i_bin]*100, comp_true_bin_data[i_bin]*100), file=log)
 
     neg_lst = np.asarray(neg_lst)
     neg_percent_lst = np.asarray(neg_percent_lst)
@@ -410,7 +386,6 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
 
     plt.close()
     fig, (ax1, ax3) = plt.subplots(1, 2, figsize=(10, 5))
-    # ax1.plot(bin_res_cent_lst[1:], neg_lst[1:], linestyle = '-', label='# Neg. reflections',color = 'red')
     ax1.plot(
         bin_res_cent_lst[1:], neg_lst[1:], marker=".", label="# Neg. ESFAs", color="red"
     )
@@ -425,7 +400,6 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
         fontweight="bold",
     )
     ax2 = ax1.twinx()
-    # ax2.plot(bin_res_cent_lst[1:], neg_percent_lst[1:], linestyle = '-', label='% Neg. reflections', color = 'blue')
     ax2.plot(
         bin_res_cent_lst[1:],
         neg_percent_lst[1:],
@@ -483,50 +457,8 @@ def neg_neflecions_binning(miller_array, prefix, log=sys.stdout):
         fontweight="bold",
     )
 
-    # x_point1 = np.where(np.abs(comp_lst - 90) == np.partition(np.abs(comp_lst - 90), 0)[0])[0][0]
-    # if x_point1 ==0: #lowest resolution bin, try second smallest value
-    # x_point1 = np.where(np.abs(comp_lst - 90) == np.partition(np.abs(comp_lst - 90), 1)[1])[0][0]
-    # if 0 < x_point1 < comp_lst.shape[0]-1:
-    # if comp_lst[x_point1-1] > comp_lst[x_point1] and comp_lst[x_point1+1] > comp_lst[x_point1]:
-    ##local minimum, try second smallest value
-    # x_point1 = np.where(np.abs(comp_lst - 90) == np.partition(np.abs(comp_lst - 90), 1)[1])[0][0]
-    # x1 = bin_res_cent_lst[x_point1]
-    # y1 = comp_lst[x_point1]
-    # try:
-    # x_point2 = x_point1+1
-    # x2 = bin_res_cent_lst[x_point2]
-    # y2 = comp_lst[x_point2]
-    # a = (y2-y1)/(x2-x1)
-    # b = y1 - a*x1
-    # idc = (4-b)/a
-    # except IndexError:
-    # idc = x1
-
-    # x_point1 = np.where(np.abs(comp_true_lst - 90) == np.partition(np.abs(comp_true_lst - 90), 0)[0])[0][0]
-    # if x_point1 ==0: #lowest resolution bin, try second smallest value
-    # x_point1 = np.where(np.abs(comp_true_lst - 90) == np.partition(np.abs(comp_true_lst - 90), 1)[1])[0][0]
-    # if 0 < x_point1 < comp_true_lst.shape[0]-1:
-    # if comp_true_lst[x_point1-1] > comp_true_lst[x_point1] and comp_true_lst[x_point1+1] > comp_true_lst[x_point1]:
-    ##local minimum, try second smallest value
-    # x_point1 = np.where(np.abs(comp_true_lst - 90) == np.partition(np.abs(comp_true_lst - 90), 1)[1])[0][0]
-    # x1 = bin_res_cent_lst[x_point1]
-    # y1 = comp_true_lst[x_point1]
-    # try:
-    # x_point2 = x_point1+1
-    # x2 = bin_res_cent_lst[x_point2]
-    # y2 = comp_true_lst[x_point2]
-    # a = (y2-y1)/(x2-x1)
-    # b = y1 - a*x1
-    # idt = (4-b)/a
-    # except IndexError:
-    # idt = x1
-
-    # ax3.plot(np.array([idc]), np.array([90]), 'ro', label = '90 (%) Completeteness at {:.2f} A'.format(idc))
-    # ax3.plot(np.array([idt]), np.array([90]), 'go', label = '90 (%) True completeteness at {:.2f} A'.format(idt))
-
     lines_labels_2 = fig.axes[1].get_legend_handles_labels()
     lines_2, labels_2 = [sum(lne, []) for lne in zip(lines_labels_2)]
-    # ax3.legend(lines_2, labels_2, fontsize = 'x-small', framealpha=0.5, loc=3, bbox_to_anchor=(0.05, 0.05, 0.5, 0.5))
     ax3.legend(
         lines_2,
         labels_2,
@@ -586,20 +518,22 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
         label="<F/sig(F)>",
         color="red",
     )
+    # (<I/sig(I)> = 2)
     ax1.plot(
         bin_res_cent_lst[1:],
         s[1:],
         linestyle=":",
         label="<F/sig(F)> = 0.8",
         color="blue",
-    )  # (<I/sig(I)> = 2)
+    )
+    # (<I/sig(I)> = 1.5)
     ax1.plot(
         bin_res_cent_lst[1:],
         l[1:],
         linestyle=":",
         label="<F/sig(F)> = 1.2",
         color="green",
-    )  # (<I/sig(I)> = 1.5)
+    )
 
     x_point1 = np.where(
         np.abs(f_sigf_lst - 0.8) == np.partition(np.abs(f_sigf_lst - 0.8), 0)[0]
@@ -682,7 +616,6 @@ def compute_f_sigf(miller_array, prefix, log=sys.stdout):
         fontsize="xx-small",
         framealpha=0.5,
     )
-    # fig.tight_layout()
     plt.title(
         "%s: <F/sig(F)> for high resolution reflections" % (prefix),
         fontsize="medium",
@@ -725,7 +658,6 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
                     [line for line in log if "R free" in line][-1].split()[-1]
                 )
             else:  # refinement performed in phenix
-                # r_line = log[-1]
                 r_line = [
                     lne for lne in log if lne.lstrip().startswith("Final R-work")
                 ][0]
@@ -744,8 +676,6 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     ax1.plot(occ_lst, r_diff_lst, color="green", marker="^", label="Rfree-Rwork")
     ax0.set_xlabel("Triggered state occupancy")
     ax0.set_ylabel("R-factor")
-    # ax0.legend(fontsize = 'xx-small', framealpha=0.5, loc='lower left', bbox_to_anchor=(0.0, 0., 0.5, 0.5))
-    # ax1.set_xlabel('Occupancy of triggered state')
     ax1.set_ylabel("R-factor difference")
     ax1.yaxis.label.set_color("green")
     lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
@@ -766,14 +696,12 @@ def plot_Rfactors_per_alpha(refine_log_lst, maptype):
     )
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.82, top=0.95)
     pltname = "%s_refinement_R-factors_per_alpha" % (maptype)
-    # fig.tight_layout()
     plt.savefig("%s.pdf" % (pltname), dpi=300, transparent=True)
     plt.savefig("%s.png" % (pltname), dpi=300)
     plt.close()
 
-    out = open(
-        "%s_refinement_R-factors_per_alpha.pickle" % (maptype), "wb"
-    )  # write to pickle for GUI
+    # write to pickle for GUI
+    out = open("%s_refinement_R-factors_per_alpha.pickle" % (maptype), "wb")
     stats = [occ_lst, r_work_lst, r_free_lst, r_diff_lst]
     pickle.dump(stats, out)
     out.close()
@@ -856,8 +784,6 @@ def get_Fextr_stats(
             fdif_sigmas_avg = flex.mean(fdif_ms_bin.sigmas())
             fdif_sigmas_lst.append(fdif_sigmas_avg)
             legend_fextr = fextr_ms.binner().bin_legend(i_bin, show_counts=False)
-            # bin_res_cent_avg = np.median(fextr_ms.binner().bin_d_range(i_bin))
-            # bin_res_cent_lst.append(bin_res_cent_avg)
             fextr_data_avg = flex.mean(fextr_ms_bin.data())
             fextr_data_lst.append(fextr_data_avg)
             fextr_sigmas_avg = flex.mean(fextr_ms_bin.sigmas())
@@ -886,9 +812,8 @@ def get_Fextr_stats(
         fdif_sigmas_lst,
     ]
 
-    out = open(
-        "%s/Fextr_binstats.pickle" % (outdir), "ab"
-    )  # write to pickle to avoid keeping in memory and for GUI
+    # write to pickle to avoid keeping in memory and for GUI
+    out = open("%s/Fextr_binstats.pickle" % (outdir), "ab")
     pickle.dump(stats, out)
     out.close()
     print("Stats saved to %s/Fextr_binstats.pickle" % (outdir))
@@ -913,8 +838,6 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
 
     # extract the maptypes
     maptype_lst = list(set(alldata[:, 2]))
-    # extract the occupancies
-    occ_lst = list(set(alldata[:, 0]))
 
     # For each maptype make the Fextr / sig(Fextr) plot for each maptype
     for maptype in maptype_lst:
@@ -957,12 +880,10 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
         ax0.set_xlabel("Resolution (A)")  # , fontsize = 'small')
         ax0.set_ylabel("ESFAs")  # , fontsize = 'small')
         ax0.yaxis.label.set_color("tab:red")
-        # ax0.tick_params(labelsize='x-small')
 
         ax0.set_ylim(mn, mx)
         ax1.set_ylim(mn, mx)
 
-        # ax0.legend(loc='lower right', bbox_to_anchor=(-0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
         ax0.legend(
             loc="lower right",
             bbox_to_anchor=(0.89, -0.05, 0.45, 0.5),
@@ -977,17 +898,13 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
         )
         ax1.set_ylabel("sig(ESFAs)")  # , fontsize = 'small')
         ax1.yaxis.label.set_color("tab:blue")
-        # ax1.tick_params(labelsize='x-small')
-        # ax1.legend(loc='lower right', bbox_to_anchor=(1.2, 0.05, 0.45, 2.5), fontsize = 'xx-small', framealpha=0.5)
 
         ax0.set_title(
             "%s for high resolution reflections" % (maptype),
             fontsize="medium",
             fontweight="bold",
         )
-        # plt.show()
         plt.subplots_adjust(hspace=0.35, left=0.09, right=0.65, top=0.95)
-        # fig.tight_layout()
         plt.savefig("%s_sigmas.pdf" % (maptype), dpi=300, transparent=True)
         plt.savefig("%s_sigmas.png" % (maptype), dpi=300)
         plt.close()
@@ -1023,12 +940,8 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
     ax0.set_xlabel("Resolution (A)")  # , fontsize = 'small')
     ax0.set_ylabel("%s" % (FoFo_type))  # , fontsize = 'small')
     ax0.yaxis.label.set_color("tab:red")
-    # ax0.tick_params(labelsize='x-small')
-    # ax0.legend(loc='upper left', bbox_to_anchor=(-0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
     ax1.set_ylabel("sig(%s)" % (FoFo_type))  # , fontsize = 'small')
     ax1.yaxis.label.set_color("tab:blue")
-    # ax1.tick_params(labelsize='x-small')
-    # ax1.legend(loc='center left', bbox_to_anchor=(-0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
 
     lines_labels_1 = [ax.get_legend_handles_labels() for ax in [ax0, ax1]]
     lines_1, labels_1 = [sum(lne, []) for lne in zip(*lines_labels_1)]
@@ -1040,7 +953,6 @@ def plot_Fextr_sigmas(pickle_file="Fextr_binstats.pickle"):
         fontsize="xx-small",
         framealpha=0.5,
     )
-    # ax0.legend(loc='lower right', bbox_to_anchor=(0.75, -0.05, 0.45, 0.5), fontsize = 'xx-small', framealpha=0.5)
 
     ax0.set_title(
         "%s for high resolution reflections" % (FoFo_type),
@@ -1124,9 +1036,7 @@ def plot_negative_reflections(pickle_file="Fextr_negative.pickle"):
             "%s: Positive ESFAs" % (maptype), fontsize="medium", fontweight="bold"
         )
 
-        # plt.title('%s' %(maptype),loc='center')
         plt.subplots_adjust(hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95)
-        # fig.tight_layout()
         plt.savefig("Neg_Pos_reflections_%s.pdf" % (maptype), dpi=300, transparent=True)
         plt.savefig("Neg_Pos_reflections_%s.png" % (maptype), dpi=300)
         plt.close()
@@ -1163,20 +1073,11 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
     r_work = calculate_Riso(f_obs_work, f_calc_work)
     cc_work = f_obs_work.correlation(f_calc_work).coefficient()
 
-    # print("r_work = %.4f  r_free = %.4f" %(r_work, r_free))
-    # print("cc_work = %.4f cc_free = %.4f" %(cc_work, cc_free))
-
     bin_res_cent_lst = flex.double()
     r_work_lst = flex.double()
-    # r_free_lst  = flex.double()
     cc_work_lst = flex.double()
-    # cc_free_lst = flex.double()
     f_obs_work.setup_binner(n_bins=20)
-    # f_obs_test.use_binning_of(f_obs_work)
     f_calc_work.use_binner_of(f_obs_work)
-    # f_calc_test.use_binning_of(f_obs_work)
-    # print("bin  resolution range  #refl.work  #refl.test  riso-work riso-free  cciso-work  cciso-free", file=log)
-    # print("bin  resolution range  #refl.work  #refl.test  riso-work riso-free  cciso-work  cciso-free")
 
     print("\n************isomorphism statistics************", file=log)
     print("\n************isomorphism statistics************")
@@ -1184,11 +1085,8 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
     print("bin  resolution range         #refl  R_iso      cc_iso")
     for i_bin in f_obs_work.binner().range_all():
         sel_work = f_obs_work.binner().selection(i_bin)
-        # sel_test = f_obs_test.binner().selection(i_bin)
         fo_work_bin = f_obs_work.select(sel_work)
         fc_work_bin = f_calc_work.select(sel_work)
-        # fo_test_bin = f_obs_test.select(sel_test)
-        # fc_test_bin = f_calc_test.select(sel_test)
         if fc_work_bin.size() == 0:
             continue
         bin_res_cent = np.median(f_obs_work.binner().bin_d_range(i_bin))
@@ -1208,7 +1106,6 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
             % (legend, fo_work_bin.size(), r_work_bin, cc_work_bin)
         )
 
-    # assert bin_res_cent_lst.size()==r_work_lst.size()==r_free_lst.size()==cc_work_lst.size()==cc_free_lst.size(), 'list sizes to plot Riso and CCiso not equal'
     assert bin_res_cent_lst.size() == r_work_lst.size() == cc_work_lst.size(), (
         "list sizes to plot Riso and CCiso not equal"
     )
@@ -1230,10 +1127,7 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
     ax1.set_xlabel("Resolution (A)")
     ax1.set_ylabel("Riso")
     ax1.yaxis.label.set_color("red")
-    # ax1.legend(fontsize = 'xx-small', framealpha=0.5, loc=0)
     ax2 = ax1.twinx()
-    # ax2.plot(bin_res_cent_lst[1:], cc_work_lst[1:], marker = '.', color = 'green', label = 'CCiso,work; overall %.4f' %(cc_work))
-    # ax2.plot(bin_res_cent_lst[1:], cc_free_lst[1:], marker = '.', color = 'yellow', label = 'CCiso,free; overall %.4f' %(cc_free))
     ax2.plot(
         bin_res_cent_lst[1:],
         cc_work_lst[1:],
@@ -1244,10 +1138,8 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
     )
     ax2.set_ylabel("CCiso")
     ax2.yaxis.label.set_color("green")
-    # ax2.legend(fontsize = 'xx-small', framealpha=0.5, loc=0)
     lines_labels = [ax.get_legend_handles_labels() for ax in fig.axes]
     lines, labels = [sum(lne, []) for lne in zip(*lines_labels)]
-    # fig.legend(lines, labels, loc='lower right', fontsize = 'xx-small', framealpha=0.5) #bbox_to_anchor=(0.82, -0.05, 0.45, 0.5)
     ax2.legend(
         lines,
         labels,
@@ -1262,10 +1154,8 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
         fontweight="bold",
     )
     plt.subplots_adjust(hspace=0.35, left=0.09, right=0.80, top=0.95)
-    # fig.tight_layout()
     plt.savefig("Riso_CCiso.pdf", dpi=300, transparent=True)
     plt.savefig("Riso_CCiso.png", dpi=300)
     plt.close()
 
-    # return r_work, r_free
     return r_work, cc_work
