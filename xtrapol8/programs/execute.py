@@ -6,14 +6,14 @@ from cctbx import miller
 
 def _run_process(cmd_path, args, stdin, log_stream=None):
     with subprocess.Popen(
-        args=[cmd_path] + args,
+        args=[cmd_path] + list(map(str, args)),
         stdin=subprocess.PIPE if stdin else None,
         stdout=log_stream,
         encoding="utf-8",
     ) as process:
         if stdin:
             for line in stdin:
-                process.stdin.write(line + "\n")
+                process.stdin.write(f"{line}\n")
             process.stdin.close()
         process.wait()
         return process.returncode
