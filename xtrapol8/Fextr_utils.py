@@ -21,6 +21,7 @@ import pickle
 import re
 import shutil
 import sys
+from contextlib import contextmanager
 from pathlib import Path
 
 import cctbx
@@ -1116,3 +1117,25 @@ def compute_r_factors(f_obs, f_calc, r_free_flags, log=sys.stdout):
     plt.close()
 
     return r_work, cc_work
+
+
+@contextmanager
+def redirect_stdout_and_stderr(path: str):
+    """
+    Context manager to temporarily redirect stdout and stderr
+    at the OS file descriptor level to the specified log file.
+    This captures output from both Python and native extensions
+    (such as C/C++ libraries) for the duration of the context.
+    """
+    original_stdout_fd = os.dup(1)
+    original_stderr_fd = os.dup(2)
+    with open(path, "w", encoding="utf-8") as f:
+        try:
+            os.dup2(f.fileno(), 1)
+            os.dup2(f.fileno(), 2)
+            yield
+        finally:
+            os.dup2(original_stdout_fd, 1)
+            os.dup2(original_stderr_fd, 2)
+            os.close(original_stdout_fd)
+            os.close(original_stderr_fd)

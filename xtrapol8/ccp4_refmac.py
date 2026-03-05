@@ -22,7 +22,6 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 
 import os
 import re
-from contextlib import contextmanager
 from difflib import get_close_matches
 
 import coot_headless_api
@@ -31,35 +30,13 @@ from iotbx.file_reader import any_file
 from libtbx import adopt_init_args
 from mmtbx.scaling.matthews import p_vm_calculator
 
-from .Fextr_utils import get_name
+from .Fextr_utils import get_name, redirect_stdout_and_stderr
 from .programs.dm import dm
 from .programs.fft import fft
 from .programs.refmac import refmac
 from .programs.uniqueify import uniqueify
 
 CHAPI = coot_headless_api.molecules_container_t(False)
-
-
-@contextmanager
-def redirect_stdout_and_stderr(path: str):
-    """
-    Context manager to temporarily redirect stdout and stderr
-    at the OS file descriptor level to the specified log file.
-    This captures output from both Python and native extensions
-    (such as C/C++ libraries) for the duration of the context.
-    """
-    original_stdout_fd = os.dup(1)
-    original_stderr_fd = os.dup(2)
-    with open(path, "w", encoding="utf-8") as f:
-        try:
-            os.dup2(f.fileno(), 1)
-            os.dup2(f.fileno(), 2)
-            yield
-        finally:
-            os.dup2(original_stdout_fd, 1)
-            os.dup2(original_stderr_fd, 2)
-            os.close(original_stdout_fd)
-            os.close(original_stderr_fd)
 
 
 class Refmac_refinement:
