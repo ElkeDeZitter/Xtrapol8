@@ -36,7 +36,7 @@ from matplotlib.backends.backend_wxagg import (
     NavigationToolbar2WxAgg as NavigationToolbar,
 )
 from matplotlib.figure import Figure
-from wx.lib.pubsub import pub
+from pubsub import pub
 from wx.lib.scrolledpanel import ScrolledPanel
 from wxtbx import metallicbutton
 

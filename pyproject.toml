@@ -33,6 +33,7 @@ dependencies = [
     "mmtbx",
     "numpy",
     "pandas",
+    "pypubsub",
     "scipy",
     "wxPython",
 ]

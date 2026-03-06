@@ -25,8 +25,8 @@ from threading import Thread
 import matplotlib
 import wx
 from libtbx.phil import parse
+from pubsub import pub
 from wx.aui import AuiNotebook
-from wx.lib.pubsub import pub
 
 from . import __version__
 from .Fextr import master_phil
