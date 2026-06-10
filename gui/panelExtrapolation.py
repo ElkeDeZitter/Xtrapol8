@@ -225,8 +225,8 @@ class TabExtrapolation(ScrolledPanel):
         
         self.occ_est = wx.StaticText(self, wx.ID_ANY, "Occupancy estimation :", size=(180, 20))
         self.occ_est.SetFont(defont)
-        self.occ_list_all = ["difference_map_maximization", "difference_map_PearsonCC", "distance_analysis"]
-        self.occ_list_noref = ["difference_map_maximization", "difference_map_PearsonCC"]
+        self.occ_list_all = ["difference_map_maximization", "difference_map_PearsonCC", "distance_analysis", "SVD_analysis"]
+        self.occ_list_noref = ["difference_map_maximization", "difference_map_PearsonCC", "SVD_analysis"]
         self.OccEstimation = wx.Choice(self, wx.ID_ANY, choices=self.occ_list_all, name = "Occupancy estimation")
         self.OccEstimation.SetFont(defont)
         self.OccEstimation.SetSelection(0)

@@ -32,6 +32,7 @@ from cctbx.array_family import flex
 from matplotlib import pyplot as plt
 import matplotlib.colors as mcolors
 from Fextr_utils import get_name
+import matplotlib
 import math
 
 
@@ -676,3 +677,86 @@ def plot_ddm(pickle_file = 'ddm.pickle', scale = 1.5):
     plt.savefig(outname_png, dpi=300)
     plt.close()
     
+def plot_svd_analysis(pickle_file="qFextr_map_svd_analysis.pickle"):
+    """
+    Load plot data from pickle file and regenerate a combined plot.
+    The plot contains:
+    - axs[0, 0]: Singular values (scree plot)
+    - axs[0, 1], axs[1, 0], axs[1, 1], ...: Right singular vectors
+    
+    Input: pickle_file - path to the pickle file saved by run_svd_analysis.py
+    """
+    
+    with open(pickle_file, 'rb') as f:
+        plot_data = pickle.load(f, encoding='latin1')
+    
+    s = plot_data['s']
+    vh = plot_data['vh']
+    occupancies = plot_data['occupancies']
+    map_2mFextr_DFc_list = plot_data['map_2mFextr_DFc_list']
+    numvec = plot_data['numvec']
+    prefix = plot_data['prefix']
+
+    print("Loaded plot data from: {:s}".format(pickle_file))
+    print("Prefix: {:s}, numvec: {:d}, occupancies: {}".format(prefix, numvec, occupancies))
+    
+    # Setup colors and formatting
+    colorlist=['xkcd:purple','xkcd:red','xkcd:royal blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:dark red',]
+    matplotlib.rc('xtick', labelsize=8) 
+    matplotlib.rc('ytick', labelsize=8) 
+        
+    if numvec <= 1:
+        width = 0.01
+    else:
+        width = round((occupancies[-1] - occupancies[0])/(len(occupancies)*2), 3)
+
+    # Calculate grid size: need space for 1 singular values plot + numvec right singular vector plots
+    # Using 2 columns
+    n_cols = 2
+    n_rows = int(math.ceil((numvec + 1) / n_cols))
+    if numvec == n_rows * 2:
+        n_rows = n_rows + 1 
+    
+    fig, axs = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows), squeeze=False)
+    
+    # Plot singular values in axs[0, 0]
+    axs[(0, 0)].bar(np.arange(1, len(map_2mFextr_DFc_list)+1), s)
+    axs[(0, 0)].set_title('Singular values', fontsize='medium', fontweight='bold')
+    axs[(0, 0)].set_xlabel('Component')
+    axs[(0, 0)].set_ylabel('Singular value')
+    
+    # Plot right singular vectors starting from axs[0, 1]
+    col = 1
+    row = 0
+    for vec in range(numvec):
+        # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
+        axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
+        axs[(row, col)].bar((occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
+        axs[(row, col)].set_ylim([0,1])
+        axs[(row, col)].axhline(y=0.4, color='gray' , linestyle='--')
+        axs[(row, col)].set_title("Vector {:d}".format(vec+1))
+        #ax.axhline(y=0.3, color='gray' , linestyle='--')
+        for tick in axs[(row, col)].xaxis.get_ticklabels():
+            tick.set_fontsize('medium')
+            tick.set_rotation(90)
+
+        for tick in axs[(row, col)].yaxis.get_ticklabels():
+            tick.set_fontsize('medium')
+        
+        # Increment position for next iteration
+        col += 1
+        if col >= n_cols:
+            col = 0
+            row += 1
+    
+    # # Hide any unused subplots
+    # for r in range(n_rows):
+    #     for c in range(n_cols):
+    #         if (r == 0 and c == 0):
+    #             continue  # singular values plot
+    #         elif r * n_cols + c >= numvec + 1:
+    #             axs[r, c].axis('off')
+        
+    fig.tight_layout()
+    outname = "{:s}_svd_analysis.png".format(prefix)
+    plt.savefig(outname, dpi=300)

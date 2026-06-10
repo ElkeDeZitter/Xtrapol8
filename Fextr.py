@@ -2775,6 +2775,7 @@ def run(args):
         elif params.map_explorer.occupancy_estimation == "svd_analysis":
             SVD = SVD_analysis(map_2mFextr_DFc_list = files_and_maps[mp]["2FextrFc"],
                                 occupancies = params.occupancies.list_occ,
+                                model_pdb = DH.pdb_in,
                                 prefix = mp_type,
                                 log = log)
             _, _, vh = SVD.run_svd_analysis()

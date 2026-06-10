@@ -276,9 +276,7 @@ class TabMainImg(ScrolledPanel):
                       'Fextr_calc', 'qFextr_calc', 'kFextr_calc']:
             self.mapping["alpha_occupancy_determination_%s.pickle"  % fextr] = self.plot_alpha_occupancy_determination
             self.mapping["%s_refinement_R-factors_per_alpha.pickle" % fextr] = self.plot_refinement_Rfactors_per_alpha
-
-
-
+            self.mapping["{:s}_svd_analysis.pickle".format(fextr)] = self.plot_svd_analysis
 
     def addPlot(self, pickle_file):
 
@@ -615,6 +613,89 @@ class TabMainImg(ScrolledPanel):
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
  
+    def plot_svd_analysis(self, pickle_file):
+        """
+        Load plot data from pickle file and regenerate a combined plot.
+        The plot contains:
+        - axs[0, 0]: Singular values (scree plot)
+        - axs[0, 1], axs[1, 0], axs[1, 1], ...: Right singular vectors
+        
+        Input: pickle_file - path to the pickle file saved by run_svd_analysis.py
+        """
+        
+        with open(pickle_file, 'rb') as f:
+            plot_data = pickle.load(f, encoding='latin1') #"latin1" should aid in the python2 and python3 compatibility
+        
+        s = plot_data['s']
+        vh = plot_data['vh']
+        occupancies = plot_data['occupancies']
+        map_2mFextr_DFc_list = plot_data['map_2mFextr_DFc_list']
+        numvec = plot_data['numvec']
+        # prefix = plot_data['prefix']
+
+        print("Loaded plot data from: {:s}".format(pickle_file))
+        print("Prefix: {:s}, numvec: {:d}, occupancies: {}".format(prefix, numvec, occupancies))
+        
+        # Setup colors and formatting
+        colorlist=['xkcd:purple','xkcd:red','xkcd:royal blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:dark red',]
+        matplotlib.rc('xtick', labelsize=8) 
+        matplotlib.rc('ytick', labelsize=8) 
+            
+        if numvec <= 1:
+            width = 0.01
+        else:
+            width = round((occupancies[-1] - occupancies[0])/(len(occupancies)*2), 3)
+
+        # Calculate grid size: need space for 1 singular values plot + numvec right singular vector plots
+        # Using 2 columns
+        n_cols = 2
+        n_rows = int(math.ceil((numvec + 1) / n_cols))
+        if numvec == n_rows * 2:
+            n_rows = n_rows + 1 
+        
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows), squeeze=False)
+        
+        # Plot singular values in axs[0, 0]
+        axs[(0, 0)].bar(np.arange(1, len(map_2mFextr_DFc_list)+1), s)
+        axs[(0, 0)].set_title('Singular values', fontsize='medium', fontweight='bold')
+        axs[(0, 0)].set_xlabel('Component')
+        axs[(0, 0)].set_ylabel('Singular value')
+        
+        # Plot right singular vectors starting from axs[0, 1]
+        col = 1
+        row = 0
+        for vec in range(numvec):
+            # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
+            axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
+            axs[(row, col)].bar((occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
+            axs[(row, col)].set_ylim([0,1])
+            axs[(row, col)].axhline(y=0.4, color='gray' , linestyle='--')
+            axs[(row, col)].set_title("Vector {:d}".format(vec+1))
+            #ax.axhline(y=0.3, color='gray' , linestyle='--')
+            for tick in axs[(row, col)].xaxis.get_ticklabels():
+                tick.set_fontsize('medium')
+                tick.set_rotation(90)
+
+            for tick in axs[(row, col)].yaxis.get_ticklabels():
+                tick.set_fontsize('medium')
+            
+            # Increment position for next iteration
+            col += 1
+            if col >= n_cols:
+                col = 0
+                row += 1
+        
+        # # Hide any unused subplots
+        # for r in range(n_rows):
+        #     for c in range(n_cols):
+        #         if (r == 0 and c == 0):
+        #             continue  # singular values plot
+        #         elif r * n_cols + c >= numvec + 1:
+        #             axs[r, c].axis('off')
+            
+        fig.tight_layout()
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
 
     def addImg(self, filepath):
         img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)

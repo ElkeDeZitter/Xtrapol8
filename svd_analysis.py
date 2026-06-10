@@ -19,6 +19,7 @@ import iotbx.map_tools
 from iotbx.data_manager import DataManager
 from cctbx.array_family import flex
 import math
+import pickle
 
 import glob
 import sys
@@ -223,9 +224,11 @@ class SVD_analysis(object):
                     map_2mFextr_DFc_list = [],
                     occupancies=[],
                     model_pdb = None,
-                    numvec = 5, #Need to implement function that automatically detects the number of useful number of vectors
+                    numvec = 5, 
                     prefix = '',
                     log = sys.stdout):
+        
+        #Need to implement function that automatically detects the number of useful number of vectors numvec
         
         #Try this instead of  repetition of the arguments
         adopt_init_args(self, locals())
@@ -241,6 +244,16 @@ class SVD_analysis(object):
         occupancies, map_2mFextr_DFc_list =zip(*zipped_sorted)
         self.occupancies     = list(occupancies)
         self.map_2mFextr_DFc_list = list(map_2mFextr_DFc_list)
+        
+        self.check_singular_vectors()
+        
+    def check_singular_vectors(self):
+        """
+        Number of vectors <= the number of occupancy values to test
+        """
+        if self.numvec > len(self.occupancies):
+            print("number of right singular vectors reduced to number of occupancies")
+            self.numvec = len(self.occupancies)
         
     # def check_orthonormality(self, matrix):
     #     """
@@ -324,7 +337,7 @@ class SVD_analysis(object):
         #plt.legend()
         #splt.show()
 
-        colorlist=['xkcd:purple','xkcd:royal blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:red','xkcd:dark red',]
+        colorlist=['xkcd:purple','xkcd:red','xkcd:royal blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:dark red',]
 
         # leg="vector #"+str(v)
         #plt.rc('xtick', labelsize=8)
@@ -336,48 +349,110 @@ class SVD_analysis(object):
         # print(np.shape(self.occupancies))
         # print(self.occupancies[:])
         
-        width = round((self.occupancies[-1] - self.occupancies[0])/(len(self.occupancies)*2), 3)
+        if self.numvec <= 1:
+            width = 0.01
+        else:
+            width = round((self.occupancies[-1] - self.occupancies[0])/(len(self.occupancies)*2), 3)
     
         # initiate plot
-        n_cols = 2
+        if self.numvec <= 1:
+            n_cols = 1
+        else:
+            n_cols = 2
         n_rows = int(math.ceil(self.numvec/n_cols))
-        fig, axs = plt.subplots(n_rows, n_cols, figsize=(5 * n_rows, 5 * n_cols),
-                                squeeze=False)  # , constrained_layout=True)
-        col = -1
-        row = -1
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(5 * n_rows, 5 * n_cols), squeeze=False)  # , constrained_layout=True)
+        col = 0
+        row = 0
         for vec in range(self.numvec):
-            # go the next position in the plot
-            if col == 0:
-                col = 1
-            else:
-                col = 0
-                row += 1
             # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
-            axs[(row,col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
-            axs[(row,col)].set(xlabel='dataset', ylabel='Amplitude')
-            #ax.set_xlim([0.001,1000000])
-            # print((self.occupancies[:]))
-            # print(np.abs(vh[vec,:]))
-            # print((vh[vec,:]))
-            # print("")
-            axs[(row,col)].set_ylim([0,1])
-            axs[(row,col)].axhline(y=0.4, color='gray' , linestyle='--')
-            axs[((row,col))].set_title("Vector {:d}".format(vec+1))
+            axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
+            axs[(row, col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
+            axs[(row, col)].set_ylim([0,1])
+            axs[(row, col)].axhline(y=0.4, color='gray' , linestyle='--')
+            axs[(row, col)].set_title("Vector {:d}".format(vec+1))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
-            for tick in axs[(row,col)].xaxis.get_ticklabels():
+            for tick in axs[(row, col)].xaxis.get_ticklabels():
                 tick.set_fontsize('medium')
                 tick.set_rotation(90)
 
-            for tick in axs[((row,col))].yaxis.get_ticklabels():
+            for tick in axs[(row, col)].yaxis.get_ticklabels():
                 tick.set_fontsize('medium')
+            
+            # Increment position for next iteration
+            col += 1
+            if col >= n_cols:
+                col = 0
+                row += 1
             
         fig.tight_layout()
         outname = "{:s}_right_singular_values.png".format(self.prefix)
         plt.savefig(outname, dpi=300)
         
-    def pymol_session(self):
+    def plot_svd_full_analysis(self, s, vh):
+        """
+        Make a single plot with the singular values and the right singular vectors
+        """     
         
-        P = Pymol_session()
+        # Setup colors and formatting
+        colorlist=['xkcd:purple','xkcd:red','xkcd:royal blue','xkcd:blue','xkcd:aqua','xkcd:lime green','xkcd:neon green','xkcd:green','xkcd:gold','xkcd:golden rod','xkcd:light orange','xkcd:orange','xkcd:red orange','xkcd:dark red',]
+        matplotlib.rc('xtick', labelsize=8) 
+        matplotlib.rc('ytick', labelsize=8) 
+            
+        if self.numvec <= 1:
+            width = 0.01
+        else:
+            width = round((self.occupancies[-1] - self.occupancies[0])/(len(self.occupancies)*2), 3)
+
+        # Calculate grid size: need space for 1 singular values plot + numvec right singular vector plots
+        # Using 2 columns
+        n_cols = 2
+        n_rows = int(math.ceil((self.numvec + 1) / n_cols))
+        if self.numvec == n_rows * 2:
+            n_rows = n_rows + 1 
+        
+        fig, axs = plt.subplots(n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows), squeeze=False)
+        
+        # Plot singular values in axs[0, 0]
+        axs[(0, 0)].bar(np.arange(1, len(self.map_2mFextr_DFc_list)+1), s)
+        axs[(0, 0)].set_title('Singular values', fontsize='medium', fontweight='bold')
+        axs[(0, 0)].set_xlabel('Component')
+        axs[(0, 0)].set_ylabel('Singular value')
+        
+        # Plot right singular vectors starting from axs[0, 1]
+        col = 1
+        row = 0
+        for vec in range(self.numvec):
+            # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
+            axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
+            axs[(row, col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
+            axs[(row, col)].set_ylim([0,1])
+            axs[(row, col)].axhline(y=0.4, color='gray' , linestyle='--')
+            axs[(row, col)].set_title("Vector {:d}".format(vec+1))
+            #ax.axhline(y=0.3, color='gray' , linestyle='--')
+            for tick in axs[(row, col)].xaxis.get_ticklabels():
+                tick.set_fontsize('medium')
+                tick.set_rotation(90)
+
+            for tick in axs[(row, col)].yaxis.get_ticklabels():
+                tick.set_fontsize('medium')
+            
+            # Increment position for next iteration
+            col += 1
+            if col >= n_cols:
+                col = 0
+                row += 1
+        
+        # # Hide any unused subplots
+        # for r in range(n_rows):
+        #     for c in range(n_cols):
+        #         if (r == 0 and c == 0):
+        #             continue  # singular values plot
+        #         elif r * n_cols + c >= self.numvec + 1:
+        #             axs[r, c].axis('off')
+            
+        fig.tight_layout()
+        outname = "{:s}_svd_analysis.png".format(self.prefix)
+        plt.savefig(outname, dpi=300)
 
     
     # def read_ccp4_map(self, mapinname):
@@ -441,22 +516,25 @@ class SVD_analysis(object):
         """
         Estimate alpha and occupancy based on the right singular values.
         """
-        idx = np.where(np.abs(vh[1,:]) == np.min(np.abs(vh[1,:])))[0][0]
+        if len(vh) <= 1:
+            idx = 0
+        else:
+            idx = np.where(np.abs(vh[1,:]) == np.min(np.abs(vh[1,:])))[0][0]
         occ = self.occupancies[idx]
         alp = 1/occ
         
         print("Occupancy estimate based on the second right singular vector:")
         print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ))
         
-        print("Occupancy estimate based on the second right singular vector:", file = log)
-        print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ), file=log)
+        print("Occupancy estimate based on the second right singular vector:", file = self.log)
+        print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ), file=self.log)
         
         return alp, occ
         
     def run_svd_analysis(self):
     
         for n in range(len(self.map_2mFextr_DFc_list)):
-            print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]), file=log)
+            print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]), file=self.log)
             print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]))
             # size, start, intervals, uc, order, skew, skew_trn, symops, _, totalmap = readccp4map(self.map_2mFextr_DFc_list[n])
             mm = self.read_ccp4_map(self.map_2mFextr_DFc_list[n])
@@ -476,10 +554,29 @@ class SVD_analysis(object):
         
         # print('Now performing Singular Value Decomposition...')
         u, s, vh, success = self.run_svd(dataset)
-        
 
-        self.plot_singular_values(s)
-        self.plot_right_singular_values(vh)
+        # self.plot_singular_values(s)
+        # self.plot_right_singular_values(vh)
+        self.plot_svd_full_analysis(s, vh)
+        
+        # Save data for rerunning plots
+        plot_data = {
+            's': s,
+            'vh': vh,
+            'occupancies': self.occupancies,
+            'map_2mFextr_DFc_list': self.map_2mFextr_DFc_list,
+            'numvec': self.numvec,
+            'prefix': self.prefix
+        }
+        pickle_filename = "{:s}_svd_analysis.pickle".format(self.prefix)
+        with open(pickle_filename, 'wb') as f:
+            pickle.dump(plot_data, f, protocol=2)
+        
+        return u, s, vh
+    
+        # Below is for printing out maps and showing them in Pymol. This has no use whenusingn SVD for
+        # alpha estimation. Hence the function return is above. The code can be useful for other SVD implementations
+        
 
         # print('')
         # print('Now cleaning up the maps...')
@@ -502,7 +599,8 @@ class SVD_analysis(object):
             cleanedmap=np.reshape(cleanedmap,totalmap.shape)
             std=np.std(cleanedmap)
             cleanedmap=cleanedmap/std
-            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.occupancies[d])            self.write_ccp4_map(mm, cleanedmap, outname)
+            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.occupancies[d])
+            self.write_ccp4_map(mm, cleanedmap, outname)
         
         #load the different maps and append to a Pymol session
         P = Pymol_SVD_session(self.model_pdb)
