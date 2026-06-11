@@ -451,8 +451,9 @@ class SVD_analysis(object):
         #             axs[r, c].axis('off')
             
         fig.tight_layout()
-        outname = "{:s}_svd_analysis.png".format(self.prefix)
-        plt.savefig(outname, dpi=300)
+        outname = "{:s}_svd_analysis".format(self.prefix)
+        plt.savefig("{:s}.png".format(outname), dpi=300,bbox_inches='tight', pad_inches = 0)
+        plt.savefig("{:s}.pdf".format(outname), dpi=300, transparent=True,bbox_inches='tight', pad_inches = 0)
 
     
     # def read_ccp4_map(self, mapinname):
