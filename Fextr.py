@@ -2759,7 +2759,8 @@ def run(args):
         else:
             dir_prefix = 'occupancy' 
 
-        if params.map_explorer.occupancy_estimation in ("difference_map_maximization", "distance_analysis"):
+        #Estimate alpha first with difference_map maximization or PearsonCC. alpha and occ will be overwritten later if  "distance_analysis" or "svd_analysis" are selected)
+        if params.map_explorer.occupancy_estimation in ("difference_map_maximization", "distance_analysis", "svd_analysis"):
             #in case of distance_analysis alpha and occ will be overwritten if the requirements for distance_analysis are met (calm-and-curious, run_refinement)
             alpha, occ, _, _ = plotalpha(occupancies = params.occupancies.list_occ,
                                          extrapolation_results = files_and_maps[mp]["map_expl_lst"][1:],
@@ -2772,7 +2773,8 @@ def run(args):
                                          reference = files_and_maps[mp]["map_expl_lst"][0],
                                          outsuffix = mp_type,
                                          log=log).estimate_alpha()
-        elif params.map_explorer.occupancy_estimation == "svd_analysis":
+            
+        if params.map_explorer.occupancy_estimation == "svd_analysis":
             SVD = SVD_analysis(map_2mFextr_DFc_list = files_and_maps[mp]["2FextrFc"],
                                 occupancies = params.occupancies.list_occ,
                                 model_pdb = DH.pdb_in,
