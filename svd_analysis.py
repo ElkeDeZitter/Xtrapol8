@@ -368,7 +368,6 @@ class SVD_analysis(object):
             axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
             axs[(row, col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
             axs[(row, col)].set_ylim([0,1])
-            axs[(row, col)].axhline(y=0.4, color='gray' , linestyle='--')
             axs[(row, col)].set_title("Vector {:d}".format(vec+1))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
             for tick in axs[(row, col)].xaxis.get_ticklabels():
@@ -426,7 +425,6 @@ class SVD_analysis(object):
             axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
             axs[(row, col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
             axs[(row, col)].set_ylim([0,1])
-            axs[(row, col)].axhline(y=0.4, color='gray' , linestyle='--')
             axs[(row, col)].set_title("Vector {:d}".format(vec+1))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
             for tick in axs[(row, col)].xaxis.get_ticklabels():
