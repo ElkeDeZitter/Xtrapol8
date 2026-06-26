@@ -223,6 +223,7 @@ class SVD_analysis(object):
     def __init__(self,
                     map_2mFextr_DFc_list = [],
                     occupancies=[],
+                    alphas=[],
                     model_pdb = None,
                     numvec = 3, 
                     prefix = '',
@@ -237,23 +238,30 @@ class SVD_analysis(object):
         pdb_ini = iotbx.pdb.input(model_pdb)
         self.xray_structure = pdb_ini.xray_structure_simple()
         
-        #Sort the map files and occupancies in order to have occupancies from small to large, probably just for cosmethics
-        #This might not work in pyhton3
-        zipped = zip(occupancies, map_2mFextr_DFc_list)
+        #Sort the map files and alphas in order to have alphas from small to large, probably just for cosmethics
+        if len(alphas) <= 0:
+            if len(occupancies) <= 0:
+                print("No alpha values provided")
+            else:
+                #Convert occupancy to alpha = 1/occupancy
+                print("Converting occupancies to alpha values according to alpha = 1/occupancy")
+                alphas = [1.0/occ for occ in occupancies]
+        zipped = list(zip(alphas, map_2mFextr_DFc_list))  # Convert to list for Python 2/3 compatibility
         zipped_sorted = sorted(zipped, key = lambda x:x[0])
-        occupancies, map_2mFextr_DFc_list =zip(*zipped_sorted)
-        self.occupancies     = list(occupancies)
+        zipped_sorted = zipped_sorted[::-1]  # Reverse to maintain correspondence: smallest occ (largest alpha) first
+        alphas, map_2mFextr_DFc_list = list(zip(*zipped_sorted))  # Convert to list for Python 2/3 compatibility
+        self.alphas     = list(alphas)
         self.map_2mFextr_DFc_list = list(map_2mFextr_DFc_list)
         
         self.check_singular_vectors()
         
     def check_singular_vectors(self):
         """
-        Number of vectors <= the number of occupancy values to test
+        Number of vectors <= the number of alpha values to test
         """
-        if self.numvec > len(self.occupancies):
-            print("Number of right singular vectors reduced to number of occupancies")
-            self.numvec = len(self.occupancies)
+        if self.numvec > len(self.alphas):
+            print("Number of right singular vectors reduced to number of alphas")
+            self.numvec = len(self.alphas)
         
     # def check_orthonormality(self, matrix):
     #     """
@@ -346,13 +354,13 @@ class SVD_analysis(object):
         matplotlib.rc('xtick', labelsize=8) 
         matplotlib.rc('ytick', labelsize=8) 
             
-        # print(np.shape(self.occupancies))
-        # print(self.occupancies[:])
+        # print(np.shape(self.alphas))
+        # print(self.alphas[:])
         
         if self.numvec <= 1:
             width = 0.01
         else:
-            width = round((self.occupancies[-1] - self.occupancies[0])/(len(self.occupancies)*2), 3)
+            width = round((self.alphas[0] - self.alphas[-1])/(len(self.alphas)*2), 3)
     
         # initiate plot
         if self.numvec <= 1:
@@ -365,8 +373,8 @@ class SVD_analysis(object):
         row = 0
         for vec in range(self.numvec):
             # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
-            axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
-            axs[(row, col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
+            axs[(row, col)].set(xlabel='alpha', ylabel='Amplitude')
+            axs[(row, col)].bar((self.alphas[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
             axs[(row, col)].set_ylim([0,1])
             axs[(row, col)].set_title("Vector {:d}".format(vec+1))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
@@ -400,7 +408,7 @@ class SVD_analysis(object):
         if self.numvec <= 1:
             width = 0.01
         else:
-            width = round((self.occupancies[-1] - self.occupancies[0])/(len(self.occupancies)*2), 3)
+            width = round((self.alphas[0] - self.alphas[-1])/(len(self.alphas)*2), 3)
 
         # Calculate grid size: need space for 1 singular values plot + numvec right singular vector plots
         # Using 2 columns
@@ -422,8 +430,8 @@ class SVD_analysis(object):
         row = 0
         for vec in range(self.numvec):
             # fig.subplots_adjust(left=0.1, bottom=0.25, right=0.9, top=0.95,wspace=0.6, hspace=0.5)
-            axs[(row, col)].set(xlabel='dataset', ylabel='Amplitude')
-            axs[(row, col)].bar((self.occupancies[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
+            axs[(row, col)].set(xlabel='alpha', ylabel='Amplitude')
+            axs[(row, col)].bar((self.alphas[:]),np.abs(vh[vec,:]), color=colorlist[vec], width=width) #,label=leg,marker="o",linewidth=1, markersize=6)
             axs[(row, col)].set_ylim([0,1])
             axs[(row, col)].set_title("Vector {:d}".format(vec+1))
             #ax.axhline(y=0.3, color='gray' , linestyle='--')
@@ -513,28 +521,30 @@ class SVD_analysis(object):
     
     def estimate_alpha(self, vh):
         """
-        Estimate alpha and occupancy based on the right singular values.
+        Estimate alpha based on the right singular values.
         """
         if len(vh) <= 1:
             idx = 0
         else:
             idx = np.where(np.abs(vh[1,:]) == np.min(np.abs(vh[1,:])))[0][0]
-        occ = self.occupancies[idx]
-        alp = 1/occ
+        alp = self.alphas[idx]
+        occ = 1/alp
         
-        print("Occupancy estimate based on the second right singular vector:")
-        print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ))
+        print("Alpha estimate based on the second right singular vector:")
+        print("Alpha: {:.3f}".format(alp))
         
-        print("Occupancy estimate based on the second right singular vector:", file = self.log)
-        print("Alpha: {:.3f}    occupancy: {:.3f}".format(alp, occ), file=self.log)
+        print("Alpha estimate based on the second right singular vector:", file = self.log)
+        print("Alpha: {:.3f}".format(alp), file=self.log)
         
         return alp, occ
         
     def run_svd_analysis(self):
     
+        map_width = max(len(path) for path in self.map_2mFextr_DFc_list)
+        print("{:<{width}s}  {:s}".format("map", "alpha", width=map_width))
         for n in range(len(self.map_2mFextr_DFc_list)):
-            print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]), file=self.log)
-            print("{:s}: {:.3f}".format(self.map_2mFextr_DFc_list[n], self.occupancies[n]))
+            print("{:<{width}s}  {:.2f}".format(self.map_2mFextr_DFc_list[n], self.alphas[n], width=map_width), file=self.log)
+            print("{:<{width}s}  {:.2f}".format(self.map_2mFextr_DFc_list[n], self.alphas[n], width=map_width))
             # size, start, intervals, uc, order, skew, skew_trn, symops, _, totalmap = readccp4map(self.map_2mFextr_DFc_list[n])
             mm = self.read_ccp4_map(self.map_2mFextr_DFc_list[n])
             map_data = mm.map_data()/mm.statistics().sigma() #Scale the maps to have the same standard deviation #Is this necessary ?
@@ -562,7 +572,7 @@ class SVD_analysis(object):
         plot_data = {
             's': s,
             'vh': vh,
-            'occupancies': self.occupancies,
+            'alphas': self.alphas,
             'map_2mFextr_DFc_list': self.map_2mFextr_DFc_list,
             'numvec': self.numvec,
             'prefix': self.prefix
@@ -593,12 +603,12 @@ class SVD_analysis(object):
             cleanedmap=dataset_cleaned[:,d]
             originalmap=dataset[:,d]
             C=np.corrcoef(originalmap,cleanedmap)
-            # print('Correlations between original and cleaned for map',d,'at occupancy',self.occupancies[d],':')
+            # print('Correlations between original and cleaned for map',d,'at alpha',self.alphas[d],':')
             # print(C[0,1])
             cleanedmap=np.reshape(cleanedmap,totalmap.shape)
             std=np.std(cleanedmap)
             cleanedmap=cleanedmap/std
-            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.occupancies[d])
+            outname = "{:s}_cleaned_{:.3f}.ccp4".format(self.prefix, self.alphas[d])
             self.write_ccp4_map(mm, cleanedmap, outname)
         
         #load the different maps and append to a Pymol session
@@ -783,7 +793,8 @@ if __name__ == "__main__":
     model_pdb = Xtrapol8_params.input.reference_pdb
     
     # additional_files = Xtrapol8_params.input.additional_files
-
+    
+    
     map_2fextrfcalc_list = Filefinder(X8_outdir = Xtrapol8_params.output.outdir,
                              X8_outname = Xtrapol8_params.output.outname,
                              X8_f_extrapolated_and_maps = Xtrapol8_params.f_and_maps.f_extrapolated_and_maps,
@@ -829,6 +840,7 @@ if __name__ == "__main__":
         
     SVD = SVD_analysis(map_2mFextr_DFc_list = map_2fextrfcalc_list,
                  occupancies = occupancies,
+                 alphas = Xtrapol8_params.extrapolation_factors.list_alpha,
                  model_pdb=model_pdb,
                  numvec = params.svd_analysis.n_vectors, 
                  prefix = suffix,

@@ -2160,23 +2160,63 @@ def run(args):
         params.f_and_maps.fofo_type = 'fofo'
     
     #get list with occupancies from start-end-steps or list
-    occ_step  = (params.occupancies.high_occ - params.occupancies.low_occ)/params.occupancies.steps
-    if params.occupancies.list_occ == None:
-        occ = params.occupancies.low_occ
-        occ_lst = []
-        while occ <= params.occupancies.high_occ:
-            occ_lst.append(occ)
-            occ+=occ_step
+    if params.occupancies.list_occ !=  None:
+        try:
+            occ_lst = list(params.occupancies.list_occ)
+        except (TypeError, AttributeError):
+            occ_lst = []
     else:
-        occ_lst = params.occupancies.list_occ
+        occ_lst = []
+        try:
+            low_occ = params.occupancies.low_occ
+            high_occ = params.occupancies.high_occ
+            steps = params.occupancies.steps
+            if low_occ is None or high_occ is None or steps is None:
+                raise ValueError
+            occ_step = (high_occ - low_occ) / steps
+            occ = low_occ
+            while occ <= high_occ:
+                occ_lst.append(round(occ,2))
+                occ += occ_step
+        except (TypeError, AttributeError, ValueError, ZeroDivisionError):
+            occ_lst = []
+    
+    #overwrite the occupancies if alpha values are given:
+    if params.extrapolation_factors.list_alpha !=  None:
+        try:
+            alp_lst = list(params.extrapolation_factors.list_alpha)
+        except (TypeError, AttributeError):
+            alp_lst = []
+    else:
+        alp_lst = []
+        try:
+            low_alpha = params.extrapolation_factors.low_alpha
+            high_alpha = params.extrapolation_factors.high_alpha
+            steps = params.extrapolation_factors.steps
+            if low_alpha is None or high_alpha is None or steps is None:
+                raise ValueError
+            alp_step = (high_alpha - low_alpha) / steps
+            alp = low_alpha
+            while alp <= high_alpha:
+                alp_lst.append(round(alp,2))
+                alp += alp_step
+        except (TypeError, AttributeError, ValueError, ZeroDivisionError):
+            alp_lst = []
+
+    if len(alp_lst) >= 1:
+        occ_lst = [round(1/x, 2) for x in alp_lst[::-1]]
+
     occ_lst.sort()
     if len(occ_lst) == 0:
-        remark = "No input occupancies found. Xtrapol8 will stop after the FoFo calculation."
+        remark = "No input occupancies or alphas found. Xtrapol8 will stop after the FoFo calculation."
         remarks.append(remark)
         params.output.generate_fofo_only = True
         params.occupancies.list_occ = None
     else:
         params.occupancies.list_occ = occ_lst
+        alp_lst = [round(1/x, 2) for x in occ_lst[::-1]]
+        params.extrapolation_factors.list_alpha = alp_lst
+    
     ################################################################
     if len(remarks) > 0:
         print('-----------------------------------------', file=log)

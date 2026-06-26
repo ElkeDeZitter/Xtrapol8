@@ -72,6 +72,24 @@ occupancies{
         .help = List of occupancies to test (fractional). Will overwrite low_occ, high_occ and steps if defined.
         .expert_level = 0
     }
+extrapolation_factors{
+    low_alpha = None
+        .type = float(value_min=1, value_max=100)
+        .help = Lowest alpha to test. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+    high_alpha = None
+        .type = float(value_min=1, value_max=100)
+        .help = Higest alpha to test. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+    steps = 5
+        .type = int
+        .help = Amount of equaly spaced alpha values to be tested. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+    list_alpha = None
+        .type = floats(size_min=1, value_min=0, value_max=100)
+        .help = List of alphas to test. Will overwrite low_alpha, high_alpha and steps if defined. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+}
 scaling{
     b_scaling = no isotropic *anisotropic 
         .type = choice(multi=False)
