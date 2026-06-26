@@ -224,7 +224,7 @@ class SVD_analysis(object):
                     map_2mFextr_DFc_list = [],
                     occupancies=[],
                     model_pdb = None,
-                    numvec = 5, 
+                    numvec = 3, 
                     prefix = '',
                     log = sys.stdout):
         
@@ -252,7 +252,7 @@ class SVD_analysis(object):
         Number of vectors <= the number of occupancy values to test
         """
         if self.numvec > len(self.occupancies):
-            print("number of right singular vectors reduced to number of occupancies")
+            print("Number of right singular vectors reduced to number of occupancies")
             self.numvec = len(self.occupancies)
         
     # def check_orthonormality(self, matrix):
@@ -727,10 +727,16 @@ if __name__ == "__main__":
             .help = The type of ESFAs for which the SVD map analysis will be carried out. The Xtrapol8 run prior to these analysis should include the ESFA type of choice. You can only specify one, launch mutliple runs if you want to repeat on with different ESFA types.
             .expert_level = 0
         }
+    svd_analysis{
+        n_vectors = 3
+        .type = int(value_min=1, value_max=15)
+        .help = Number of displayed singular vectors. This has no influence on the alpha estimation which will be done on the second right singular vector.
+        .expert_level = 1
+    }
     output{
         outdir = SVD_analysis
             .type = str
-            .help = Output directory. 'SVD_analysis' be used if not specified.
+            .help = Output directory. 'SVD_analysis' will be used if not specified.
             .expert_level = 0
         suffix = None
             .type = str
@@ -824,6 +830,7 @@ if __name__ == "__main__":
     SVD = SVD_analysis(map_2mFextr_DFc_list = map_2fextrfcalc_list,
                  occupancies = occupancies,
                  model_pdb=model_pdb,
+                 numvec = params.svd_analysis.n_vectors, 
                  prefix = suffix,
                  log = log)
     _, _, vh = SVD.run_svd_analysis()
