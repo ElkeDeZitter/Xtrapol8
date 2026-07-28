@@ -463,7 +463,7 @@ class DataHandler(object):
                 #else:
                     #selection.append(False)
             #self.fmodel.select(selection)
-            dt = np.dtype([('h', np.int) ,('k',np.int),('l',np.int)])
+            dt = np.dtype([('h', int), ('k', int), ('l', int)])
             f1 = np.array(self.fmodel.f_obs().indices(), dtype=dt)
             f2 = np.array(fobs.indices(), dtype=dt)
             selection = np.nonzero(np.in1d(f1, f2))[0]
@@ -1204,7 +1204,7 @@ class Fextrapolate(object):
         if fmodel_f_obs.data().size() < self.fmodel_fobs_off.f_obs().data().size():
             rfree, miller_array = self.rfree.common_sets(miller_array)
             
-            dt = np.dtype([('h', np.int) ,('k',np.int),('l',np.int)])
+            dt = np.dtype([('h', int), ('k', int), ('l', int)])
             f1 = np.array(self.fmodel_fobs_off.f_obs().indices(), dtype=dt)
             f2 = np.array(fmodel_f_obs.indices(), dtype=dt)
             selection = np.nonzero(np.in1d(f1, f2))[0]

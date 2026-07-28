@@ -1124,12 +1124,12 @@ def plot_negative_reflections(pickle_file='Fextr_negative.pickle'):
         ax3 = ax2.twinx()
         
         for a in indices:
-            ax0.plot(np.float(alldata[a][0]),  np.float(alldata[a][-1]), marker='o', color='red', label = maptype)
-            ax2.plot(np.float(alldata[a][0]),  np.float(alldata[a][3]), marker='o', color='red', label = maptype)
+            ax0.plot(float(alldata[a][0]),  float(alldata[a][-1]), marker='o', color='red', label = maptype)
+            ax2.plot(float(alldata[a][0]),  float(alldata[a][3]), marker='o', color='red', label = maptype)
                 
-        ax0.set_ylim(0,np.float(alldata[a][2]))
+        ax0.set_ylim(0,float(alldata[a][2]))
         ax1.set_ylim(0,100)
-        ax2.set_ylim(0,np.float(alldata[a][2]))
+        ax2.set_ylim(0,float(alldata[a][2]))
         ax3.set_ylim(0,100)
         
         ax0.set_xlabel('Triggered state occupancy')
