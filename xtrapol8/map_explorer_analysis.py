@@ -447,9 +447,9 @@ class Map_explorer_analysis(object):
             # if n_cols > 1: #n_rows will always be larger > 1 (except if something went wrong and no protein present ==> should be checked for nucleic acids!!
             axs[row, col].plot(ligands, flex.int(num_lig, 0), color='black', zorder=0, linewidth=0.75)
             if pt.shape[0] > 0:
-                axs[row, col].bar(pt[0], pt[1].astype(np.float), color='green', width=0.25)
+                axs[row, col].bar(pt[0], pt[1].astype(float), color='green', width=0.25)
             if nt.shape[0] > 0:
-                axs[row, col].bar(nt[0], nt[1].astype(np.float), color='red', width=0.25)
+                axs[row, col].bar(nt[0], nt[1].astype(float), color='red', width=0.25)
             axs[row, col].set_ylim(mn, mx)
             axs[row, col].set_ylabel('Summed integrated\npeak volume')
             axs[row, col].set_title("Ligands", fontsize='medium', fontweight="bold")

@@ -69,7 +69,7 @@ import numpy as np
 import scipy.stats
 
 from .Fextr_utils import check_file_existance
-from .master import master_phil
+from .master import master_phil as Xtrapol8_master_phil
 
 
 colorlib=['purple','indigo','rebeccapurple', 'midnightblue', 'darkblue', 'mediumblue', 'blue', 'royalblue', 'dodgerblue', 'cornflowerblue', 'deepskyblue', 'lightskyblue', 'cadetblue','darkcyan', 'darkturquoise', 'mediumturquoise', 'turquoise', 'aqua', 'mediumaquamarine', 'aquamarine', 'mediumspringgreen', 'springgreen', 'green', 'lime', 'lawngreen', 'chartreuse', 'greenyellow', 'yellow', 'gold', 'goldenrod', 'orange', 'darkorange', 'chocolate', 'darksalmon', 'orangered', 'red', 'firebrick', 'maroon', 'darkred', 'black']
@@ -944,7 +944,7 @@ class Filefinder(object):
 
 
 def main():
-    Xtrapol8_master_phil = master_phil
+    # Xtrapol8_master_phil = master_phil
 
     master_phil = iotbx.phil.parse("""
     input{

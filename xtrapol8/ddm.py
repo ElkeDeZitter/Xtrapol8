@@ -466,7 +466,7 @@ class Difference_distance_analysis(object):
                     stats = [chain.id, ddm_residue, seq_info_unique]
                     pickle.dump(stats, outname_pickle)
                     
-                    mask = np.zeros_like(ddm_residue, dtype=np.bool)
+                    mask = np.zeros_like(ddm_residue, dtype=bool)
                     mask[np.triu_indices_from(mask)] = True
                     FINAL2 = np.ma.array(ddm_residue, mask=mask)
                     
