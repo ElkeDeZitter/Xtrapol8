@@ -2792,7 +2792,7 @@ def run(args):
                 
             #Make a plot of the refinement R-factors, related to the specific maptype. The log-files should have the same prefix as the mtz-files.
             #This assumption is made in order to avoid storing the log-files in even another list
-            plot_Rfactors_per_alpha(map(lambda fle: re.sub(r'mtz$','log', fle), files_and_maps[mp]["recref_mtz_lst"]), mp_type)
+            plot_Rfactors_per_alpha(list(map(lambda fle: re.sub(r'mtz$','log', fle), files_and_maps[mp]["recref_mtz_lst"])), mp_type)
             print("", file=log)
             print("")
             
@@ -2821,12 +2821,12 @@ def run(args):
             pymol_pdb_list.remove(DH.pdb_in)
             pymol_mtz_list = files_and_maps[mp]["recref_mtz_lst"][:]
             if outname == 'triggered': #if dummy name applied, the files still contain the dummy name
-                pymol_mtz_list = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_mtz_list)
-                pymol_pdb_list = map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_pdb_list)
+                pymol_mtz_list = list(map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_mtz_list))
+                pymol_pdb_list = list(map(lambda fle: re.sub(r"triggered",params.output.outname, fle), pymol_pdb_list))
             #Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
             #Otherwise use the real space refined models + direct maps
             if pdb_list == files_and_maps[mp]["recrealref_lst"]:
-                ccp4_list = map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list)
+                ccp4_list = list(map(lambda fle: re.sub(r".mtz$", "_2mFo-DFc_filled.ccp4", fle), pymol_mtz_list))
                 model_label = '%s_reciprocal_real_space'%(mp_type)
                 ccp4_map_label = '%s_reciprocal_space'%(mp)
                 #Pymol_movie(params.occupancies.list_occ, pdblst=pymol_pdb_list, ccp4_maps = ccp4_list, resids_lst = residlst, model_label='%s_reciprocal_real_space'%(mp_type), ccp4_map_label='%s_reciprocal_space'%(mp)).write_pymol_script()
