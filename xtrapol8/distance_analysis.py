@@ -68,7 +68,7 @@ from libtbx.utils import Usage
 from scipy.optimize import curve_fit
 
 from .Fextr_utils import check_file_existance
-from .master import master_phil
+from .master import master_phil as Xtrapol8_master_phil
 
 colorlib = [
     "purple",
@@ -1072,8 +1072,6 @@ class Filefinder:
 
 
 def main():
-    Xtrapol8_master_phil = master_phil
-
     master_phil = iotbx.phil.parse(
         """
     input{

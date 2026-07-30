@@ -17,9 +17,6 @@
   <ol>
     <li>
       <a href="#about">About</a>
-      <ul>
-        <li><a href="#new-since-version-1.2.0">New since version 1.2.0</a></li>
-      </ul>
     </li>
     <li>
       <a href="#getting-started">Getting Started</a>
@@ -56,17 +53,7 @@ Don't forget to cite the software on which we build:
 * Emsley, P. et al., [Features and development of Coot](https://journals.iucr.org/d/issues/2010/04/00/ba5144/index.html), Acta Crystallogr. D. Biol. Crystallogr. 66, 486–501 (2010).
 * Grosse-Kunstleve, et al., [The Computational Crystallography Toolbox: crystallographic algorithms in a reusable software framework](https://journals.iucr.org/paper?ks0118), J. Appl. Crystallogr. 35, 126–136 (2002).
 
-## New since version 1.2.0
-* Untreated extrapolated electron density maps ("keep_no_fill") are now automatically added to the output, allowing easy comparison of negative_and_missing strategies. 
-* Resolution boundaries for scaling can be specified.
-* Refinement can be done with a combination of different programs, one should not restrict themselves to the CCP4 or Phenix suite.
-* Easier usages of standalone verison to redo the difference-map and distance analysis for alpha estimation.
-* Possibility to change the scattering table.
-* New keywords.
-* Updated GUI.
-* Several bug fixes.
-
-See [release notes](https://github.com/ElkeDeZitter/Xtrapol8/releases) and manual for more info and other new features.
+See [release notes](https://github.com/ElkeDeZitter/Xtrapol8/releases) and manual for more info and new features.
 
 <!-- GETTING STARTED -->
 # Getting Started
