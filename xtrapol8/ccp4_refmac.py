@@ -309,7 +309,7 @@ class Coot_refinement:
 
         CHAPI.set_map_weight(20)
         CHAPI.set_use_rama_plot_restraints(True)
-        CHAPI.refine_residues_using_atom_cid(imol, "//", "ALL", 1000)
+        real = CHAPI.refine_residues_using_atom_cid(imol, "//", "ALL", 1000)
 
         CHAPI.set_add_waters_water_to_protein_distance_lim_min(2.4)
         CHAPI.set_add_waters_water_to_protein_distance_lim_max(3.6)
@@ -321,6 +321,12 @@ class Coot_refinement:
 
         CHAPI.close_molecule(imol)
         CHAPI.close_molecule(imap)
+        
+        if real != 1:  #real space refinement incorrectly finished
+            print("real space refinement with coot failed")
+        else:
+            print("real space refinement with coot successful")
+
         return pdb_out
 
     def get_mtz_resolution(self, mtz_in):
