@@ -65,6 +65,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import glob
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -319,7 +320,7 @@ class Refiner:
         # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
         # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
-        reciprocal = subprocess.call(
+        command = (
             "phenix.refine --overwrite %s %s %s  %s output.prefix=%s refinement.output.write_model_cif_file=False %s refinement.main.nproc=4 write_maps=true refinement.main.scattering_table=%s "
             % (
                 self.reciprocal_phil,
@@ -331,6 +332,7 @@ class Refiner:
                 self.scattering_table,
             )
         )
+        reciprocal = subprocess.call(shlex.split(command))
 
         # Find output files
         if reciprocal == 0:  # correctly finished, search for the last refined structure
@@ -456,7 +458,7 @@ class Refiner:
         output_prefix = "output.prefix=%s_independent" % (mtz_name)
         model_format = "model_format=pdb"
 
-        real = subprocess.call(
+        command = (
             "phenix.real_space_refine %s %s %s %s %s %s label='%s' scattering_table=%s"
             % (
                 self.real_phil,
@@ -469,6 +471,7 @@ class Refiner:
                 self.scattering_table,
             )
         )
+        real = subprocess.call(shlex.split(command))
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
@@ -498,7 +501,7 @@ class Refiner:
         model_format = "model_format=pdb"
 
         # launch phenix.real_space_refine
-        real = subprocess.call(
+        command = (
             "phenix.real_space_refine %s %s %s %s %s %s resolution=%.2f scattering_table=%s"
             % (
                 self.real_phil,
@@ -511,6 +514,7 @@ class Refiner:
                 self.scattering_table,
             )
         )
+        real = subprocess.call(shlex.split(command))
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure

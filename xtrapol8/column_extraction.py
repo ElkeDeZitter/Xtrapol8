@@ -21,6 +21,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 """
 
 import os
+import shlex
 import subprocess
 import sys
 
@@ -412,7 +413,8 @@ class Extrapolated_column_extraction:
         Afterwards, extract the reflections
         """
         mtz_out, arguments_converter = self.reflection_file_converter_arguments()
-        subprocess.call("phenix.reflection_file_converter %s" % (arguments_converter))
+        command = "phenix.reflection_file_converter %s" % (arguments_converter)
+        subprocess.call(shlex.split(command))
         reflections_extrapolate = any_file(
             mtz_out, force_type="hkl", raise_sorry_if_errors=False
         )

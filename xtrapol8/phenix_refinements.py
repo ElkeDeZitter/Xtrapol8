@@ -24,6 +24,7 @@ see https://github.com/ElkeDeZitter/Xtrapol8/blob/main/LICENSE
 import glob
 import os
 import re
+import shlex
 import subprocess
 import sys
 from difflib import get_close_matches
@@ -127,7 +128,7 @@ class Phenix_reciprocal_space_refinement:
         # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
         # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
-        reciprocal = subprocess.call(
+        command = (
             "phenix.refine --overwrite %s %s  %s output.prefix=%s strategy=%s "
             "main.number_of_macro_cycles=%d refinement.output.write_model_cif_file=False "
             "refinement.main.scattering_table=%s "
@@ -150,6 +151,7 @@ class Phenix_reciprocal_space_refinement:
                 additional_keywords_line,
             )
         )
+        reciprocal = subprocess.call(shlex.split(command))
 
         # Find output files, automatically
         if reciprocal == 0:  # correctly finished, search for the last refined structure
@@ -377,7 +379,7 @@ class Phenix_real_space_refinement:
             for keyword in self.additional_real_keywords:
                 additional_keywords_line += "%s " % (keyword)
 
-        real = subprocess.call(
+        command = (
             "phenix.real_space_refine %s %s %s "
             "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=%s c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s label='%s' %s %s ignore_symmetry_conflicts=True %s"
             % (
@@ -394,6 +396,7 @@ class Phenix_real_space_refinement:
                 additional_keywords_line,
             )
         )
+        real = subprocess.call(shlex.split(command))
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
@@ -431,7 +434,7 @@ class Phenix_real_space_refinement:
             for keyword in self.additional_real_keywords:
                 additional_keywords_line += "%s " % (keyword)
 
-        real = subprocess.call(
+        command = (
             "phenix.real_space_refine %s %s %s "
             "geometry_restraints.edits.excessive_bond_distance_limit=1000 refinement.run=minimization_global+adp scattering_table=%s c_beta_restraints=False %s refinement.macro_cycles=%d refinement.simulated_annealing=every_macro_cycle nproc=4 %s %s %s ignore_symmetry_conflicts=True resolution=%.2f %s"
             % (
@@ -448,6 +451,7 @@ class Phenix_real_space_refinement:
                 additional_keywords_line,
             )
         )
+        real = subprocess.call(shlex.split(command))
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure

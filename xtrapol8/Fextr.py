@@ -74,6 +74,7 @@ TODO:
 import os
 import pickle
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -2645,7 +2646,8 @@ def run(args):
 
         log.close()
         if params.output.open_coot and shutil.which("coot"):
-            subprocess.call("coot --script %s" % (script_coot))
+            command = "coot --script %s" % (script_coot)
+            subprocess.call(shlex.split(command))
 
         sys.exit()
 
@@ -3510,7 +3512,8 @@ def run(args):
     log.close()
 
     if params.output.open_coot and shutil.which("coot"):
-        subprocess.call("coot --script %s" % (script_coot))
+        command = "coot --script %s" % (script_coot)
+        subprocess.call(shlex.split(command))
 
 
 def main():
