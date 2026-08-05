@@ -21,7 +21,7 @@ import wx
 
 
 class CharValidator(wx.PyValidator):
-    ''' Validates data as it is entered into the text controls. '''
+    """Validates data as it is entered into the text controls."""
 
     def __init__(self, flag):
         # wx.PyValidator.__init__(self)
@@ -30,7 +30,7 @@ class CharValidator(wx.PyValidator):
         self.Bind(wx.EVT_CHAR, self.OnChar)
 
     def Clone(self):
-        '''Required Validator method'''
+        """Required Validator method"""
         return CharValidator(self.flag)
 
     def Validate(self, win):
@@ -45,14 +45,11 @@ class CharValidator(wx.PyValidator):
     def OnChar(self, event):
         keycode = int(event.GetKeyCode())
         if keycode < 256:
-            #print keycode
+            # print keycode
             key = chr(keycode)
-            #print key
-            if self.flag == 'no-alpha' and key in string.letters:
+            # print key
+            if self.flag == "no-alpha" and key in string.letters:
                 return
-            if self.flag == 'no-digit' and key in string.digits:
+            if self.flag == "no-digit" and key in string.digits:
                 return
         event.Skip()
-
-
-
