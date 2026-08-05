@@ -20,6 +20,7 @@ import os
 import pickle
 import re
 import shutil
+import subprocess
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -60,11 +61,41 @@ def remove_unique_id_from_log(log_name):
 
 
 def get_phenix_version():
-    "Get the phenix version based on the full path of the phenix executable."
-    if phenix := shutil.which("phenix"):
-        if match := re.search(r"phenix-(.+?)\/", phenix):
+    "Get the Phenix version from the `phenix.version` command output."
+    try:
+        result = subprocess.run(
+            ["phenix.version"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        result = None
+
+    if result is not None and result.returncode == 0 and result.stdout:
+        if match := re.search(
+            r"^\s*Version:\s*(\d+(?:\.\d+)*)\s*$",
+            result.stdout,
+            flags=re.MULTILINE | re.IGNORECASE,
+        ):
             return match.group(1)
+
+    # if phenix := shutil.which("phenix"):
+    #     for part in Path(phenix).parts:
+    #         if part.startswith("phenix-"):
+    #             version = part[len("phenix-") :]
+    #             return version if version else "Phenix not found"
+    #         if "sbgrid" in part:
+    #             return "2.1-sbgrid"
+            
     return "Phenix not found"
+
+
+def get_phenix_version_number(version):
+    "Return the first two numeric components of a Phenix version as a float."
+    if match := re.search(r"(\d+)\.(\d+)", version):
+        return float(f"{match.group(1)}.{match.group(2)}")
+    return None
 
 
 def get_ccp4_version():

@@ -34,7 +34,7 @@ from iotbx.file_reader import any_file
 from libtbx import adopt_init_args
 from mmtbx.scaling.matthews import p_vm_calculator
 
-from .Fextr_utils import get_name
+from .Fextr_utils import get_name, get_phenix_version, get_phenix_version_number
 from .programs.dm import dm
 from .programs.fft import fft
 from .programs.refmac import refmac_for_dm
@@ -70,9 +70,14 @@ class Phenix_reciprocal_space_refinement:
             self.params = ""
 
         self.mtz_name = get_name(self.mtz_in)
+        
+        self.phenix_version = get_phenix_version_number(get_phenix_version())
 
     def reciprocal_space_refinement(self):
-        "run phenix.refine"
+        """
+        run phenix.refine
+        Support for version 1.18 and higher
+        """
         try:
             if self.F_column_labels.lower().startswith("q"):
                 maptype = "q" + self.F_column_labels.lower()[1:].capitalize()
@@ -124,7 +129,10 @@ class Phenix_reciprocal_space_refinement:
                 % (self.weight_sel_crit.r_free_minus_r_work)
             )
 
-        r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1"
+        if self.phenix_version <= 1.20:
+            r_free_flag_parameters = "refinement.input.xray_data.r_free_flags.disable_suitability_test=True refinement.input.xray_data.r_free_flags.ignore_pdb_hexdigest=True refinement.input.xray_data.r_free_flags.label='FreeR_flag' refinement.input.xray_data.r_free_flags.test_flag_value=1"
+        else:  # phenix 1.21 and higher
+            r_free_flag_parameters = "data_manager.fmodel.xray_data.r_free_flags.ignore_pdb_hexdigest=True data_manager.fmodel.xray_data.r_free_flags.test_flag_value=1"
         # data_manager.fmodel.xray_data.r_free_flags.disable_suitability_test=True
         # Disable_suitability_test cannot be done. It keeps on giving an error message about the label and value. All combination have been tested, it seems that this does not work
 
@@ -300,6 +308,8 @@ class Phenix_real_space_refinement:
         log=sys.stdout,
     ):
         adopt_init_args(self, locals())
+        
+        self.phenix_version = get_phenix_version_number(get_phenix_version())
 
     def check_mtz_column(self, mtz_in, column_labels):
         """
@@ -354,7 +364,7 @@ class Phenix_real_space_refinement:
         """
         Real space refinement based on mtz file and specified column labels
         run phenix.real_space_refine
-        Some parameters have changed between version 1.17, 1.18 and 1.19 hence the weird construction to grap the version
+        Support for phenix 1.18 and higher
         """
 
         mtz_name = get_name(mtz_in)
@@ -370,9 +380,15 @@ class Phenix_real_space_refinement:
         rotamer_restraints = "rotamers.restraints.enabled=False"  # rotamers.fit=all?
 
         prefix = "%s_phenix" % (mtz_name)
-        output_prefix = "output.prefix=%s" % (prefix)
-        model_format = "model_format=pdb"
-        ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
+        if self.phenix_version <= 1.18:
+            output_prefix = 'output.file_name_prefix=%s'% (prefix)
+            model_format  = 'output.model_format=pdb'
+            # outpdb        = "%s_real_space_refined.pdb"%(mtz_name)
+            ramachandran_restraints = 'ramachandran_restraints=False'
+        else: # phenix version 1.19 and higher
+            output_prefix = "output.prefix=%s" % (prefix)
+            model_format = "model_format=pdb"
+            ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
 
         additional_keywords_line = ""
         if len(self.additional_real_keywords) > 0:
@@ -400,8 +416,13 @@ class Phenix_real_space_refinement:
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
+            pdb_pattern = (
+                "%s_real_space_refined.pdb" % (prefix)
+                if self.phenix_version <= 1.18
+                else "%s_real_space_refined_???.pdb" % (prefix)  # phenix version 1.19 and higher
+            )
             try:
-                pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
+                pdb_fles = glob.glob(pdb_pattern)
                 pdb_fles.sort()
                 outpdb = pdb_fles[-1]
             except IndexError:
@@ -425,9 +446,15 @@ class Phenix_real_space_refinement:
         rotamer_restraints = "rotamers.restraints.enabled=False"  # rotamers.fit=all?
 
         prefix = "%s_phenix" % (ccp4_name)
-        output_prefix = "output.prefix=%s" % (prefix)
-        model_format = "model_format=pdb"
-        ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
+        if self.phenix_version <= 1.18:
+            output_prefix = 'output.file_name_prefix=%s'% (prefix)
+            model_format  = 'output.model_format=pdb'
+            # outpdb        = "%s_real_space_refined.pdb"%(mtz_name)
+            ramachandran_restraints = 'ramachandran_restraints=False'
+        else: # phenix version 1.19 and higher
+            output_prefix = "output.prefix=%s" % (prefix)
+            model_format = "model_format=pdb"
+            ramachandran_restraints = "ramachandran_plot_restraints.enable=False"
 
         additional_keywords_line = ""
         if len(self.additional_real_keywords) > 0:
@@ -455,8 +482,13 @@ class Phenix_real_space_refinement:
 
         # Find output file
         if real == 0:  # correctly finished. search for the last refined structure
+            pdb_pattern = (
+                "%s_real_space_refined.pdb" % (prefix)
+                if self.phenix_version <= 1.18
+                else "%s_real_space_refined_???.pdb" % (prefix) # phenix version 1.19 and higher
+            )
             try:
-                pdb_fles = glob.glob("%s_real_space_refined_???.pdb" % (prefix))
+                pdb_fles = glob.glob(pdb_pattern)
                 pdb_fles.sort()
                 outpdb = pdb_fles[-1]
             except IndexError:
