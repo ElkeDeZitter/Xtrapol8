@@ -2046,10 +2046,12 @@ def run(args):
             remarks.append(remark)
             params.refinement.reciprocal_space = "phenix"
     if params.refinement.real_space == "coot":
-        if shutil.which("coot") is None:
-            remark = "COOT not found. Setting refine.real_space=phenix"
+        try:
+            import coot_headless_api
+        except ImportError:
+            remark = "COOT (CHAPI) not found. Setting refine.real_space=phenix.real_space_refine"
             remarks.append(remark)
-            params.refinement.real_space = "phenix"
+            params.refinement.real_space = "phenix.real_space_refine"
 
     # specify extrapolated structure factors and map types
     qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = (
