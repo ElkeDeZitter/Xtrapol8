@@ -910,7 +910,7 @@ class Distance_analysis:
             peaks = self.find_peaks(counts, bins)
             if len(peaks) > 1:
                 peaks = np.average(peaks)
-            mode = scipy.stats.mode(np.round(possible_b, 2))[0][0]
+            mode = scipy.stats.mode(np.round(possible_b, 2), keepdims=True).mode[0]
 
             # calculate x0 statistics
             x0_mean = np.mean(possible_x0)
@@ -918,7 +918,7 @@ class Distance_analysis:
             peaks_x0 = self.find_peaks(counts_x0, bins_x0)
             if len(peaks_x0) > 1:
                 peaks_x0 = np.average(peaks_x0)
-            mode_x0 = scipy.stats.mode(np.round(possible_x0, 2))[0][0]
+            mode_x0 = scipy.stats.mode(np.round(possible_x0, 2), keepdims=True).mode[0]
 
             # set waring and error to ignore because possibility of division by zero
             np.seterr(divide="ignore", invalid="ignore")
