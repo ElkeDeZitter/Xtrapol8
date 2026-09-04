@@ -197,16 +197,13 @@ class Difference_distance_analysis:
         n_fin = self.get_last_residue_number(pdb_hierarchy, ID)
 
         column_labels = ["resseq", "x", "y", "z", "present"]
-        df_chain = pd.DataFrame(columns=column_labels)
+        rows = []
         for c in pdb_hierarchy.chains():
             if c.id == ID:
                 for res_group in c.residue_groups():
                     for a in res_group.atoms():
-                        new_row = pd.DataFrame(
-                            [[res_group.resseq_as_int()] + list(a.xyz) + [1]],
-                            columns=column_labels,
-                        )
-                        df_chain = df_chain.append(new_row, ignore_index=True)
+                        rows.append([res_group.resseq_as_int()] + list(a.xyz) + [1])
+        df_chain = pd.DataFrame(rows, columns=column_labels)
 
         df_range = pd.DataFrame(range(n_ini, n_fin + 1), columns=["resseq"])
 
