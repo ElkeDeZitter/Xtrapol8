@@ -2042,9 +2042,9 @@ def run(args):
         params.refinement.use_refmac_instead_of_phenix = False
     if params.refinement.reciprocal_space == "refmac5":
         if shutil.which("refmac5") is None:
-            remark = "Refmac5 not found. Setting refinement.reciprocal_space=phenix"
+            remark = "Refmac5 not found. Setting refinement.reciprocal_space=phenix.refine"
             remarks.append(remark)
-            params.refinement.reciprocal_space = "phenix"
+            params.refinement.reciprocal_space = "phenix.refine"
     if params.refinement.real_space == "coot":
         try:
             import coot_headless_api
@@ -2052,6 +2052,11 @@ def run(args):
             remark = "COOT (CHAPI) not found. Setting refine.real_space=phenix.real_space_refine"
             remarks.append(remark)
             params.refinement.real_space = "phenix.real_space_refine"
+    if params.output.open_coot == True:
+        if shutil.which("coot-1") is None:
+            remark = "COOT-1 not found. Setting output.open_coot == False"
+            remarks.append(remark)
+            params.output.open_coot == False
 
     # specify extrapolated structure factors and map types
     qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = (
@@ -2647,8 +2652,8 @@ def run(args):
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
 
         log.close()
-        if params.output.open_coot and shutil.which("coot"):
-            command = "coot --script %s" % (script_coot)
+        if params.output.open_coot :
+            command = "coot-1 --no-state-script --script %s" % (script_coot)
             subprocess.call(shlex.split(command))
 
         sys.exit()
@@ -3513,8 +3518,8 @@ def run(args):
 
     log.close()
 
-    if params.output.open_coot and shutil.which("coot"):
-        command = "coot --script %s" % (script_coot)
+    if params.output.open_coot:
+        command = "coot-1 --no-state-script --script %s" % (script_coot)
         subprocess.call(shlex.split(command))
 
 

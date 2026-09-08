@@ -184,21 +184,23 @@ def open_all_in_coot(
     Not elegant at all, to be rewritten
     maps are not in logical order
     """
+    print("mtz list for coot:", mtz_list)
 
     script_coot = "%s/coot_all_%s.py" % (outdir, suffix)
     i = open(script_coot, "w")
     # choice between "auto-correct", "ignore", "prompt"
-    i.write('set_nomenclature_errors_on_read("auto-correct")\n')
+    i.write('import coot\n')
+    i.write('coot.set_nomenclature_errors_on_read("auto-correct")\n')
 
     additional_lines = ""
     if len(additional) > 0:
         for cif in additional.split():
             if cif.endswith(".cif"):
-                additional_lines += 'read_cif_dictionary("%s")\n' % (cif)
+                additional_lines += 'coot.read_cif_dictionary("%s")\n' % (cif)
 
     pdb_lines = ""
     for pdb in pdb_list:
-        pdb_lines += 'handle_read_draw_molecule("%s")\n' % (pdb)
+        pdb_lines += 'coot.handle_read_draw_molecule("%s")\n' % (pdb)
 
     default_mtz_lines = ""
     special_mtz_lines = ""
@@ -210,11 +212,11 @@ def open_all_in_coot(
                     "2FOFCWT" in mtz_content.column_labels()
                 ):  # maps from refinement program
                     default_mtz_lines += (
-                        'auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
+                        'coot.auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
                     )
                 elif "FDM" in mtz_content.column_labels():  # maps from dm
                     default_mtz_lines += (
-                        'auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
+                        'coot.auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
                     )
                 elif mtz_content.column_labels() == [
                     "H",
@@ -232,7 +234,7 @@ def open_all_in_coot(
                     "PHWT",
                 ]:  # from phenix.density_modification # not used anymore
                     default_mtz_lines += (
-                        'auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
+                        'coot.auto_read_make_and_draw_maps_from_mtz("%s")\n' % (mtz)
                     )
                 elif mtz_content.column_types() == [
                     "H",
@@ -244,7 +246,7 @@ def open_all_in_coot(
                     "P",
                 ]:
                     special_mtz_lines += (
-                        'set_auto_read_column_labels("%s","%s",0)\nset_auto_read_column_labels("%s","%s",1)\nauto_read_make_and_draw_maps_from_mtz("%s")\n'
+                        'coot.set_auto_read_column_labels("%s","%s",0)\ncoot.set_auto_read_column_labels("%s","%s",1)\ncoot.auto_read_make_and_draw_maps_from_mtz("%s")\n'
                         % (
                             mtz_content.column_labels()[3],
                             mtz_content.column_labels()[4],
@@ -257,20 +259,25 @@ def open_all_in_coot(
     FoFo_labels = (
         any_file(FoFo, force_type="hkl").file_object.file_content().column_labels()
     )
-    FoFo_lines = 'make_and_draw_map("%s","%s","%s","",0,1)' % (
+    FoFo_lines = 'coot.make_and_draw_map("%s","%s","%s","",0,1)\n' % (
         FoFo,
         FoFo_labels[3],
         FoFo_labels[4],
     )
-
+    
+    color_lines = ""
+    for mp in [4,6]: #assuming the 2mFextr-DFcalc maps are objects 4 and 6
+        color_lines += 'coot.set_map_colour({:d}, 0.2, 0.4, 0.8)\n'.format(mp)
+        
     i.write(
-        "%s%s%s%s%s"
+        "%s%s%s%s%s%s"
         % (
             pdb_lines,
             additional_lines,
             default_mtz_lines,
             special_mtz_lines,
             FoFo_lines,
+            color_lines
         )
     )
     i.close()
