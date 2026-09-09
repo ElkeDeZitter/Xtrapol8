@@ -3246,10 +3246,7 @@ def run(args):
                 mp_type,
             )
 
-        elif (
-            params.f_and_maps.fast_and_furious == False
-            and params.refinement.run_refinement == False
-        ):
+        else:
             # If estimated occupancy if not in list (will be case when using distance analysis or when plotalpha fails), take the closest occupancy from the list
             if occ not in params.occupancies.list_occ:
                 occ = min(params.occupancies.list_occ, key=lambda x: abs(x - occ))
@@ -3271,13 +3268,6 @@ def run(args):
                 occ_dir,
                 mp_type,
             )
-
-        else:
-            # If estimated occupancy not in list (will be case when using distance analysis or when plotalpha fails), take the closest occupancy from the list
-            if occ not in params.occupancies.list_occ:
-                occ = min(params.occupancies.list_occ, key=lambda x: abs(x - occ))
-                alpha = 1 / occ
-            occ_dir = "%s/%s_%.3f" % (outdir, dir_prefix, occ)
 
         occ_overview[mp_type] = [float("%.3f" % (occ)), script_coot, ddm_out]
 

@@ -183,7 +183,6 @@ def open_all_in_coot(
     """
     Maps are not in logical order but this is most practical
     """
-    print("mtz list for coot:", mtz_list)
 
     script_coot = "%s/coot_all_%s.py" % (outdir, suffix)
     i = open(script_coot, "w")
