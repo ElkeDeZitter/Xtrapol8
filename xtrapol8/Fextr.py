@@ -2042,14 +2042,21 @@ def run(args):
         params.refinement.use_refmac_instead_of_phenix = False
     if params.refinement.reciprocal_space == "refmac5":
         if shutil.which("refmac5") is None:
-            remark = "Refmac5 not found. Setting refinement.reciprocal_space=phenix"
+            remark = "Refmac5 not found. Setting refinement.reciprocal_space=phenix.refine"
             remarks.append(remark)
-            params.refinement.reciprocal_space = "phenix"
+            params.refinement.reciprocal_space = "phenix.refine"
     if params.refinement.real_space == "coot":
-        if shutil.which("coot") is None:
-            remark = "COOT not found. Setting refine.real_space=phenix"
+        try:
+            import coot_headless_api
+        except ImportError:
+            remark = "COOT (CHAPI) not found. Setting refine.real_space=phenix.real_space_refine"
             remarks.append(remark)
-            params.refinement.real_space = "phenix"
+            params.refinement.real_space = "phenix.real_space_refine"
+    if params.output.open_coot == True:
+        if shutil.which("coot-1") is None:
+            remark = "COOT-1 not found. Setting output.open_coot == False"
+            remarks.append(remark)
+            params.output.open_coot == False
 
     # specify extrapolated structure factors and map types
     qFextr_map = qFgenick_map = qFextr_calc_map = Fextr_map = Fgenick_map = (
@@ -2645,8 +2652,8 @@ def run(args):
         modified_phil.show(out=open("Xtrapol8_out.phil", "w"))
 
         log.close()
-        if params.output.open_coot and shutil.which("coot"):
-            command = "coot --script %s" % (script_coot)
+        if params.output.open_coot :
+            command = "coot-1 --no-state-script --script %s" % (script_coot)
             subprocess.call(shlex.split(command))
 
         sys.exit()
@@ -3239,10 +3246,7 @@ def run(args):
                 mp_type,
             )
 
-        elif (
-            params.f_and_maps.fast_and_furious == False
-            and params.refinement.run_refinement == False
-        ):
+        else:
             # If estimated occupancy if not in list (will be case when using distance analysis or when plotalpha fails), take the closest occupancy from the list
             if occ not in params.occupancies.list_occ:
                 occ = min(params.occupancies.list_occ, key=lambda x: abs(x - occ))
@@ -3264,13 +3268,6 @@ def run(args):
                 occ_dir,
                 mp_type,
             )
-
-        else:
-            # If estimated occupancy not in list (will be case when using distance analysis or when plotalpha fails), take the closest occupancy from the list
-            if occ not in params.occupancies.list_occ:
-                occ = min(params.occupancies.list_occ, key=lambda x: abs(x - occ))
-                alpha = 1 / occ
-            occ_dir = "%s/%s_%.3f" % (outdir, dir_prefix, occ)
 
         occ_overview[mp_type] = [float("%.3f" % (occ)), script_coot, ddm_out]
 
@@ -3386,14 +3383,12 @@ def run(args):
 
         # Coot script
         mtzs_for_coot = [os.path.abspath(qFext_mtz_map), os.path.abspath(mtz_out)]
-        if params.refinement.phenix_keywords.density_modification.density_modification:
-            mtz_dm = re.sub(".mtz$", "_densitymod.mtz", mtz_out)
-            if os.path.isfile(mtz_dm):
-                mtzs_for_coot.append(os.path.abspath(mtz_dm))
-        if params.refinement.phenix_keywords.density_modification.density_modification:
+        if (
+            params.refinement.phenix_keywords.density_modification.density_modification
+            or params.refinement.refmac_keywords.density_modification.density_modification
+        ):
             mtz_dm = re.sub(".mtz$", "_dm.mtz", mtz_out)
-            if os.path.isfile(mtz_dm):
-                mtzs_for_coot.append(os.path.abspath(mtz_dm))
+            append_if_file_exist(mtzs_for_coot, os.path.abspath(mtz_dm))
         append_if_file_exist(mtzs_for_coot, os.path.abspath(qFext_mtz_F))
         pdbs_for_coot = [
             DH.pdb_in,
@@ -3511,8 +3506,8 @@ def run(args):
 
     log.close()
 
-    if params.output.open_coot and shutil.which("coot"):
-        command = "coot --script %s" % (script_coot)
+    if params.output.open_coot:
+        command = "coot-1 --no-state-script --script %s" % (script_coot)
         subprocess.call(shlex.split(command))
 
 
