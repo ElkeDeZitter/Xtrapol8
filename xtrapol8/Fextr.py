@@ -3393,14 +3393,12 @@ def run(args):
 
         # Coot script
         mtzs_for_coot = [os.path.abspath(qFext_mtz_map), os.path.abspath(mtz_out)]
-        if params.refinement.phenix_keywords.density_modification.density_modification:
-            mtz_dm = re.sub(".mtz$", "_densitymod.mtz", mtz_out)
-            if os.path.isfile(mtz_dm):
-                mtzs_for_coot.append(os.path.abspath(mtz_dm))
-        if params.refinement.phenix_keywords.density_modification.density_modification:
+        if (
+            params.refinement.phenix_keywords.density_modification.density_modification
+            or params.refinement.refmac_keywords.density_modification.density_modification
+        ):
             mtz_dm = re.sub(".mtz$", "_dm.mtz", mtz_out)
-            if os.path.isfile(mtz_dm):
-                mtzs_for_coot.append(os.path.abspath(mtz_dm))
+            append_if_file_exist(mtzs_for_coot, os.path.abspath(mtz_dm))
         append_if_file_exist(mtzs_for_coot, os.path.abspath(qFext_mtz_F))
         pdbs_for_coot = [
             DH.pdb_in,

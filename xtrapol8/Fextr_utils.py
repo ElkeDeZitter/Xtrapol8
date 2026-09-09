@@ -181,8 +181,7 @@ def open_all_in_coot(
     FoFo, pdb_list, mtz_list, additional, outdir=os.getcwd(), suffix=""
 ):
     """
-    Not elegant at all, to be rewritten
-    maps are not in logical order
+    Maps are not in logical order but this is most practical
     """
     print("mtz list for coot:", mtz_list)
 
@@ -266,7 +265,7 @@ def open_all_in_coot(
     )
     
     color_lines = ""
-    for mp in [4,6]: #assuming the 2mFextr-DFcalc maps are objects 4 and 6
+    for mp in [4,]: #map order differs after refinement with phenix or refmac, only color the 2Fextr-Fcalc map for now
         color_lines += 'coot.set_map_colour({:d}, 0.2, 0.4, 0.8)\n'.format(mp)
         
     i.write(
