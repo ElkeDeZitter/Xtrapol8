@@ -74,6 +74,24 @@ occupancies{
         .help = List of occupancies to test (fractional). Will overwrite low_occ, high_occ and steps if defined.
         .expert_level = 0
     }
+extrapolation_factors{
+    low_alpha = None
+        .type = float(value_min=1, value_max=100)
+        .help = Lowest alpha to test. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+    high_alpha = None
+        .type = float(value_min=1, value_max=100)
+        .help = Higest alpha to test. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+    steps = 5
+        .type = int
+        .help = Amount of equaly spaced alpha values to be tested. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+    list_alpha = None
+        .type = floats(size_min=1, value_min=0, value_max=100)
+        .help = List of alphas to test. Will overwrite low_alpha, high_alpha and steps if defined. Note: occupancies will be overwritten if extrapolation factors are given.
+        .expert_level = 0
+}
 scaling{
     b_scaling = no isotropic *anisotropic 
         .type = choice(multi=False)
@@ -146,7 +164,7 @@ map_explorer{
         .type = bool
         .help = Use occupancy as estimated by the distance analysis method (only in calm_and_curious mode) instead of the differrence map analysis. This keyword will become obselete in future Xtrapol8 versions, use occupancy_estimation choice instead.
         .expert_level = 1
-    occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis
+    occupancy_estimation = *difference_map_maximization difference_map_PearsonCC distance_analysis svd_analysis
         .type = choice(multi=False)
         .help = Select a main method for the occupancy estimation in Xtrapol8. Take care that the distance_analysis method can only be used in calm_and_curious mode. This keyword replaces the use_occupancy_from_distance_analysis keyword which will become obsolete in future Xtrapol8 versions.
     }

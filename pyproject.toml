@@ -42,6 +42,7 @@ dependencies = [
 "xtrapol8-ddm" = "xtrapol8.ddm:main"
 "xtrapol8-difference-map-analysis" = "xtrapol8.differencemap_analysis:main"
 "xtrapol8-distance-analysis" = "xtrapol8.distance_analysis:main"
+"xtrapol8-svd-analysis" = "xtrapol8.svd_analysis:main"
 "xtrapol8" = "xtrapol8.Fextr:main"
 "xtrapol8-refiner" = "xtrapol8.refiner:main"
 "xtrapol8-version" = "xtrapol8.version:main"

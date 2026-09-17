@@ -26,7 +26,9 @@ import re
 import shlex
 import subprocess
 
+import matplotlib
 import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 import numpy as np
 import wx
 from matplotlib import cm
@@ -327,6 +329,9 @@ class TabMainImg(ScrolledPanel):
             )
             self.mapping["%s_refinement_R-factors_per_alpha.pickle" % fextr] = (
                 self.plot_refinement_Rfactors_per_alpha
+            )
+            self.mapping["{:s}_svd_analysis.pickle".format(fextr)] = (
+                self.plot_svd_analysis
             )
 
     def addPlot(self, pickle_file):
@@ -835,6 +840,106 @@ class TabMainImg(ScrolledPanel):
         self.figure.subplots_adjust(
             hspace=0.25, wspace=0.5, left=0.09, right=0.88, top=0.95
         )
+        canvas = FigureCanvas(self, -1, self.figure)
+        return canvas
+
+    def plot_svd_analysis(self, pickle_file):
+        """
+        Load plot data from pickle file and regenerate a combined plot.
+        The plot contains:
+        - axs[0, 0]: Singular values (scree plot)
+        - axs[0, 1], axs[1, 0], axs[1, 1], ...: Right singular vectors
+
+        Input: pickle_file - path to the pickle file saved by run_svd_analysis.py
+        """
+
+        with open(pickle_file, "rb") as f:
+            plot_data = pickle.load(
+                f, encoding="latin1"
+            )  # "latin1" should aid in the python2 and python3 compatibility
+
+        s = plot_data["s"]
+        vh = plot_data["vh"]
+        alphas = plot_data["alphas"]
+        map_2mFextr_DFc_list = plot_data["map_2mFextr_DFc_list"]
+        numvec = plot_data["numvec"]
+        prefix = plot_data["prefix"]
+
+        print("Loaded plot data from: {:s}".format(pickle_file))
+        print(
+            "Prefix: {:s}, numvec: {:d}, alphas: {}".format(prefix, numvec, alphas)
+        )
+
+        # Setup colors and formatting
+        colorlist = [
+            "xkcd:purple",
+            "xkcd:red",
+            "xkcd:royal blue",
+            "xkcd:blue",
+            "xkcd:aqua",
+            "xkcd:lime green",
+            "xkcd:neon green",
+            "xkcd:green",
+            "xkcd:gold",
+            "xkcd:golden rod",
+            "xkcd:light orange",
+            "xkcd:orange",
+            "xkcd:red orange",
+            "xkcd:dark red",
+        ]
+        matplotlib.rc("xtick", labelsize=8)
+        matplotlib.rc("ytick", labelsize=8)
+
+        if numvec <= 1:
+            width = 0.01
+        else:
+            width = round((alphas[-1] - alphas[0]) / (len(alphas) * 2), 3)
+
+        # Calculate grid size: need space for 1 singular values plot + numvec right singular vector plots
+        # Using 2 columns
+        n_cols = 2
+        n_rows = int(math.ceil((numvec + 1) / n_cols))
+        if numvec == n_rows * 2:
+            n_rows = n_rows + 1
+
+        fig, axs = plt.subplots(
+            n_rows, n_cols, figsize=(5 * n_cols, 5 * n_rows), squeeze=False
+        )
+
+        # Plot singular values in axs[0, 0]
+        axs[(0, 0)].bar(np.arange(1, len(map_2mFextr_DFc_list) + 1), s)
+        axs[(0, 0)].set_title("Singular values", fontsize="medium", fontweight="bold")
+        axs[(0, 0)].set_xlabel("Component")
+        axs[(0, 0)].set_ylabel("Singular value")
+
+        # Plot right singular vectors starting from axs[0, 1]
+        col = 1
+        row = 0
+        for vec in range(numvec):
+            axs[(row, col)].set(xlabel="dataset", ylabel="Amplitude")
+            axs[(row, col)].bar(
+                (alphas[:]),
+                np.abs(vh[vec, :]),
+                color=colorlist[vec],
+                width=width,
+            )
+            axs[(row, col)].set_ylim([0, 1])
+            axs[(row, col)].set_title("Vector {:d}".format(vec + 1))
+            for tick in axs[(row, col)].xaxis.get_ticklabels():
+                tick.set_fontsize("medium")
+                tick.set_rotation(90)
+
+            for tick in axs[(row, col)].yaxis.get_ticklabels():
+                tick.set_fontsize("medium")
+
+            # Increment position for next iteration
+            col += 1
+            if col >= n_cols:
+                col = 0
+                row += 1
+
+        fig.tight_layout()
+        self.figure = fig
         canvas = FigureCanvas(self, -1, self.figure)
         return canvas
 

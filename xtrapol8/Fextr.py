@@ -115,6 +115,7 @@ from .master import master_phil
 from .plotalpha import plotalpha
 from .programs.scaleit import scaleit
 from .pymol_visualization import Pymol_movie
+from .svd_analysis import SVD_analysis
 
 
 class SymManager(symmetry.manager):
@@ -2235,16 +2236,43 @@ def run(args):
         except (TypeError, AttributeError, ValueError, ZeroDivisionError):
             occ_lst = []
 
+    # overwrite the occupancies if alpha values are given:
+    if params.extrapolation_factors.list_alpha != None:
+        try:
+            alp_lst = list(params.extrapolation_factors.list_alpha)
+        except (TypeError, AttributeError):
+            alp_lst = []
+    else:
+        alp_lst = []
+        try:
+            low_alpha = params.extrapolation_factors.low_alpha
+            high_alpha = params.extrapolation_factors.high_alpha
+            steps = params.extrapolation_factors.steps
+            if low_alpha is None or high_alpha is None or steps is None:
+                raise ValueError
+            alp_step = (high_alpha - low_alpha) / steps
+            alp = low_alpha
+            while alp <= high_alpha:
+                alp_lst.append(round(alp, 2))
+                alp += alp_step
+        except (TypeError, AttributeError, ValueError, ZeroDivisionError):
+            alp_lst = []
+
+    if len(alp_lst) >= 1:
+        occ_lst = [round(1 / x, 2) for x in alp_lst[::-1]]
+
     occ_lst.sort()
     if len(occ_lst) == 0:
         remark = (
-            "No input occupancies found. Xtrapol8 will stop after the FoFo calculation."
+            "No input occupancies or alphas found. Xtrapol8 will stop after the FoFo calculation."
         )
         remarks.append(remark)
         params.output.generate_fofo_only = True
         params.occupancies.list_occ = None
     else:
         params.occupancies.list_occ = occ_lst
+        alp_lst = [round(1 / x, 2) for x in occ_lst[::-1]]
+        params.extrapolation_factors.list_alpha = alp_lst
 
     if len(remarks) > 0:
         print("-----------------------------------------", file=log)
@@ -3007,12 +3035,13 @@ def run(args):
             dir_prefix = "occupancy"
 
         # Estimate alpha first with difference_map maximization or PearsonCC.
-        # alpha and occ will be overwritten later if "distance_analysis" is selected
+        # alpha and occ will be overwritten later if "distance_analysis" or "svd_analysis" is selected
         if params.map_explorer.occupancy_estimation in (
             "difference_map_maximization",
             "distance_analysis",
+            "svd_analysis",
         ):
-            # in case of distance_analysis alpha and occ will be overwritten if the requirements for distance_analysis are met (calm-and-curious, run_refinement)
+            # in case of distance_analysis or svd_analysis, alpha and occ will be overwritten if the requirements for those methods are met
             alpha, occ, _, _ = plotalpha(
                 occupancies=params.occupancies.list_occ,
                 extrapolation_results=files_and_maps[mp]["map_expl_lst"][1:],
@@ -3028,6 +3057,17 @@ def run(args):
                 outsuffix=mp_type,
                 log=log,
             ).estimate_alpha()
+
+        if params.map_explorer.occupancy_estimation == "svd_analysis":
+            SVD = SVD_analysis(
+                map_2mFextr_DFc_list=files_and_maps[mp]["2FextrFc"],
+                occupancies=params.occupancies.list_occ,
+                model_pdb=DH.pdb_in,
+                prefix=mp_type,
+                log=log,
+            )
+            _, _, vh = SVD.run_svd_analysis()
+            alpha, occ = SVD.estimate_alpha(vh)
 
         if (
             params.f_and_maps.fast_and_furious == False

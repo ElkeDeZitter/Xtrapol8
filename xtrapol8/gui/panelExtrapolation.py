@@ -300,10 +300,12 @@ class TabExtrapolation(ScrolledPanel):
             "difference_map_maximization",
             "difference_map_PearsonCC",
             "distance_analysis",
+            "svd_analysis",
         ]
         self.occ_list_noref = [
             "difference_map_maximization",
             "difference_map_PearsonCC",
+            "svd_analysis",
         ]
         self.OccEstimation = wx.Choice(
             self, wx.ID_ANY, choices=self.occ_list_all, name="Occupancy estimation"
