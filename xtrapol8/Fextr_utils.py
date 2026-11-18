@@ -1175,3 +1175,79 @@ def redirect_stdout_and_stderr(path: str):
             os.dup2(original_stderr_fd, 2)
             os.close(original_stdout_fd)
             os.close(original_stderr_fd)
+
+
+def _max_filename_length(directory):
+    """Maximum length (in bytes) of a single file name on the filesystem of directory."""
+    try:
+        return os.pathconf(directory, "PC_NAME_MAX")
+    except (OSError, ValueError, AttributeError):
+        return 255
+
+
+# Files in the main output directory that contain 'triggered' because they belong to
+# the triggered data set (pointless and truncate), not because of the dummy outname.
+KEEP_TRIGGERED_NAMES = (
+    "triggered_forpointless.mtz",
+    "triggered_fortruncate.mtz",
+    "triggered_frompointless.mtz",
+    "triggered_fromtruncate.mtz",
+    "triggered_reference_forpointless.mtz",
+    "pointless_triggered.log",
+    "truncate_triggered.log",
+)
+
+def replace_dummy_outname(outdir, dummy, real, log=None, keep=KEEP_TRIGGERED_NAMES):
+    """
+    Rename all files under outdir whose name contains the dummy outname so that it is
+    replaced by the real outname. Only the file name is changed, never the directories.
+    Files in outdir itself that are listed in keep are not renamed.
+    Files for which the new name would exceed the filesystem limit keep the dummy name.
+    Returns a dictionary {old_basename: new_basename} of the files that were renamed.
+    """
+    renamed = {}
+    skipped = []
+    outdir_norm = os.path.normpath(os.path.abspath(outdir))
+    for root, _, files in os.walk(outdir):
+        max_len = _max_filename_length(root)
+        in_outdir = os.path.normpath(os.path.abspath(root)) == outdir_norm
+        for fle in files:
+            if dummy not in fle:
+                continue
+            if in_outdir and fle in keep:
+                continue
+            new_fle = fle.replace(dummy, real)
+            if len(new_fle.encode("utf-8")) > max_len:
+                skipped.append(os.path.join(root, fle))
+                continue
+            os.rename(os.path.join(root, fle), os.path.join(root, new_fle))
+            renamed[fle] = new_fle
+    if len(skipped) > 0:
+        msg = (
+            "%d file(s) keep the dummy outname '%s' because the name with the true "
+            "outname would be longer than the filesystem allows. Use a shorter "
+            "output.outname to avoid this. Affected files:\n  %s"
+            % (len(skipped), dummy, "\n  ".join(skipped))
+        )
+        print(msg)
+        if log is not None:
+            print(msg, file=log)
+    return renamed
+
+
+def update_paths_in_text(text, renamed):
+    """
+    Replace the file names inside quoted paths in text (e.g. a coot or pymol script)
+    by their new name for the files listed in the renamed dictionary.
+    """
+    if len(renamed) == 0:
+        return text
+
+    def _sub(m):
+        quote, path = m.group(1), m.group(2)
+        head, tail = os.path.split(path)
+        if tail in renamed:
+            path = os.path.join(head, renamed[tail]) if head else renamed[tail]
+        return quote + path + quote
+
+    return re.sub(r"(['\"])([^'\"\n]+)\1", _sub, text)

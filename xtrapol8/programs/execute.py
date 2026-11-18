@@ -1,12 +1,59 @@
+import os
 import shutil
 import subprocess
 
 from cctbx import miller
 
+# CCP4 programs (Fortran) truncate file names longer than this.
+CCP4_MAX_PATH_LENGTH = 255
+
+
+def _shorten_path(arg):
+    """
+    Return a relative path (to the current working directory) for an absolute path
+    that is too long for CCP4 programs, which would otherwise truncate it.
+    Absolute paths that are short enough, and arguments that are not absolute paths
+    to an existing location, are returned as is.
+    """
+    arg = str(arg)
+    if len(arg) <= CCP4_MAX_PATH_LENGTH:
+        return arg
+    if not os.path.isabs(arg) or not os.path.isdir(os.path.dirname(arg)):
+        return arg
+    try:
+        rel = os.path.relpath(arg)
+    except ValueError:
+        return arg
+    shortest = rel if len(rel) < len(arg) else arg
+    if len(shortest) > CCP4_MAX_PATH_LENGTH:
+        print(
+            "Warning: path longer than %d characters, it may be truncated by the "
+            "CCP4 program. Use a shorter output directory.\n  %s"
+            % (CCP4_MAX_PATH_LENGTH, shortest)
+        )
+    return shortest
+
+
+def shorten_paths_in_keyword(line):
+    """
+    Shorten the absolute paths that appear as words in a keyword line (e.g. refmac
+    'external @/path/to/restraints.txt'). A leading '@' and surrounding quotes are kept.
+    """
+    words = []
+    for word in str(line).split(" "):
+        prefix = "@" if word.startswith("@") else ""
+        core = word[len(prefix) :]
+        quote = ""
+        if len(core) > 1 and core[0] == core[-1] and core[0] in "'\"":
+            quote, core = core[0], core[1:-1]
+        new_core = _shorten_path(core)
+        words.append(word if new_core == core else prefix + quote + new_core + quote)
+    return " ".join(words)
+
 
 def _run_process(cmd_path, args, stdin, log_stream=None):
     with subprocess.Popen(
-        args=[cmd_path] + list(map(str, args)),
+        args=[cmd_path] + [_shorten_path(arg) for arg in args],
         stdin=subprocess.PIPE if stdin else None,
         stdout=log_stream,
         encoding="utf-8",
