@@ -228,7 +228,7 @@ _For more information, please have a look at the [GUI Manual](XtrapolG8_Manual.p
 
 ## Tutorial
 
-A [basic tutorial](https://github.com/ElkeDeZitter/Xtrapol8-tutorial) is available, in which you can reproduce the results of one of the examples from the publication.
+A [basic tutorial](https://github.com/ElkeDeZitter/Xtrapol8-tutorial/tree/Development_update) is available, in which you can reproduce the results of one of the examples from the publication.
 
 <!-- LICENSE -->
 # License
