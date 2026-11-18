@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from .execute import execute
+from .execute import execute, shorten_paths_in_keyword
 
 
 def refmac_for_dm(xyzin: str, hklin: str, libins: list[str], f_label: str):
@@ -89,11 +89,13 @@ def refmac(
         for restraint in additional_jelly_body_restraints or []:
             stdin.append(f"RIDG {restraint}")
     for restraint in external_restraints or []:
-        stdin.append(f"external {restraint}")
+        stdin.append(f"external {shorten_paths_in_keyword(restraint)}")
     if map_sharpening:
         stdin.append("MAPC SHAR")
     if additional_keywords:
-        stdin.append(" ".join(additional_keywords))
+        stdin.append(
+            " ".join(shorten_paths_in_keyword(kw) for kw in additional_keywords)
+        )
     stdin.append("END")
 
     returncode = execute("refmac5", args, stdin, log_file)

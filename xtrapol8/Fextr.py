@@ -2627,17 +2627,14 @@ def run(args):
                 "Replacing the dummpy outname ('%s') with true outname('%s')"
                 % (outname, params.output.outname)
             )
-            tr = [
-                os.path.join(root, fle)
-                for root, _, files in os.walk(outdir)
-                for fle in files
-                if outname in fle
-            ]
-            _ = [
-                os.rename(fle, fle.replace(outname, params.output.outname))
-                for fle in tr
-            ]
-            FoFo.mtz_name = FoFo.mtz_name.replace(outname, params.output.outname)
+            renamed = replace_dummy_outname(
+                outdir, outname, params.output.outname, log
+            )
+            mtz_basename = os.path.basename(FoFo.mtz_name)
+            if mtz_basename in renamed:
+                FoFo.mtz_name = os.path.join(
+                    os.path.dirname(FoFo.mtz_name), renamed[mtz_basename]
+                )
 
         script_coot = open_all_in_coot(
             "%s/%s" % (outdir, FoFo.mtz_name),
@@ -3090,17 +3087,8 @@ def run(args):
             pymol_pdb_list = pdb_list[:]
             pymol_pdb_list.remove(DH.pdb_in)
             pymol_mtz_list = files_and_maps[mp]["recref_mtz_lst"][:]
-            if (
-                outname == "triggered"
-            ):  # if dummy name applied, the files still contain the dummy name
-                pymol_mtz_list = [
-                    re.sub(r"triggered", params.output.outname, fle)
-                    for fle in pymol_mtz_list
-                ]
-                pymol_pdb_list = [
-                    re.sub(r"triggered", params.output.outname, fle)
-                    for fle in pymol_pdb_list
-                ]
+            # If the dummy outname is used, the paths still contain the dummy name here.
+            # They are updated in pymol_movie.py after the files are renamed at the end.
             # Make Pymol movie with the reciprocal space refined maps if recrealref_lst is complete
             # Otherwise use the real space refined models + direct maps
             if pdb_list == files_and_maps[mp]["recrealref_lst"]:
@@ -3436,32 +3424,24 @@ def run(args):
             "Replacing the dummpy outname ('%s') with true outname('%s')"
             % (outname, params.output.outname)
         )
-        tr = [
-            os.path.join(root, fle)
-            for root, _, files in os.walk(outdir)
-            for fle in files
-            if outname in fle
-        ]
-        _ = [os.rename(fle, fle.replace(outname, params.output.outname)) for fle in tr]
-        FoFo.mtz_name = FoFo.mtz_name.replace(outname, params.output.outname)
+        renamed = replace_dummy_outname(outdir, outname, params.output.outname, log)
+        mtz_basename = os.path.basename(FoFo.mtz_name)
+        if mtz_basename in renamed:
+            FoFo.mtz_name = os.path.join(
+                os.path.dirname(FoFo.mtz_name), renamed[mtz_basename]
+            )
 
-        coot_scripts = [
+        viewer_scripts = [
             os.path.join(root, fle)
             for root, _, files in os.walk(outdir)
             for fle in files
-            if fle.startswith("coot_all_")
+            if fle.startswith("coot_all_") or fle == "pymol_movie.py"
         ]
-        for coot_script in coot_scripts:
-            with open(coot_script, "r") as f:
-                fle = f.read().split("\n")
-            o = open(coot_script, "w")
-            for lne in fle:
-                if outname in lne:
-                    lne = re.sub(outname, params.output.outname, lne)
-                    o.write("%s\n" % lne)
-                else:
-                    o.write("%s\n" % lne)
-            o.close()
+        for viewer_script in viewer_scripts:
+            with open(viewer_script, "r") as f:
+                content = f.read()
+            with open(viewer_script, "w") as o:
+                o.write(update_paths_in_text(content, renamed))
 
     # Make sure we are in the output directory
     if os.getcwd() != outdir:
