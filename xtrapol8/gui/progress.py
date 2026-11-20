@@ -9,6 +9,7 @@ NUMBER = r'(?:[0-9]+(?:\.[0-9]+)?)'
 START = re.compile(r'CALCULATING\s+(\S+)\s+TYPE OF ESFAS AND MAPS FOR OCCUPANCY\s+(' + NUMBER + r')', re.I)
 RESULT = re.compile(r'--->\s*Results in\s+(.+?)\s*$', re.I)
 OCC_DIR = re.compile(r'occupancy_(' + NUMBER + r')', re.I)
+REFINE_WITH = re.compile(r'RECIPROCAL\s+SPACE\s+REFINEMENT\s+WITH\s+\S*?occ(' + NUMBER + r')_([a-z][a-z0-9_]*)\.mtz', re.I)
 REFINE_START = re.compile(r'\b(?:phenix\.refine|refmac5|refmac|starting\s+(?:reciprocal.space\s+)?refinement|refinement\s+(?:at|for|of)\s+occupancy)\b', re.I)
 REFINE_DONE = re.compile(r'\b(?:refinement\s+(?:finished|completed|successful)|refinement\s+done|refinement\s+results\s+in)\b', re.I)
 OCC_IN_TEXT = re.compile(r'(?:occupancy[_\s=]+|\bocc(?:upancy)?\s*)([0-9]+(?:\.[0-9]+)?)', re.I)
@@ -65,6 +66,7 @@ class ProgressPanel(QWidget):
         self.refine_started = set()
         self.refine_completed = set()
         self.refine_active = None
+        self.refine_context = None  # (map type, occupancy) currently eligible for refinement
         self.last_fextr_completed = None
         self.best_occ = None
         self.best_alpha = None
@@ -137,12 +139,23 @@ class ProgressPanel(QWidget):
         elif 'CALCULATE (Q/K-WEIGHTED) FEXTRAPOLATED MAPS' in upper:
             self.phase = 'fextr'
 
+        refine_with = REFINE_WITH.search(line) if not self.fast else None
         match = START.search(line)
         if match:
+            # The next calculation is reached only after the preceding
+            # refinement has returned. This is a boundary, not a guess based
+            # on arbitrary phenix output.
+            if not self.fast and self.refine_active is not None:
+                self.refine_completed.add(self.refine_active)
+                self.refine_active = None
+                self.refine_context = None
             key = (match.group(1).lower(), _norm(match.group(2)))
             self.active = key
             self.fextr_started.add(key)
             self.phase = 'fextr'
+            if not self.fast:
+                self.refine_context = None
+                self.refine_active = None
             self._last_detail = f'Fextr running: {match.group(1)} — occupancy {key[1]:g}'
 
         result = RESULT.search(line)
@@ -163,9 +176,29 @@ class ProgressPanel(QWidget):
                 if key is not None:
                     self.fextr_completed.add(key)
                     self.last_fextr_completed = key
+                    if not self.fast:
+                        self.refine_context = key
                     self._last_detail = f'Fextr completed: {key[0]} — occupancy {occ:g}'
                     if self.active == key:
                         self.active = None
+
+        if refine_with is not None:
+            # Xtrapol8's real Calm'N'Curious output does not always print
+            # '---> Results in' before entering refinement. The MTZ name
+            # explicitly identifies both the map type and occupancy.
+            occ = _norm(refine_with.group(1))
+            map_type = refine_with.group(2).lower()
+            key = (map_type, occ)
+            if key in self.fextr_started:
+                self.fextr_completed.add(key)
+                self.last_fextr_completed = key
+                self.refine_context = key
+                if self.active == key:
+                    self.active = None
+                self.refine_active = key
+                self.refine_started.add(key)
+                self.phase = 'refine'
+                self._last_detail = f'Refinement running: {map_type} — occupancy {occ:g}'
 
         if not self.fofo:
             if self.fast:
@@ -193,7 +226,7 @@ class ProgressPanel(QWidget):
                 self.refine_active = key
                 self.refine_started.add(key)
                 self._last_detail = 'Refinement running at best occupancy'
-            if REFINE_START.search(line) and (not self.fast or self.alpha_done):
+            if REFINE_START.search(line) and not refine_with and (not self.fast or self.alpha_done):
                 # For Calm'N'Curious, refinement is repeated per occupancy;
                 # for Fast'N'Furious, it is a single best-occupancy refinement.
                 occ_match = OCC_IN_TEXT.search(line)
@@ -201,21 +234,27 @@ class ProgressPanel(QWidget):
                 if self.fast:
                     key = ('best', self.best_occ)
                 else:
-                    if occ is None and self.active:
-                        occ = self.active[1]
-                    if occ is None and self.last_fextr_completed is not None:
-                        occ = self.last_fextr_completed[1]
-                    key = ('refine', occ) if occ is not None else None
+                    # A refinement belongs to the *completed* map calculation,
+                    # not the next occupancy nor another map type sharing its folder.
+                    context = self.refine_context
+                    if context is not None and (occ is None or occ == context[1]):
+                        key = context
+                        occ = context[1]
+                    else:
+                        key = None
                 if key is not None:
                     self.refine_active = key
                     self.refine_started.add(key)
                     self._last_detail = ('Refinement running at best occupancy' if self.fast else
-                                         f'Refinement running: occupancy {occ:g}')
-                self.phase = 'refine'
+                                         f'Refinement running: {key[0]} — occupancy {occ:g}')
+                if key is not None:
+                    self.phase = 'refine'
             if ('FAST AND FURIOUS REFINEMENT DONE' in upper or REFINE_DONE.search(line)) and self.refine_active is not None:
                 self.refine_completed.add(self.refine_active)
                 self._last_detail = 'Refinement completed'
                 self.refine_active = None
+                if not self.fast:
+                    self.refine_context = None
         self._render()
 
     def finish(self, exit_code, stopped):
@@ -246,9 +285,9 @@ class ProgressPanel(QWidget):
         ordering = ['preparation', 'fofo', 'analysis', 'fextr', 'alpha', 'refine']
         for key, (label, name) in self.steps.items():
             if key == 'fextr':
-                state = 'done' if self.total and completed == self.total else 'active' if self.fextr_started else 'waiting'
+                state = 'done' if self.total and completed == self.total else 'active' if self.phase == 'fextr' and self.active is not None else 'waiting'
             elif key == 'refine':
-                state = 'done' if self.refine_total and ref_done == self.refine_total else 'active' if self.refine_started else 'waiting'
+                state = 'done' if self.refine_total and ref_done == self.refine_total else 'active' if self.phase == 'refine' and self.refine_active is not None else 'waiting'
             elif key == 'alpha':
                 state = 'done' if self.alpha_done else 'active' if self.phase == 'alpha' else 'waiting'
             else:
