@@ -442,7 +442,8 @@ class DataHandler:
             dt = np.dtype([("h", int), ("k", int), ("l", int)])
             f1 = np.array(self.fmodel.f_obs().indices(), dtype=dt)
             f2 = np.array(fobs.indices(), dtype=dt)
-            selection = np.nonzero(np.in1d(f1, f2))[0]
+            #selection = np.nonzero(np.in1d(f1, f2))[0]
+            selection = np.nonzero(np.isin(f1, f2))[0]
             assert selection.shape[0] == fobs.indices().size()
 
             sel = np.zeros(f1.shape[0])
@@ -1426,7 +1427,8 @@ class Fextrapolate:
             dt = np.dtype([("h", int), ("k", int), ("l", int)])
             f1 = np.array(self.fmodel_fobs_off.f_obs().indices(), dtype=dt)
             f2 = np.array(fmodel_f_obs.indices(), dtype=dt)
-            selection = np.nonzero(np.in1d(f1, f2))[0]
+            #selection = np.nonzero(np.in1d(f1, f2))[0]
+            selection = np.nonzero(np.isin(f1, f2))[0]
             assert selection.shape[0] == fmodel_f_obs.indices().size()
 
             sel = np.zeros(f1.shape[0])

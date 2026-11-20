@@ -402,8 +402,8 @@ def map_explorer(
     if resid_list_in == None:
         peaks_corr = np.where(
             peaks < 0,
-            peaks - (np.max(np.where(peaks > 0, -np.infty, peaks))),
-            peaks - (np.min(np.where(peaks < 0, np.infty, peaks))),
+            peaks - (np.max(np.where(peaks > 0, -np.inf, peaks))),
+            peaks - (np.min(np.where(peaks < 0, np.inf, peaks))),
         )
         idx = np.where(scipy.stats.zscore(np.abs(peaks_corr)) > zscore)
         if idx[0].shape[0] >= 1:

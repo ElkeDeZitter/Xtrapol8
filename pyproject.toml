@@ -26,16 +26,16 @@ classifiers = [
 requires-python = ">=3.9"
 dependencies = [
     "cctbx",
-    "chapi",
-    "iotbx",
     "libtbx",
+    "iotbx",
+    "chapi",
     "matplotlib",
     "mmtbx",
     "numpy",
     "pandas",
     "pypubsub",
     "scipy",
-    "wxPython",
+    "PyQt5>=5.15,<6",
 ]
 
 [project.scripts]
@@ -45,8 +45,7 @@ dependencies = [
 "xtrapol8" = "xtrapol8.Fextr:main"
 "xtrapol8-refiner" = "xtrapol8.refiner:main"
 "xtrapol8-version" = "xtrapol8.version:main"
-"xtrapol8-gui" = "xtrapol8.X8_gui:main"
-
+"xtrapol8-gui" = "xtrapol8.gui.main:main"
 [project.urls]
 Source = "https://github.com/ElkeDeZitter/Xtrapol8"
 Issues = "https://github.com/ElkeDeZitter/Xtrapol8/issues"
