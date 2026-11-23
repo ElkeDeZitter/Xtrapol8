@@ -1,6 +1,9 @@
 """Workflow-aware, log-driven Xtrapol8 progress tracking (no engine changes)."""
 import re
 from pathlib import Path
+import shutil
+from PyQt5.QtCore import QProcess
+from PyQt5.QtWidgets import QPushButton, QMessageBox
 from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QProgressBar, QHBoxLayout
 from PyQt5.QtGui import QPainter, QPen, QColor
@@ -58,7 +61,10 @@ class ProgressPanel(QWidget):
         self.total, self.mode = expected_calculations(params)
         self.fast = bool(params.f_and_maps.fast_and_furious)
         self.fofo = bool(params.output.generate_fofo_only)
-        self.refine_total = 0 if self.fofo else (1 if self.fast else self.total)
+        self.run_refinement = bool(params.refinement.run_refinement)
+        self.output_directory = Path(str(getattr(params.output, 'outdir', '.'))).expanduser()
+        self._fofo_analysis_done = False
+        self.refine_total = 0 if (self.fofo or not self.run_refinement) else (1 if self.fast else self.total)
         self.phase = 'waiting'
         self.active = None
         self.fextr_started = set()
@@ -90,7 +96,8 @@ class ProgressPanel(QWidget):
             names += [('fextr', 'Fextr calculations')]
             if self.fast:
                 names += [('alpha', 'Optimal occupancy / α')]
-            names += [('refine', 'Refinements')]
+            if self.run_refinement:
+                names += [('refine', 'Refinements')]
         for key, name in names:
             label = QLabel('○  ' + name)
             label.setWordWrap(True)
@@ -107,8 +114,20 @@ class ProgressPanel(QWidget):
         self.best_label = QLabel('')
         self.best_label.setWordWrap(True)
         if not self.fofo:
-            for widget in (self.counter, self.bar, self.refine_counter, self.refine_bar, self.best_label, self.detail):
+            widgets = [self.counter, self.bar]
+            if self.run_refinement:
+                widgets += [self.refine_counter, self.refine_bar]
+            widgets += [self.best_label, self.detail]
+            for widget in widgets:
                 layout.addWidget(widget)
+        self.fofo_coot_button = None
+        if self.fofo:
+            self.fofo_coot_button = QPushButton('Open in Coot')
+            self.fofo_coot_button.setToolTip('Open the completed FoFo map in Coot')
+            self.fofo_coot_button.setEnabled(False)
+            self.fofo_coot_button.hide()
+            self.fofo_coot_button.clicked.connect(self._open_fofo_coot)
+            layout.addWidget(self.fofo_coot_button)
         status_row = QHBoxLayout()
         self.spinner = SmoothSpinner(self)
         self.spinner.hide()
@@ -136,6 +155,8 @@ class ProgressPanel(QWidget):
             self.phase = 'fofo'
         elif 'MAP EXPLORER' in upper and self.phase in ('preparation', 'fofo'):
             self.phase = 'analysis'
+        if self.fofo and ('FOFO MAP EXPLORED' in upper or 'FO-FO MAP EXPLORED' in upper or 'FOFO MAP ANALYSIS DONE' in upper):
+            self._fofo_analysis_done = True
         elif 'CALCULATE (Q/K-WEIGHTED) FEXTRAPOLATED MAPS' in upper:
             self.phase = 'fextr'
 
@@ -219,14 +240,14 @@ class ProgressPanel(QWidget):
                 alpha = ALPHA.search(line)
                 if alpha and self.phase == 'alpha':
                     self.best_alpha = float(alpha.group(1))
-            if self.fast and 'FAST AND FURIOUS REFINEMENT' in upper:
+            if self.run_refinement and self.fast and 'FAST AND FURIOUS REFINEMENT' in upper:
                 self.alpha_done = True
                 self.phase = 'refine'
                 key = ('best', self.best_occ)
                 self.refine_active = key
                 self.refine_started.add(key)
                 self._last_detail = 'Refinement running at best occupancy'
-            if REFINE_START.search(line) and not refine_with and (not self.fast or self.alpha_done):
+            if self.run_refinement and REFINE_START.search(line) and not refine_with and (not self.fast or self.alpha_done):
                 # For Calm'N'Curious, refinement is repeated per occupancy;
                 # for Fast'N'Furious, it is a single best-occupancy refinement.
                 occ_match = OCC_IN_TEXT.search(line)
@@ -249,7 +270,7 @@ class ProgressPanel(QWidget):
                                          f'Refinement running: {key[0]} — occupancy {occ:g}')
                 if key is not None:
                     self.phase = 'refine'
-            if ('FAST AND FURIOUS REFINEMENT DONE' in upper or REFINE_DONE.search(line)) and self.refine_active is not None:
+            if self.run_refinement and ('FAST AND FURIOUS REFINEMENT DONE' in upper or REFINE_DONE.search(line)) and self.refine_active is not None:
                 self.refine_completed.add(self.refine_active)
                 self._last_detail = 'Refinement completed'
                 self.refine_active = None
@@ -265,10 +286,46 @@ class ProgressPanel(QWidget):
             self.alpha_done = True
         # Successful process exit confirms the final refinement, even if the
         # scientific program omitted an explicit refinement completion line.
-        if exit_code == 0 and not stopped and self.refine_active is not None:
+        if self.run_refinement and exit_code == 0 and not stopped and self.refine_active is not None:
             self.refine_completed.add(self.refine_active)
             self.refine_active = None
+        if self.fofo and exit_code == 0 and not stopped:
+            self._fofo_analysis_done = True
         self._render()
+
+    def percent_complete(self):
+        if self.final_status == 'Completed':
+            return 100
+        if self.fofo:
+            return {'waiting': 0, 'preparation': 15, 'fofo': 45, 'analysis': 75}.get(self.phase, 90)
+        initial = {'waiting': 0, 'preparation': 5, 'fofo': 10, 'analysis': 15}.get(self.phase, 20)
+        fextr = 65 * min(len(self.fextr_completed), self.total) / max(1, self.total)
+        tail = (10 if self.fast and self.alpha_done else 0)
+        if self.run_refinement and self.refine_total:
+            tail += 5 * min(len(self.refine_completed), self.refine_total) / self.refine_total
+        return min(99, round(initial + fextr + tail))
+
+    def _fofo_coot_script(self):
+        # Original wxPython panelLog.py checks these in this exact order.
+        for prefix in ('q', 'k', ''):
+            candidate = self.output_directory / f'coot_all_{prefix}Fo-Fo.py'
+            if candidate.is_file():
+                return candidate
+        return None
+
+    def _open_fofo_coot(self):
+        script = self._fofo_coot_script()
+        if self.final_status != 'Completed' or script is None:
+            QMessageBox.warning(self, 'Coot', 'FoFo Coot script is not available yet.')
+            return
+        executable = next((path for name in ('coot', 'coot1', 'coot-1', 'coot0.9')
+                           if (path := shutil.which(name))), None)
+        if executable is None:
+            QMessageBox.warning(self, 'Coot', 'Coot executable not found on PATH.')
+            return
+        started, _pid = QProcess.startDetached(executable, ['--script', str(script)], str(self.output_directory))
+        if not started:
+            QMessageBox.warning(self, 'Coot', 'Could not launch Coot.')
 
     def _render(self):
         completed = min(len(self.fextr_completed), self.total)
@@ -283,13 +340,25 @@ class ProgressPanel(QWidget):
         if not self.fofo:
             self.detail.setText(self._last_detail or 'Waiting for Fextr calculations')
         ordering = ['preparation', 'fofo', 'analysis', 'fextr', 'alpha', 'refine']
+        if self.fofo_coot_button is not None:
+            script = self._fofo_coot_script()
+            available = self.final_status == 'Completed' and script is not None
+            self.fofo_coot_button.setVisible(available)
+            self.fofo_coot_button.setEnabled(available)
         for key, (label, name) in self.steps.items():
-            if key == 'fextr':
+            # A successful process exit confirms every FoFo-only stage.
+            # The previous phase-based fallback left 'FoFo map calculation'
+            # blue when the final phase remained 'fofo' in the log.
+            if self.fofo and self.final_status == 'Completed':
+                state = 'done'
+            elif key == 'fextr':
                 state = 'done' if self.total and completed == self.total else 'active' if self.phase == 'fextr' and self.active is not None else 'waiting'
             elif key == 'refine':
                 state = 'done' if self.refine_total and ref_done == self.refine_total else 'active' if self.phase == 'refine' and self.refine_active is not None else 'waiting'
             elif key == 'alpha':
                 state = 'done' if self.alpha_done else 'active' if self.phase == 'alpha' else 'waiting'
+            elif key == 'analysis' and self.fofo:
+                state = 'done' if self._fofo_analysis_done else 'active' if self.phase == 'analysis' and self.final_status is None else 'waiting'
             else:
                 state = ('done' if self.phase in ordering and ordering.index(self.phase) > ordering.index(key) else
                          'active' if self.phase == key else 'waiting')

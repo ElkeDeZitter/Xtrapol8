@@ -1,27 +1,97 @@
 """Qt GUI migration milestone 1: window, notebook and Input/Output layout.
 
-Run standalone: python -m xtrapol8.gui_qt.main
+Run standalone: python -m xtrapol8.gui.main
 No scientific code is imported or modified.
 """
 import sys
 import os
 import tempfile
+import uuid
 import io
+from dataclasses import dataclass
 from pathlib import Path
-from PyQt5.QtCore import Qt, QSize
+from PyQt5.QtCore import Qt, QSize, QLineF
 from .action_icons import action_icon
 from .results import ResultsViewer
 from .progress import ProgressPanel
 from .run_paths import resolve_inputs, unused_output_directory
 from .process import FextrProcess
+from .run_store import RunStore
 from . import phil_bridge
 from .panels import ExtrapolationPanel, RefinementPanel
-from PyQt5.QtGui import QIcon, QFontDatabase
+from PyQt5.QtGui import QIcon, QFontDatabase, QColor, QBrush, QPixmap, QPainter, QPen
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
     QHBoxLayout, QTabWidget, QGroupBox, QTableWidget, QTableWidgetItem,
     QPushButton, QLabel, QLineEdit, QFileDialog, QAction, QToolBar,
-    QMessageBox, QHeaderView, QPlainTextEdit, QStyledItemDelegate, QComboBox, QSplitter, QMenu, QAbstractItemView)
+    QMessageBox, QStyle, QStyleOptionViewItem, QHeaderView, QPlainTextEdit, QProgressBar, QStyledItemDelegate, QComboBox, QSplitter, QMenu, QAbstractItemView, QInputDialog)
 
+
+
+class TailElideDelegate(QStyledItemDelegate):
+    """Show the end of long identifiers and paths, preserving the full tooltip."""
+
+    def paint(self, painter, option, index):
+        opt = QStyleOptionViewItem(option)
+        self.initStyleOption(opt, index)
+        opt.text = opt.fontMetrics.elidedText(opt.text, Qt.ElideLeft,
+                                             max(0, opt.rect.width() - 12))
+        opt.textElideMode = Qt.ElideNone
+        opt.widget.style().drawControl(QStyle.CE_ItemViewItem, opt, painter, opt.widget)
+
+
+def locate_icon():
+    """Magnifying glass icon drawn in Qt, independent of OS icon themes."""
+    pixmap = QPixmap(20, 20)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(QPen(QColor('#315b83'), 2.0, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.drawEllipse(3, 2, 11, 11)
+    painter.drawLine(12, 12, 18, 18)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def config_icon():
+    """Compact file-with-cog glyph, consistent with the other 20px action icons."""
+    pixmap = QPixmap(20, 20)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    pen = QPen(QColor('#315b83'), 1.6, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+    painter.setPen(pen)
+    painter.drawLine(3, 2, 11, 2)
+    painter.drawLine(11, 2, 15, 6)
+    painter.drawLine(15, 6, 15, 9)
+    painter.drawLine(3, 2, 3, 18)
+    painter.drawLine(3, 18, 10, 18)
+    painter.drawLine(11, 2, 11, 6)
+    painter.drawLine(11, 6, 15, 6)
+    painter.drawEllipse(10, 11, 7, 7)
+    painter.drawLine(QLineF(13.5, 9.5, 13.5, 11))
+    painter.drawLine(QLineF(13.5, 18, 13.5, 19))
+    painter.drawLine(QLineF(8.5, 14.5, 10, 14.5))
+    painter.drawLine(QLineF(17, 14.5, 19, 14.5))
+    painter.end()
+    return QIcon(pixmap)
+
+
+def trash_icon():
+    """Small monochrome bin icon without external assets or platform fonts."""
+    pixmap = QPixmap(20, 20)
+    pixmap.fill(Qt.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.Antialiasing)
+    painter.setPen(QPen(QColor('#a22b36'), 1.7, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin))
+    painter.drawLine(4, 6, 16, 6)
+    painter.drawLine(8, 4, 12, 4)
+    painter.drawLine(6, 8, 7, 17)
+    painter.drawLine(14, 8, 13, 17)
+    painter.drawLine(7, 17, 13, 17)
+    painter.drawLine(9, 9, 9, 15)
+    painter.drawLine(11, 9, 11, 15)
+    painter.end()
+    return QIcon(pixmap)
 
 
 class InputTypeDelegate(QStyledItemDelegate):
@@ -100,6 +170,16 @@ class InputOutputPanel(QWidget):
         prefix_row.addWidget(self.outname)
         prefix_row.addStretch()
         out_layout.addLayout(prefix_row)
+        name_row = QHBoxLayout()
+        name_label = QLabel('Run Name :')
+        name_label.setFixedWidth(150)
+        name_row.addWidget(name_label)
+        self.run_name = QLineEdit()
+        self.run_name.setFixedWidth(400)
+        self.run_name.setPlaceholderText('Optional display name (does not affect output files)')
+        name_row.addWidget(self.run_name)
+        name_row.addStretch()
+        out_layout.addLayout(name_row)
         root.addWidget(outputs)
         root.addStretch()
         self.AddButton.clicked.connect(self.add_file)
@@ -147,11 +227,10 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('XtrapolG8 -- Qt migration (QProcess)')
-        self.runner = FextrProcess(self)
-        self.runner.log_received.connect(self.append_log)
-        self.runner.started.connect(lambda: self.statusBar().showMessage('Fextr running'))
-        self.runner.finished.connect(self.process_finished)
-        self.runner.error.connect(self.process_error)
+        self.runner = None  # Legacy alias: the most recently launched run.
+        self.runs = []
+        self.run_store = RunStore()
+        self.selected_run = None
         self.phil_file = None
         self._configuration_snapshot = None
         self._phil_params = None
@@ -189,13 +268,470 @@ class MainWindow(QMainWindow):
         configure.addTab(self.tabRefinement, 'Refinement')
         self.notebook.addTab(configure, 'Configure')
         self.log_view = None
+        self.progress_panel = None
+        self.run_results = None
+        self.run_count = 0
         self._run_logs = []
         self._run_viewers = []
         self._run_progress = []
-        self.progress_panel = None
-        # As in the wx GUI, run results are not shown until a run starts.
-        self.run_results = None
-        self.run_count = 0
+        self._build_run_manager()
+        self._build_results_tab()
+        self._restore_runs()
+
+    def _build_run_manager(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        self.run_table = QTableWidget(0, 5)
+        self.run_table.setHorizontalHeaderLabels(['Run Name', 'Status', 'Progress', 'Output directory', 'Actions'])
+        self.run_table.setItemDelegateForColumn(0, TailElideDelegate(self.run_table))
+        self.run_table.setItemDelegateForColumn(3, TailElideDelegate(self.run_table))
+        self.run_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.run_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.Stretch)
+        self.run_table.horizontalHeader().setSectionResizeMode(4, QHeaderView.Fixed)
+        self.run_table.setColumnWidth(4, 208)
+        self.run_table.verticalHeader().setDefaultSectionSize(48)
+        self.run_table.verticalHeader().setMinimumSectionSize(48)
+        self.run_table.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.run_table.setSelectionMode(QAbstractItemView.SingleSelection)
+        self.run_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.run_table.itemSelectionChanged.connect(self._manager_selection_changed)
+        layout.addWidget(self.run_table)
+        actions = QHBoxLayout()
+        for title, callback in [('View Results', self.view_selected_results),
+                                ('Rename', self.rename_selected_run),
+                                ('Stop all', self.stop_all_runs)]:
+            button = QPushButton(title)
+            button.clicked.connect(callback)
+            actions.addWidget(button)
+        actions.addStretch()
+        layout.addLayout(actions)
+        self.manager_log = QPlainTextEdit()
+        self.manager_log.setReadOnly(True)
+        self.manager_log.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.manager_log.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+        layout.addWidget(QLabel('Selected run log'))
+        layout.addWidget(self.manager_log)
+        self.notebook.addTab(page, 'Run Manager')
+
+    def _build_results_tab(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        selector = QHBoxLayout()
+        selector.addWidget(QLabel('Run:'))
+        self.results_selector = QComboBox()
+        self.results_selector.currentIndexChanged.connect(self._results_selection_changed)
+        selector.addWidget(self.results_selector, 1)
+        back = QPushButton('Back to Run Manager')
+        back.clicked.connect(lambda: self.notebook.setCurrentIndex(1))
+        selector.addWidget(back)
+        layout.addLayout(selector)
+        self.results_host = QVBoxLayout()
+        layout.addLayout(self.results_host, 1)
+        self.empty_results = QLabel('No run selected. Start a calculation or load existing results.')
+        self.empty_results.setAlignment(Qt.AlignCenter)
+        self.results_host.addWidget(self.empty_results)
+        self.notebook.addTab(page, 'Results')
+
+    def _unique_run_name(self, proposed):
+        """Keep user-facing run names unique, using 00, 01, ... for collisions."""
+        proposed = proposed.strip() or 'Run'
+        used = {entry['name'] for entry in self.runs}
+        if proposed not in used:
+            return proposed
+        index = 0
+        while f'{proposed}_{index:02d}' in used:
+            index += 1
+        return f'{proposed}_{index:02d}'
+
+    def _add_run(self, name, directory, runner=None, progress=None, *, restored=None):
+        name = self._unique_run_name(name)
+        self.run_count += 1
+        entry = {'id': restored['id'] if restored else uuid.uuid4().hex,
+                 'name': name, 'directory': Path(directory), 'runner': runner,
+                 'status': restored['status'] if restored else ('Starting' if runner else 'Loaded'),
+                 'progress_value': restored['progress_value'] if restored else (0 if runner else 100),
+                 'progress': progress,
+                 'lines': [], 'viewer': ResultsViewer(), 'log_widget': None}
+        if restored is not None:
+            entry['lines'] = self._read_saved_log(entry)
+        entry['viewer'].directory = Path(directory)
+        if restored is not None and not Path(directory).is_dir():
+            entry['status'] = 'Missing'
+        if Path(directory).is_dir():
+            entry['viewer'].refresh()
+        self.runs.append(entry)
+        row = self.run_table.rowCount()
+        self.run_table.insertRow(row)
+        for col, value in enumerate([name, entry['status'], '', str(directory)]):
+            item = QTableWidgetItem(value)
+            if col in (0, 3):
+                item.setToolTip(value)
+            self.run_table.setItem(row, col, item)
+        progress_cell = QWidget()
+        progress_layout = QHBoxLayout(progress_cell)
+        progress_layout.setContentsMargins(9, 7, 9, 7)
+        bar = QProgressBar()
+        bar.setMinimumHeight(25)
+        bar.setTextVisible(True)
+        progress_layout.addWidget(bar)
+        bar.setRange(0, 100)
+        bar.setValue(entry['progress_value'])
+        bar.setFormat('%p%' if runner else '—')
+        entry['table_bar'] = bar
+        self.run_table.setCellWidget(row, 2, progress_cell)
+        actions = QWidget()
+        buttons = QHBoxLayout(actions)
+        buttons.setContentsMargins(9, 6, 9, 6)
+        buttons.setSpacing(7)
+        stop = QPushButton()
+        stop.setIcon(self.style().standardIcon(QStyle.SP_MediaStop))
+        stop.setIconSize(QSize(16, 16))
+        stop.setToolTip('Stop this run')
+        stop.setFixedSize(33, 31)
+        stop.setStyleSheet('QPushButton { border: 1px solid #b8c0ca; border-radius: 5px; background: #f6f8fb; } QPushButton:hover { background: #fce7e7; border-color: #d48a8a; } QPushButton:disabled { opacity: 0.4; }')
+        stop.clicked.connect(lambda _checked=False, e=entry: self._stop_run(e))
+        delete = QPushButton()
+        delete.setIcon(trash_icon())
+        delete.setIconSize(QSize(17, 17))
+        delete.setToolTip('Remove this run from the list (files are kept)')
+        delete.setFixedSize(33, 31)
+        delete.setStyleSheet('QPushButton { border: 1px solid #b8c0ca; border-radius: 5px; background: #f6f8fb; } QPushButton:hover { background: #fce7e7; border-color: #d48a8a; }')
+        delete.clicked.connect(lambda _checked=False, e=entry: self._remove_run(e))
+        # One contextual action: configuration for a valid run, locate for Missing.
+        config_action = QPushButton()
+        config_action.setIconSize(QSize(18, 18))
+        config_action.setFixedSize(33, 31)
+        config_action.setStyleSheet('QPushButton { border: 1px solid #b8c0ca; border-radius: 5px; background: #f6f8fb; } QPushButton:hover { background: #e7f0fc; border-color: #8aa8d4; }')
+        config_action.clicked.connect(lambda _checked=False, e=entry: self._run_config_or_locate(e))
+        buttons.addWidget(stop)
+        buttons.addWidget(config_action)
+        buttons.addWidget(delete)
+        entry['config_action_button'] = config_action
+        entry['stop_button'] = stop
+        self.run_table.setCellWidget(row, 4, actions)
+        self._update_run_status(entry)
+        self.results_selector.addItem(name)
+        self.run_table.selectRow(row)
+        self._select_run(row)
+        if restored is None or entry['status'] == 'Missing':
+            self._persist_run(entry)
+        return entry
+
+    def _persist_run(self, entry):
+        if entry.get('progress') is not None:
+            entry['progress_value'] = entry['progress'].percent_complete()
+        elif entry['status'] == 'Completed':
+            entry['progress_value'] = 100
+        self.run_store.save(entry)
+
+    def _restore_runs(self):
+        for record in self.run_store.all():
+            if record['status'] in ('Running', 'Starting', 'Stopping'):
+                record['status'] = 'Interrupted'
+                self.run_store.save(record)
+            self._add_run(record['name'], record['directory'], restored=record)
+
+    def _select_run(self, index):
+        if index < 0 or index >= len(self.runs):
+            return
+        entry = self.runs[index]
+        self._check_run_directory(entry)
+        self.selected_run = entry
+        if not (entry.get('runner') and entry['runner'].running):
+            entry['lines'] = self._read_saved_log(entry)
+        self.manager_log.setPlainText('\n'.join(entry['lines']))
+        self.results_selector.blockSignals(True)
+        self.results_selector.setCurrentIndex(index)
+        self.results_selector.blockSignals(False)
+        self._show_results_entry(entry)
+
+    def _check_run_directory(self, entry):
+        """Detect a removed or detached results directory without deleting history."""
+        if entry.get('runner') and entry['runner'].running:
+            return
+        if not entry['directory'].is_dir() and entry['status'] != 'Missing':
+            entry['status'] = 'Missing'
+            self._update_run_status(entry)
+
+    def _run_config_or_locate(self, entry):
+        if entry['status'] == 'Missing':
+            self._locate_run(entry)
+        else:
+            self._load_run_configuration(entry)
+
+    def _locate_run(self, entry):
+        if entry.get('runner') and entry['runner'].running:
+            QMessageBox.information(self, 'Run active', 'Wait for this run to finish before relocating it.')
+            return
+        selected = QFileDialog.getExistingDirectory(
+            self, 'Locate existing Xtrapol8 results directory', str(entry['directory'].parent))
+        if not selected:
+            return
+        directory = Path(selected).resolve()
+        if not directory.is_dir():
+            QMessageBox.warning(self, 'Directory missing', 'The selected directory is not accessible.')
+            return
+        # Require an Xtrapol8 output marker to avoid accidentally linking unrelated folders.
+        # Never associate arbitrary directories with an existing run.
+        phil_file = directory / 'Xtrapol8_in.phil'
+        if not phil_file.is_file():
+            QMessageBox.warning(self, 'Invalid Xtrapol8 results directory',
+                'The selected directory has no Xtrapol8_in.phil. The run was not changed.')
+            return
+        try:
+            from libtbx import phil as libtbx_phil
+            parsed = libtbx_phil.parse(phil_file.read_text(encoding='utf-8'))
+            if not any(scope.name in ('input', 'output', 'f_and_maps') for scope in parsed.objects):
+                raise ValueError('Missing Xtrapol8 parameter scopes')
+        except Exception as exc:
+            QMessageBox.warning(self, 'Invalid Xtrapol8 configuration',
+                f'Cannot validate Xtrapol8_in.phil: {exc}\nThe run was not changed.')
+            return
+        # Interrupted calculations may have no completed maps or log yet.
+        entry['directory'] = directory
+        entry['viewer'].directory = directory
+        entry['viewer'].refresh()
+        entry['status'] = 'Loaded' if entry['status'] == 'Missing' else entry['status']
+        index = self.runs.index(entry)
+        self.run_table.item(index, 3).setText(str(directory))
+        self.run_table.item(index, 3).setToolTip(str(directory))
+        self._update_run_status(entry)
+        if self.selected_run is entry:
+            self._show_results_entry(entry)
+
+    def _show_results_entry(self, entry):
+        while self.results_host.count():
+            item = self.results_host.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.setParent(None)
+        tabs = entry.get('tabs')
+        if tabs is None:
+            tabs = QTabWidget()
+            log = QPlainTextEdit()
+            log.setReadOnly(True)
+            log.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+            log.setLineWrapMode(QPlainTextEdit.NoWrap)
+            log.setPlainText('\n'.join(entry['lines']))
+            entry['log_widget'] = log
+            log_page = QWidget()
+            log_layout = QVBoxLayout(log_page)
+            log_actions = QHBoxLayout()
+            refresh_log = QPushButton('Refresh log')
+            refresh_log.setToolTip('Reload the Xtrapol8 log from the results directory')
+            refresh_log.clicked.connect(lambda _checked=False, e=entry: self._refresh_saved_log(e))
+            log_actions.addWidget(refresh_log)
+            log_actions.addStretch()
+            log_layout.addLayout(log_actions)
+            splitter = QSplitter(Qt.Horizontal)
+            splitter.addWidget(log)
+            if entry['progress'] is not None:
+                splitter.addWidget(entry['progress'])
+            log_layout.addWidget(splitter)
+            tabs.addTab(log_page, 'Log')
+            viewer = entry['viewer']
+            tabs.addTab(viewer, 'Main')
+            tabs.addTab(viewer.occupancies_page, 'Occupancies')
+            entry['tabs'] = tabs
+        self.results_host.addWidget(tabs)
+
+    def _manager_selection_changed(self):
+        selected = self.run_table.selectionModel().selectedRows()
+        if selected:
+            self._select_run(selected[0].row())
+
+    def _results_selection_changed(self, index):
+        if 0 <= index < len(self.runs):
+            self._select_run(index)
+            self.run_table.selectRow(index)
+
+    def view_selected_results(self):
+        if self.selected_run is not None:
+            self._check_run_directory(self.selected_run)
+            if self.selected_run['status'] != 'Missing':
+                self.selected_run['viewer'].refresh()
+            self.notebook.setCurrentIndex(2)
+
+    def rename_selected_run(self):
+        entry = self.selected_run
+        if entry is None:
+            return
+        name, ok = QInputDialog.getText(self, 'Rename run', 'Run Name:', text=entry['name'])
+        if ok and name.strip():
+            entry['name'] = (entry['name'] if name.strip() == entry['name'] else self._unique_run_name(name.strip()))
+            index = self.runs.index(entry)
+            self.run_table.item(index, 0).setText(entry['name'])
+            self.run_table.item(index, 0).setToolTip(entry['name'])
+            self.results_selector.setItemText(index, entry['name'])
+            self._persist_run(entry)
+
+    def _stop_run(self, entry):
+        if entry in self.runs and entry['runner'] and entry['runner'].running:
+            entry['status'] = 'Stopping'
+            self._update_run_status(entry)
+            entry['runner'].stop()
+
+    def stop_selected_run(self):
+        if self.selected_run is not None:
+            self._stop_run(self.selected_run)
+
+    def _remove_run(self, entry):
+        if entry not in self.runs:
+            return
+        if entry['runner'] and entry['runner'].running:
+            QMessageBox.information(self, 'Run active', 'Stop this run before removing it from the list.')
+            return
+        if QMessageBox.question(self, 'Remove run',
+                'Remove this run from the lists? Files and results on disk will be preserved.',
+                QMessageBox.Yes | QMessageBox.No) != QMessageBox.Yes:
+            return
+        index = self.runs.index(entry)
+        if self.selected_run is entry:
+            self.selected_run = None
+        self.run_table.removeRow(index)
+        self.results_selector.removeItem(index)
+        self.runs.pop(index)
+        self.run_store.remove(entry['id'])
+        if self.runs:
+            self.run_table.selectRow(min(index, len(self.runs)-1))
+            self._select_run(min(index, len(self.runs)-1))
+        else:
+            self.manager_log.clear()
+            while self.results_host.count():
+                item = self.results_host.takeAt(0)
+                if item.widget():
+                    item.widget().setParent(None)
+            self.results_host.addWidget(self.empty_results)
+            self.empty_results.show()
+
+
+    def stop_all_runs(self):
+        active = [r for r in self.runs if r['runner'] and r['runner'].running]
+        if active and QMessageBox.question(self, 'Stop all runs',
+                    f'Stop all {len(active)} running calculations?',
+                    QMessageBox.Yes | QMessageBox.No) == QMessageBox.Yes:
+            for entry in active:
+                entry['status'] = 'Stopping'
+                self._update_run_status(entry)
+                entry['runner'].stop()
+
+    def _update_run_status(self, entry):
+        index = self.runs.index(entry)
+        self.run_table.item(index, 1).setText(entry['status'])
+        palette = {'Running': ('#e8f2ff', '#1556a0'), 'Starting': ('#e8f2ff', '#1556a0'),
+                   'Stopping': ('#fff1da', '#895000'), 'Completed': ('#e3f5e9', '#176c3c'),
+                   'Stopped': ('#eeeeee', '#555555'), 'Failed': ('#ffe7e7', '#a02727'),
+                   'Loaded': ('#edf0f5', '#46566b'), 'Interrupted': ('#fff1da', '#895000'),
+                   'Missing': ('#ffe7e7', '#a02727')}
+        bg, fg = palette.get(entry['status'], ('#ffffff', '#333333'))
+        for col in (0, 1, 3):
+            item = self.run_table.item(index, col)
+            if item:
+                item.setBackground(QBrush(QColor(bg)))
+                item.setForeground(QBrush(QColor(fg)))
+        entry['stop_button'].setEnabled(bool(entry['runner'] and entry['runner'].running))
+        config_action = entry['config_action_button']
+        if entry['status'] == 'Missing':
+            config_action.setIcon(locate_icon())
+            config_action.setToolTip('Locate missing Xtrapol8 results directory')
+            config_action.setEnabled(True)
+        else:
+            config_action.setIcon(config_icon())
+            config_action.setToolTip('Load Xtrapol8_in.phil into Configure (new run)')
+            config_action.setEnabled(self._find_results_phil(entry['directory']) is not None)
+        self._update_run_progress(entry)
+        self._persist_run(entry)
+
+    def _update_run_progress(self, entry):
+        bar = entry.get('table_bar')
+        if bar is None:
+            return
+        if entry['progress'] is not None:
+            bar.setValue(entry['progress'].percent_complete())
+            bar.setFormat('%p%')
+        else:
+            bar.setValue(entry.get('progress_value', 0))
+            bar.setFormat('%p%')
+
+    @staticmethod
+    def _scientific_log_path(directory):
+        """Find the Xtrapol8 log in the results directory; never create copies."""
+        directory = Path(directory)
+        if not directory.is_dir():
+            return None
+        candidates = [p for p in directory.glob('*_Xtrapol8.log') if p.is_file()]
+        if not candidates:
+            return None
+        # Prefer the most recently modified log when a directory contains retries.
+        return max(candidates, key=lambda p: (p.stat().st_mtime_ns, p.name))
+
+    def _read_saved_log(self, entry):
+        path = self._scientific_log_path(entry['directory'])
+        if path is None:
+            return []
+        try:
+            with path.open('r', encoding='utf-8', errors='replace') as stream:
+                from collections import deque
+                return list(deque((line.rstrip('\n') for line in stream), maxlen=20000))
+        except OSError:
+            return []
+
+    def _refresh_saved_log(self, entry):
+        entry['lines'] = self._read_saved_log(entry)
+        if entry.get('log_widget') is not None:
+            entry['log_widget'].setPlainText('\n'.join(entry['lines']))
+        if self.selected_run is entry:
+            self.manager_log.setPlainText('\n'.join(entry['lines']))
+
+    def _load_run_configuration(self, entry):
+        """Load the existing scientific PHIL without altering the source run."""
+        self._check_run_directory(entry)
+        if entry['status'] == 'Missing':
+            QMessageBox.information(self, 'Results unavailable', 'Locate the results directory first.')
+            return
+        phil_path = self._find_results_phil(entry['directory'])
+        if phil_path is None:
+            QMessageBox.warning(self, 'Configuration unavailable',
+                                'Xtrapol8_in.phil was not found in this results directory.')
+            return
+        if not self._confirm_replace_configuration():
+            return
+        try:
+            phil_bridge.read_into(self, phil_path)
+            self._set_loaded_phil(phil_path)
+            self._results_source_directory = Path(entry['directory'])
+            self.notebook.setCurrentIndex(0)
+            self.statusBar().showMessage(f'Configuration loaded from {phil_path}', 12000)
+        except Exception as exc:
+            QMessageBox.warning(self, 'PHIL load failed', str(exc))
+
+    def _run_log(self, entry, line):
+        entry['lines'].append(line)
+        if len(entry['lines']) > 20000:
+            del entry['lines'][:1000]
+        if entry.get('log_widget'):
+            entry['log_widget'].appendPlainText(line)
+        if self.selected_run is entry:
+            self.manager_log.appendPlainText(line)
+        if entry['progress'] is not None:
+            entry['progress'].ingest(line)
+            self._update_run_progress(entry)
+            if len(entry['lines']) % 25 == 0:
+                self._persist_run(entry)
+
+    def _run_finished(self, entry, code, stopped):
+        entry['status'] = 'Stopped' if stopped else ('Completed' if code == 0 else 'Failed')
+        self._update_run_status(entry)
+        self._run_log(entry, f'[{entry["status"]}: exit code {code}]')
+        if entry['progress'] is not None:
+            entry['progress'].finish(code, stopped)
+            self._update_run_progress(entry)
+        entry['viewer'].refresh()
+        self.statusBar().showMessage(f'{entry["name"]}: {entry["status"]}')
+
+    def _run_error(self, entry, message):
+        self._run_log(entry, f'[Process error] {message}')
+        self.statusBar().showMessage(f'{entry["name"]}: {message}')
 
     def open_phil(self):
         path, _ = QFileDialog.getOpenFileName(self, 'Select PHIL configuration', '', 'PHIL (*.phil);;All files (*)')
@@ -303,9 +839,6 @@ class MainWindow(QMainWindow):
                 item.setText(resolved[item.text().strip()])
 
     def run_fextr(self):
-        if self.runner.running:
-            QMessageBox.information(self, 'Xtrapol8', 'A calculation is already running.')
-            return
         try:
             workdir = (self._input_base_directory or
                        (Path(self.phil_file).resolve().parent if self.phil_file else Path.cwd()))
@@ -318,60 +851,26 @@ class MainWindow(QMainWindow):
             if not requested.is_absolute():
                 requested = workdir / requested
             target = unused_output_directory(requested)
-            # The generated PHIL must name the exact directory monitored by
-            # the GUI. Never change the source PHIL on disk.
             self.tabIO.outdir.setText(str(target))
             run_dir = Path(tempfile.mkdtemp(prefix='xtrapol8_qt_'))
-            self._run_phil_path = phil_bridge.save_from(self, run_dir / 'run.phil')
-            self.show_run_results(track_progress=True)
-            self._run_viewers[-1].directory = target
-            self._run_viewers[-1].refresh()
-            self.append_log(f'[Output directory] {target}')
-            self.runner.start(str(self._run_phil_path), working_directory=workdir)
+            phil_path = phil_bridge.save_from(self, run_dir / 'run.phil')
+            name = self.tabIO.run_name.text().strip() or self.tabIO.outname.text().strip() or f'Run #{self.run_count + 1}'
+            runner = FextrProcess(self)
+            try:
+                progress = ProgressPanel(phil_bridge.collect(self))
+            except (RuntimeError, ValueError, AttributeError, TypeError):
+                progress = None
+            entry = self._add_run(name, target, runner, progress)
+            runner.log_received.connect(lambda line, e=entry: self._run_log(e, line))
+            runner.started.connect(lambda e=entry: (e.update(status='Running'), self._update_run_status(e)))
+            runner.finished.connect(lambda code, stopped, e=entry: self._run_finished(e, code, stopped))
+            runner.error.connect(lambda message, e=entry: self._run_error(e, message))
+            self.runner = runner
+            self._run_log(entry, f'[Output directory] {target}')
+            runner.start(str(phil_path), working_directory=workdir)
+            self.notebook.setCurrentIndex(1)
         except (RuntimeError, FileNotFoundError, ValueError, OSError) as exc:
             QMessageBox.warning(self, 'Xtrapol8', str(exc))
-
-    def show_run_results(self, track_progress=False):
-        # wx creates a Run #N page containing a Log subtab at run time.
-        self.run_count += 1
-        results = QTabWidget()
-        log_view = QPlainTextEdit()
-        log_view.setReadOnly(True)
-        # Preserve alignment of fixed-width scientific tables in stdout/stderr.
-        log_font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
-        log_font.setPointSize(11)
-        log_view.setFont(log_font)
-        log_view.setLineWrapMode(QPlainTextEdit.NoWrap)
-        log_view.setTabStopDistance(log_view.fontMetrics().horizontalAdvance(' ') * 4)
-        log_view.document().setMaximumBlockCount(20000)
-        log_page = QWidget()
-        log_layout = QHBoxLayout(log_page)
-        log_layout.setContentsMargins(2, 2, 2, 2)
-        splitter = QSplitter(Qt.Horizontal)
-        splitter.addWidget(log_view)
-        panel = None
-        if track_progress:
-            try:
-                panel = ProgressPanel(phil_bridge.collect(self))
-            except (RuntimeError, ValueError, AttributeError, TypeError) as exc:
-                self.statusBar().showMessage(f'Progress unavailable: {exc}', 10000)
-            if panel is not None:
-                splitter.addWidget(panel)
-                splitter.setSizes([820, 260])
-                panel.setMinimumWidth(200)
-        log_layout.addWidget(splitter)
-        self.progress_panel = panel
-        self._run_progress.append(panel)
-        results.addTab(log_page, 'Log')
-        viewer = ResultsViewer()
-        results.addTab(viewer, 'Main')
-        results.addTab(viewer.occupancies_page, 'Occupancies')
-        self._run_viewers.append(viewer)
-        self.run_results = results
-        self.log_view = log_view
-        self._run_logs.append(log_view)
-        self.notebook.addTab(results, f'Run #{self.run_count}')
-        self.notebook.setCurrentWidget(results)
 
     def load_results(self):
         path = QFileDialog.getExistingDirectory(self, 'Select existing Xtrapol8 results directory', str(Path.home()))
@@ -390,53 +889,42 @@ class MainWindow(QMainWindow):
                 self._input_base_directory = None
                 config_message = f'Configuration restored from {config_path.name}'
             except (RuntimeError, ValueError, OSError, AttributeError) as exc:
-                # Results remain useful even if the PHIL cannot be loaded.
                 config_message = f'Results loaded; PHIL could not be restored: {exc}'
                 QMessageBox.warning(self, 'PHIL restoration failed', str(exc))
         else:
             config_message = 'Results loaded; Xtrapol8_in.phil not found (configuration unchanged)'
-        self.show_run_results()
-        self._run_viewers[-1].directory = directory
-        self._run_viewers[-1].refresh()
-        self.run_results.setCurrentIndex(1)
+        name = self.tabIO.run_name.text().strip() or directory.name
+        entry = self._add_run(name, directory)
+        self.view_selected_results()
+        entry['tabs'].setCurrentIndex(1)
         self.statusBar().showMessage(config_message, 12000)
 
     def stop_fextr(self):
-        if self.runner.running:
-            self.statusBar().showMessage('Stopping Xtrapol8…')
-        self.runner.stop()
+        self.stop_selected_run()
 
     def append_log(self, line):
-        if self.log_view is not None:
-            self.log_view.appendPlainText(line)
-        if self.progress_panel is not None:
-            self.progress_panel.ingest(line)
+        if self.selected_run:
+            self._run_log(self.selected_run, line)
 
     def process_finished(self, exit_code, stopped):
-        status = ('Stopped by user' if stopped else
-                  'Completed successfully' if exit_code == 0 else
-                  f'Process failed (exit code {exit_code})')
-        self.statusBar().showMessage(status)
-        self.append_log(f'[{status}]')
-        if self.progress_panel is not None:
-            self.progress_panel.finish(exit_code, stopped)
-        if self.run_results is not None:
-            self.notebook.setTabText(self.notebook.indexOf(self.run_results), f'Run #{self.run_count}')
+        if self.selected_run:
+            self._run_finished(self.selected_run, exit_code, stopped)
 
     def process_error(self, message):
-        self.append_log(f'[Process error] {message}')
-        self.statusBar().showMessage(message)
+        if self.selected_run:
+            self._run_error(self.selected_run, message)
 
     def closeEvent(self, event):
-        if self.runner.running:
-            QMessageBox.warning(self, 'Xtrapol8', 'Stop the running calculation before closing.')
+        if any(r['runner'] and r['runner'].running for r in self.runs):
+            QMessageBox.warning(self, 'Xtrapol8', 'Stop all running calculations before closing.')
             event.ignore()
         else:
+            for entry in self.runs:
+                self._persist_run(entry)
             event.accept()
 
     def not_implemented(self, name):
-        QMessageBox.information(self, 'Migration in progress',
-                                f'{name}: not yet migrated to Qt.')
+        QMessageBox.information(self, 'Migration in progress', f'{name}: not yet migrated to Qt.')
 
 
 def main():

@@ -1,6 +1,8 @@
 """Qt-only process controller for the unchanged Xtrapol8 scientific engine."""
 from pathlib import Path
 import shutil
+import os
+import signal
 from PyQt5.QtCore import QObject, QProcess, QProcessEnvironment, QTimer, pyqtSignal
 
 
@@ -58,12 +60,32 @@ class FextrProcess(QObject):
         if not self.running or self._stopping:
             return
         self._stopping = True
+        # Stop descendants as well (e.g. phenix.refine spawned by Xtrapol8).
+        self._signal_tree(force=False)
         self.process.terminate()
         QTimer.singleShot(3000, self._kill_if_running)
 
     def _kill_if_running(self):
         if self._stopping and self.running:
+            self._signal_tree(force=True)
             self.process.kill()
+
+    def _signal_tree(self, force=False):
+        """Best-effort recursive termination; psutil is optional."""
+        try:
+            import psutil
+            pid = int(self.process.processId())
+            if not pid:
+                return
+            parent = psutil.Process(pid)
+            children = parent.children(recursive=True)
+            for child in reversed(children):
+                try:
+                    child.kill() if force else child.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+        except (ImportError, OSError, ValueError):
+            pass
 
     def _read_output(self):
         self._buffer += bytes(self.process.readAllStandardOutput()).decode('utf-8', errors='replace')

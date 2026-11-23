@@ -116,41 +116,106 @@ class ImageGallery(QWidget):
         self.note.setText(f'{len(paths)} graph(s)' if paths else 'No PNG results found yet.')
 
 
-# The wxPython GUI supports all three families with three weighting choices.
-FAMILIES = ('Fextr', 'Fgenick', 'Fextr_calc')
-WEIGHTS = ('', 'q', 'k')
-METHODS = tuple((weight + family).lower() for family in FAMILIES for weight in WEIGHTS)
+class _MethodPage(QWidget):
+    """Independent occupancy selection, gallery and Coot action for one Fextr type."""
 
+    def __init__(self, viewer, kind):
+        super().__init__()
+        self.viewer = viewer
+        self.kind = kind
+        self.folders = {}
+        layout = QVBoxLayout(self)
+        row = QHBoxLayout()
+        row.addWidget(QLabel('Occupancy:'))
+        self.selector = QComboBox()
+        self.selector.setMinimumWidth(110)
+        self.selector.setMaximumWidth(190)
+        self.selector.currentIndexChanged.connect(self.show_occupation)
+        row.addWidget(self.selector)
+        self.best_label = QLabel('Best occupancy / α: —')
+        row.addWidget(self.best_label)
+        self.best_button = QPushButton('Go to best')
+        self.best_button.clicked.connect(self.go_to_best)
+        row.addWidget(self.best_button)
+        self.coot_button = QPushButton('Open in Coot')
+        self.coot_button.setToolTip('Available only at the optimal occupancy with an existing Coot script')
+        self.coot_button.clicked.connect(self.open_coot)
+        row.addWidget(self.coot_button)
+        row.addStretch(1)
+        layout.addLayout(row)
+        self.gallery = ImageGallery()
+        layout.addWidget(self.gallery, 1)
+        self.show_occupation()
 
-def _method_parts(method):
-    method = method.lower()
-    weight = method[0] if method.startswith(('q', 'k')) else ''
-    return method[len(weight):], weight
+    def update_folders(self, folders):
+        previous = self.selector.currentText()
+        self.folders = folders
+        names = sorted(folders, key=lambda name: (_group_occupancy(name) or 0, name))
+        if [self.selector.itemText(i) for i in range(self.selector.count())] != names:
+            self.selector.blockSignals(True)
+            self.selector.clear()
+            self.selector.addItems(names)
+            index = self.selector.findText(previous)
+            self.selector.setCurrentIndex(index if index >= 0 else (0 if names else -1))
+            self.selector.blockSignals(False)
+        self.show_occupation()
 
+    def best(self):
+        return self.viewer._best.get(self.kind)
 
-def _method_folder(method, occupancy):
-    _, weight = _method_parts(method)
-    return f"{('qweight_' if weight == 'q' else 'kweight_' if weight == 'k' else '')}occupancy_{occupancy:.3f}"
+    def script(self):
+        raw = self.viewer._scripts.get(self.kind)
+        if not raw or self.viewer.directory is None:
+            return None
+        path = Path(raw).expanduser()
+        if not path.is_absolute():
+            path = self.viewer.directory / path
+        return path.resolve()
 
+    def show_occupation(self, *_):
+        self.gallery.set_files(self.folders.get(self.selector.currentText(), []))
+        best = self.best()
+        self.best_label.setText(
+            f'Best occupancy: {best:.3f}  |  α: {1 / best:.2f}'
+            if best is not None and best > 0 else 'Best occupancy / α: —'
+        )
+        available = best is not None and any(
+            _group_occupancy(name) is not None and
+            abs(_group_occupancy(name) - best) < 0.00051
+            for name in self.folders
+        )
+        self.best_button.setEnabled(available)
+        selected = _group_occupancy(self.selector.currentText())
+        script = self.script()
+        self.coot_button.setEnabled(
+            available and selected is not None and
+            abs(selected - best) < 0.00051 and
+            script is not None and script.is_file()
+        )
 
-def _method_from_filename(filename):
-    # Exact method token, not a prefix: Fextr must never match Fextr_calc.
-    match = re.match(r'^(q|k)?(Fextr_calc|Fgenick|Fextr)(?=_|\.)', filename, re.I)
-    return match.group(0).lower() if match else None
+    def go_to_best(self):
+        best = self.best()
+        if best is None:
+            return
+        for index in range(self.selector.count()):
+            occ = _group_occupancy(self.selector.itemText(index))
+            if occ is not None and abs(occ - best) < 0.00051:
+                self.selector.setCurrentIndex(index)
+                return
+
+    def open_coot(self):
+        if not self.coot_button.isEnabled():
+            return
+        self.viewer._launch_coot(self.script())
 
 
 class ResultsViewer(QWidget):
-    """PNG results organized by family, weighting and occupancy.
+    """Per-run PNG viewer; separate method tabs, each with independent state."""
+    METHODS = (('fextr', 'Fextr'), ('qfextr', 'qFextr'), ('kfextr', 'kFextr'))
 
-    A method is selectable only if it has method-specific output files or a
-    completed recap entry. An occupancy folder by itself is not evidence.
-    """
     def __init__(self, directory=None, parent=None):
         super().__init__(parent)
         self.directory = Path(directory).expanduser().resolve() if directory else None
-        self._best, self._scripts, self._groups = {}, {}, {}
-        self._selected_occupancy = {}
-        self._available = set()
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
         self.location = QLabel()
@@ -177,34 +242,13 @@ class ResultsViewer(QWidget):
         actions.addWidget(refresh_occ)
         actions.addStretch(1)
         occ_layout.addLayout(actions)
-        method_row = QHBoxLayout()
-        method_row.addWidget(QLabel('Family:'))
-        self.family_selector = QComboBox()
-        self.family_selector.currentIndexChanged.connect(self._family_changed)
-        method_row.addWidget(self.family_selector)
-        method_row.addWidget(QLabel('Weighting:'))
-        self.weight_selector = QComboBox()
-        self.weight_selector.currentIndexChanged.connect(self._weight_changed)
-        method_row.addWidget(self.weight_selector)
-        method_row.addStretch(1)
-        occ_layout.addLayout(method_row)
-        row = QHBoxLayout()
-        row.addWidget(QLabel('Occupancy:'))
-        self.selector = QComboBox()
-        self.selector.currentIndexChanged.connect(self.show_occupation)
-        row.addWidget(self.selector)
-        self.best_label = QLabel('Best occupancy / α: —')
-        row.addWidget(self.best_label)
-        self.best_button = QPushButton('Go to best')
-        self.best_button.clicked.connect(self.go_to_best)
-        row.addWidget(self.best_button)
-        self.coot_button = QPushButton('Open in Coot')
-        self.coot_button.clicked.connect(self.open_coot)
-        row.addWidget(self.coot_button)
-        row.addStretch(1)
-        occ_layout.addLayout(row)
-        self.occupancy = ImageGallery()
-        occ_layout.addWidget(self.occupancy, 1)
+        self.method_tabs = QTabWidget()
+        occ_layout.addWidget(self.method_tabs, 1)
+        # Initialize shared results before _MethodPage.__init__ calls show_occupation().
+        self._best = {}
+        self._scripts = {}
+        self._groups = {}
+        self.pages = {kind: _MethodPage(self, kind) for kind, _ in self.METHODS}
         self.occupancies_page = occ
         self.timer = QTimer(self)
         self.timer.setInterval(10000)
@@ -213,142 +257,83 @@ class ResultsViewer(QWidget):
         self.refresh()
 
     @property
-    def current_method(self):
-        family = self.family_selector.currentData()
-        weight = self.weight_selector.currentData()
-        return (weight + family).lower() if family is not None and weight is not None else None
+    def current_page(self):
+        return self.method_tabs.currentWidget()
 
-    def _set_options(self, combo, options, selected):
-        previous = [(combo.itemText(i), combo.itemData(i)) for i in range(combo.count())]
-        if previous == options:
-            return
-        combo.blockSignals(True)
-        combo.clear()
-        for label, value in options:
-            combo.addItem(label, value)
-        idx = combo.findData(selected)
-        combo.setCurrentIndex(idx if idx >= 0 else (0 if options else -1))
-        combo.blockSignals(False)
+    @property
+    def selector(self):
+        return self.current_page.selector if self.current_page is not None else None
 
-    def _family_changed(self, *_):
-        self._refresh_weights()
-        self._refresh_occupancies()
+    @property
+    def coot_button(self):
+        return self.current_page.coot_button if self.current_page is not None else None
 
-    def _weight_changed(self, *_):
-        self._refresh_occupancies()
+    def _script_for_current(self):
+        return self.current_page.script() if self.current_page is not None else None
 
-    def _refresh_weights(self, preferred=None):
-        family = self.family_selector.currentData()
-        if preferred is None:
-            preferred = self.weight_selector.currentData()
-        labels = {'': 'None', 'q': 'q-weighted', 'k': 'k-weighted'}
-        options = [(labels[w], w) for w in WEIGHTS if family and (w + family).lower() in self._available]
-        self._set_options(self.weight_selector, options, preferred)
+    def _best_for_current(self):
+        return self.current_page.best() if self.current_page is not None else None
 
-    def _refresh_occupancies(self):
-        method = self.current_method
-        previous = self._selected_occupancy.get(method) if method else None
-        options = [(f'{occ:.3f}', occ) for occ in sorted(self._groups.get(method, {}))]
-        self._set_options(self.selector, options, previous)
-        self.show_occupation()
+    def go_to_best(self):
+        if self.current_page is not None:
+            self.current_page.go_to_best()
+
+    def open_coot(self):
+        if self.current_page is not None:
+            self.current_page.open_coot()
 
     def choose_directory(self):
         path = QFileDialog.getExistingDirectory(self, 'Select Xtrapol8 results directory',
                                                 str(self.directory or Path.home()))
         if path:
             self.directory = Path(path).resolve()
-            self._selected_occupancy.clear()
             self.refresh()
 
     def refresh(self):
         self.location.setText(f'Results: {self.directory}' if self.directory else 'Select a results directory')
-        previous_method = self.current_method
-        if previous_method is not None and self.selector.currentData() is not None:
-            self._selected_occupancy[previous_method] = self.selector.currentData()
         root_images = []
-        groups = {method: {} for method in METHODS}
+        groups = {kind: {} for kind, _ in self.METHODS}
         self._best, self._scripts = {}, {}
         if self.directory and self.directory.is_dir():
-            self._best, self._scripts = _read_best_occupancies(self.directory / 'occupancy_recap.pickle')
-            count = 0
-            # Do not infer availability from directory names: several methods share them.
+            # Discover actual occupancy folders, even if their PNGs are not ready yet.
             for folder in self.directory.iterdir():
-                if not folder.is_dir():
+                if folder.is_dir():
+                    kind = _group_fextr(folder.name)
+                    if kind:
+                        groups[kind][folder.name] = []
+            count = 0
+            for path in self.directory.rglob('*.png'):
+                if not path.is_file():
                     continue
-                occupancy = _group_occupancy(folder.name)
-                if occupancy is None or not re.fullmatch(r'(?:qweight_|kweight_)?occupancy_\d+(?:\.\d+)?', folder.name, re.I):
+                relative = path.relative_to(self.directory)
+                if len(relative.parts) > 5:
                     continue
-                for path in folder.rglob('*'):
-                    if not path.is_file() or len(path.relative_to(folder).parts) > 4:
-                        continue
-                    method = _method_from_filename(path.name)
-                    if method and method in groups and folder.name.lower() == _method_folder(method, occupancy).lower():
-                        groups[method].setdefault(occupancy, [])
-                        if path.suffix.lower() == '.png':
-                            groups[method][occupancy].append(path)
-                    count += 1
-                    if count >= 3000:
-                        break
-                if count >= 3000:
+                if len(relative.parts) == 1:
+                    root_images.append(path)
+                elif relative.parts[0] in groups.get(_group_fextr(relative.parts[0]), {}):
+                    kind = _group_fextr(relative.parts[0])
+                    groups[kind][relative.parts[0]].append(path)
+                count += 1
+                if count >= 500:
                     break
-            # A completed recap is independent evidence of computation. Populate
-            # only occupancy folders belonging to that specific weighting.
-            for method in self._best:
-                if method not in groups:
-                    continue
-                for folder in self.directory.iterdir():
-                    if folder.is_dir():
-                        occ = _group_occupancy(folder.name)
-                        if occ is not None and folder.name.lower() == _method_folder(method, occ).lower():
-                            groups[method].setdefault(occ, [])
-            root_images = sorted(self.directory.glob('*.png'))[:500]
+            self._best, self._scripts = _read_best_occupancies(
+                self.directory / 'occupancy_recap.pickle'
+            )
         self.main.set_files(root_images)
         self._groups = groups
-        self._available = {method for method, occs in groups.items() if occs}
-        families = [(family, family) for family in FAMILIES if any((w + family).lower() in self._available for w in WEIGHTS)]
-        old_family, old_weight = _method_parts(previous_method) if previous_method else (None, None)
-        self._set_options(self.family_selector, families, next((f for f in FAMILIES if f.lower() == old_family), None))
-        self._refresh_weights(old_weight)
-        self._refresh_occupancies()
-
-    def show_occupation(self, *_):
-        method = self.current_method
-        occupancy = self.selector.currentData()
-        if method and occupancy is not None:
-            self._selected_occupancy[method] = occupancy
-        self.occupancy.set_files(self._groups.get(method, {}).get(occupancy, []))
-        best = self._best.get(method)
-        self.best_label.setText(f'Best occupancy: {best:.3f}  |  α: {1/best:.2f}'
-                                if best is not None and best > 0 else 'Best occupancy / α: —')
-        available = best is not None and any(abs(occ - best) < 0.00051 for occ in self._groups.get(method, {}))
-        self.best_button.setEnabled(available)
-        script = self._script_for_current()
-        self.coot_button.setEnabled(bool(available and occupancy is not None and
-                                         abs(occupancy - best) < 0.00051 and
-                                         script is not None and script.is_file()))
-
-    def _best_for_current(self):
-        return self._best.get(self.current_method)
-
-    def _script_for_current(self):
-        raw = self._scripts.get(self.current_method)
-        if not raw or self.directory is None:
-            return None
-        path = Path(raw).expanduser()
-        return (path if path.is_absolute() else self.directory / path).resolve()
-
-    def go_to_best(self):
-        best = self._best_for_current()
-        if best is None:
-            return
-        for i in range(self.selector.count()):
-            if abs(self.selector.itemData(i) - best) < 0.00051:
-                self.selector.setCurrentIndex(i)
-                break
-
-    def open_coot(self):
-        if self.coot_button.isEnabled():
-            self._launch_coot(self._script_for_current())
+        active = self.current_page.kind if self.current_page is not None else None
+        available = [kind for kind, _ in self.METHODS if groups[kind]]
+        current = [self.method_tabs.widget(i) for i in range(self.method_tabs.count())]
+        expected = [self.pages[kind] for kind in available]
+        if current != expected:
+            self.method_tabs.clear()
+            for kind, label in self.METHODS:
+                if kind in available:
+                    self.method_tabs.addTab(self.pages[kind], label)
+            if active in available:
+                self.method_tabs.setCurrentWidget(self.pages[active])
+        for kind, page in self.pages.items():
+            page.update_folders(groups[kind])
 
     def _launch_coot(self, script):
         if script is None or not script.is_file():
