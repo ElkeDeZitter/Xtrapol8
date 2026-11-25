@@ -29,6 +29,7 @@
       <ul>
         <li><a href="#command-line-usage">Command line usage</a></li>
         <li><a href="#graphical-User-Interface-usage">Graphical User Interface usage</a></li>
+        <li><a href="#macos-app">macOS app</a></li>
         <li><a href="#tutorial">Tutorial</a></li>
       </ul>
     <li><a href="#license">License</a></li>
@@ -160,6 +161,35 @@ Xtrapol8 can also be launch via the GUI, called "XtrapolG8", and should be launc
   "File" -> "Load Results"
   
 _For more information, please have a look into the [GUI Manual](https://github.com/ElkeDeZitter/Xtrapol8/blob/main/XtrapolG8_Manual.pdf)_
+
+## macOS app
+
+On macOS, you can build a small `Xtrapol8.app` that starts the Qt GUI with a double-click or from the Dock. The app does not include Python, Phenix or CCP4. It uses the copies already installed on your Mac.
+
+1. Install Xtrapol8 into CCP4's Python. Do not use `sudo`; your user already owns the CCP4 folder.
+   ```bash
+   /Applications/ccp4-9/Frameworks/Python.framework/Versions/3.9/bin/python3 -m pip install --no-deps -e <folder/to/Xtrapol8>
+   ```
+   The `-e` (editable) option means the app always runs the code in your Xtrapol8 folder, so you do not need to reinstall after updating it.
+2. Build the app:
+   ```bash
+   <folder/to/Xtrapol8>/macos/make_app.sh
+   ```
+   This creates `<folder/to/Xtrapol8>/dist/Xtrapol8.app`.
+3. Drag `Xtrapol8.app` into `/Applications` or `~/Applications`. The app is not signed by Apple, so the first time you open it, you may need to right-click it and choose "Open".
+
+Each time it starts, the app:
+* finds the newest `ccp4-*` and `phenix-*` folders in `/Applications` and `~/Applications`, and loads their environments, so that `phenix.refine`, `phenix.real_space_refine`, `refmac5` and `coot` are available;
+* starts the GUI with CCP4's Python, or Phenix's Python if that is the one where Xtrapol8 is installed.
+
+If CCP4, Phenix or Python are somewhere else, or you want a specific version, create the file `~/.xtrapol8_app.conf` with any of these lines:
+   ```bash
+   X8_CCP4=/Applications/ccp4-9
+   X8_PHENIX=/Applications/phenix-1.21.2-5419
+   X8_PYTHON=/path/to/python3
+   ```
+
+If the app does not start, check the log in `~/Library/Logs/Xtrapol8/launcher.log`.
 
 ## Tutorial
 
