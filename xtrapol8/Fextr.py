@@ -1833,7 +1833,7 @@ class Filesandmaps:
         mtz_object.write(file_name=mtz_name)
         fft_map_mfofo = mc_mfofo.fft_map(
             crystal_gridding=self.crystal_gridding, resolution_factor=0.25
-        ).apply_sigma_scaling()
+        ).apply_volume_scaling()
         # fft_map_mfofo.as_ccp4_map(file_name  = ccp4_name) #works too but below is how xplor-files arewritten with mtz2map
         iotbx.map_tools.write_ccp4_map(
             sites_cart=self.sites_cart,
