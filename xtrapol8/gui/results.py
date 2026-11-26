@@ -339,8 +339,7 @@ class ResultsViewer(QWidget):
         if script is None or not script.is_file():
             QMessageBox.warning(self, 'Coot', 'The Coot script is unavailable.')
             return
-        executable = next((found for name in ('coot', 'coot1', 'coot-1', 'coot0.9')
-                           if (found := shutil.which(name))), None)
+        executable = shutil.which('coot')
         if not executable:
             QMessageBox.warning(self, 'Coot not found',
                                 'Could not find Coot on PATH. Launch the Qt GUI from a shell '

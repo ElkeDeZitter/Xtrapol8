@@ -246,6 +246,9 @@ def collect(window):
                 put(params,path,_from_widget(panel.controls[name],get(params,path),name,path))
     ex = window.tabExtrapolation
     mode = ex.mode_buttons.checkedId()
+    # Coot is launched explicitly from Results, never by the scientific subprocess.
+    # This also overrides open_coot=True in an imported PHIL.
+    put(params,'output.open_coot',False)
     put(params,'output.generate_fofo_only',mode == 0)
     put(params,'f_and_maps.fast_and_furious',mode == 1)
     put(params,'f_and_maps.f_extrapolated_and_maps',[name for name in FACTORS if ex.controls[name].isChecked()])
